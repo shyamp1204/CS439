@@ -102,34 +102,46 @@ int main(int argc, char **argv)
  * run the job in the context of the child. If the job is running in
  * the foreground, wait for it to terminate and then return. 
 */
+int builtin_cmd(char **argv);
+pid_t Fork(void);
 void eval(char *cmdline) 
 {
+  int status;
   char *argv[MAXARGS];
   char buf[MAXLINE];
   int bg;
   pid_t pid;
 
-  strcpy(buf, argv);
+  strcpy(buf, cmdline);
   bg = parseline(buf, argv);
   if(argv[0]==NULL)
     return;
 
-  if(!builtin_command(&cmdline)) {  //argv
-    if((pid= Fork() == 0) {
-	if(execv(argv[0], argv, environ) < 0 ) {
+  if(!builtin_cmd(argv)) {  //argv
+    if((pid= Fork() == 0)) {
+	if(execve(argv[0], argv, environ) < 0 ) {
 	  printf("%s: Command not found.\n", argv[0]);
 	  exit(0);
 	}
+    }
+    else {  //parent
+      // code from B&O book, page 72
+      while((pid = waitpid(-1, &status, 0)) > 0) {
+	if(!WIFEXITED(status)) {
+	  unix_error("Error with child process! Terminated abnormally");
+        }
       }
-      if(!bg) {
+    }
+   
+/*     if(!bg) {
 	int status;
 	if(waitpid(pid, &status, 0) <0) 
 	  unix_error("waitfg: waitpid error");
       }
       else
-	printf("%d %s", pid, cmdline);
+      printf("%d %s", pid, cmdline); */
   }
-    return;
+  return;
 }
 
 
@@ -138,6 +150,8 @@ void eval(char *cmdline)
  *    it immediately. 
  * Return 1 if a builtin command was executed; 
  * return 0 if the argument passed in is *not* a builtin command.
+ * 
+ *Code from B&O book page 735
  */
 int builtin_cmd(char **argv) 
 {
@@ -182,5 +196,15 @@ void sigquit_handler(int sig)
     exit(1);
 }
 
+/* code from B&O book, page 718
+ * wrapper class for fork()
+ */
+pid_t Fork(void) 
+{
+    pid_t pid;
+    if((pid = fork()) <0)
+      unix_error("Fork error");
+    return pid;
+}
 
 
