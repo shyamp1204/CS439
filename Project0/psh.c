@@ -104,14 +104,30 @@ int main(int argc, char **argv)
 */
 void eval(char *cmdline) 
 {
-  //if command = built in function
-  if(builtin_cmd(&cmdline)){
-    //run the command
-  }
-  else {
-    //evaluate the command and run it
-    //wain
-    //exit
+  char *argv[MAXARGS];
+  char buf[MAXLINE];
+  int bg;
+  pid_t pid;
+
+  strcpy(buf, argv);
+  bg = parseline(buf, argv);
+  if(argv[0]==NULL)
+    return;
+
+  if(!builtin_command(&cmdline)) {  //argv
+    if((pid= Fork() == 0) {
+	if(execv(argv[0], argv, environ) < 0 ) {
+	  printf("%s: Command not found.\n", argv[0]);
+	  exit(0);
+	}
+      }
+      if(!bg) {
+	int status;
+	if(waitpid(pid, &status, 0) <0) 
+	  unix_error("waitfg: waitpid error");
+      }
+      else
+	printf("%d %s", pid, cmdline);
   }
     return;
 }
@@ -120,12 +136,16 @@ void eval(char *cmdline)
 /* 
  * builtin_cmd - If the user has typed a built-in command then execute
  *    it immediately. 
- * Return 1 if a builtin command was executed; return 0
- * if the argument passed in is *not* a builtin command.
+ * Return 1 if a builtin command was executed; 
+ * return 0 if the argument passed in is *not* a builtin command.
  */
 int builtin_cmd(char **argv) 
 {
-    return 0;     /* not a builtin command */
+  if(!strcmp(argv[0], "quit"))
+    exit(0);
+  else if(!strcmp(argv[0], "&"))
+    return 1;
+  return 0;     /* not a builtin command */
 }
 
 

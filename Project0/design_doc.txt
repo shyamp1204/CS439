@@ -1,20 +1,20 @@
 ################
 YOUR INFO
 ################
-Name1:
-EID1:
-CS login:
-Email:
-Unique Number:
+Name1:alex irion
+EID1:aji272
+CS login:alex10
+Email:alexirion10@gmail.com
+Unique Number:50745
 
-Slip days used:
+Slip days used:0
 
 ****EACH student submits a (unique) design document.****
 
 ################
 YOUR PARTNER'S INFO
 ################
-Name1:
+Name1:Katherine Heyne
 EID1:
 CS login:
 Email:
