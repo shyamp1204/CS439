@@ -101,6 +101,11 @@ int main(int argc, char **argv)
  * then execute it immediately. Otherwise, fork a child process and
  * run the job in the context of the child. If the job is running in
  * the foreground, wait for it to terminate and then return. 
+ *
+ *Alex and Katherine driving here
+ *
+ *code snippets from page 735 of B&O book
+ *
 */
 int builtin_cmd(char **argv);
 pid_t Fork(void);
@@ -132,14 +137,6 @@ void eval(char *cmdline)
         }
       }
     }
-   
-/*     if(!bg) {
-	int status;
-	if(waitpid(pid, &status, 0) <0) 
-	  unix_error("waitfg: waitpid error");
-      }
-      else
-      printf("%d %s", pid, cmdline); */
   }
   return;
 }
@@ -161,9 +158,6 @@ int builtin_cmd(char **argv)
     return 1;
   return 0;     /* not a builtin command */
 }
-
-
-
 
 
 /***********************
