@@ -42,20 +42,21 @@ int main(int argc, char **argv)
         timeWait.tv_sec = (time_t) 1;
         timeWait.tv_nsec = 0;
       }
+
       if(bytes != 11)
 	exit(-999);
       if(Signal(SIGINT, handler) == SIG_ERR)
       	unix_error("signal error");
+      if(Signal(SIGUSR1, handler) == SIG_ERR)
+	unix_error("signal error");
+
       interrupt = nanosleep(&timeWait, &timeInterrupt);
-      if(interrupt == -1) {
+
+      while(interrupt == -1) {
 	timeWait.tv_nsec = timeInterrupt.tv_nsec;
 	timeWait.tv_sec = (time_t) 0;
 	interrupt = nanosleep(&timeWait, &timeInterrupt);
       }
-      /*      if(interrupt ==0) {
-        timeWait.tv_sec = (time_t) 1;
-        timeWait.tv_nsec = 0;
-	}*/
     }
   }
   return 0;
@@ -66,9 +67,18 @@ void handler(int sig) {
   ssize_t bytes; 
   const int STDOUT = 1; 
 
-  bytes = write(STDOUT, "Nice try.\n", 10); 
-  if(bytes != 10) 
-    exit(-999);
+  if(sig == SIGINT) {
+    bytes = write(STDOUT, "Nice try.\n", 10); 
+    if(bytes != 10) 
+      exit(-999);
+  }
+  else if(sig == SIGUSR1) {
+    bytes = write(STDOUT, "exiting\n", 8);
+    if(bytes != 8) 
+      exit(-999);
+    else
+      exit(1);
+  }
 }
 
 
