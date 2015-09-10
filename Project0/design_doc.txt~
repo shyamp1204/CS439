@@ -76,32 +76,12 @@ Questions regarding Part 1
   signal handler function that you write?  (You may choose either signal
   handler.)
 
-last 5 assembly instructions are:
-
-   0x0000000000400a58 <+107>:   callq  0x4007b0 <exit@plt>
-   0x0000000000400a5d <+112>:   mov    $0x1,%edi
-   0x0000000000400a62 <+117>:   callq  0x4007b0 <exit@plt>
-   0x0000000000400a67 <+122>:   leaveq 
-   0x0000000000400a68 <+123>:   retq   
-
-
-
 (3) After the instruction identified in the previous question executes, 
   what is the next assembly language instruction executed?
-
-Dump of assembler code for function __nanosleep_nocancel:
-   0x00007ffff7ad5f19 <+0>:     mov    $0x23,%eax
-   0x00007ffff7ad5f1e <+5>:     syscall 
-=> 0x00007ffff7ad5f20 <+7>:     cmp    $0xfffffffffffff001,%rax
-   0x00007ffff7ad5f26 <+13>:    jae    0x7ffff7ad5f59 <nanosleep+73>
-
 
 (4) When the signal handler finishes running, it must restore all of
   the registers from the interrupted thread to exactly their values
   before the signal occurred. How is this done?
-
-The register values are stored in the mode switch
-Could also be pushed onto the stack before the funciton call is made.  They can then be popped off the stack to restore the values into the register
 
 
 ################
