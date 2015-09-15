@@ -18,8 +18,12 @@
  * second.
  *
  *
+ *Alex and Katherine driving here
+ *
  */
-void handler(int sig);
+void sigint_handler(int sig);
+void handler_SIGUSR1(int sig);
+
 int main(int argc, char **argv)
 {
   pid_t pid = getpid();
@@ -36,7 +40,7 @@ int main(int argc, char **argv)
     timeWait.tv_nsec = 0;
     int interrupt = 0;
 
-    while(1==1) {   //&&process still running
+    while(1) {   //&&process still running
       if(interrupt != -1) {
 	bytes = write(STDOUT, "Still here\n", 11);
         timeWait.tv_sec = (time_t) 1;
@@ -45,9 +49,9 @@ int main(int argc, char **argv)
 
       if(bytes != 11)
 	exit(-999);
-      if(Signal(SIGINT, handler) == SIG_ERR)
+      if(Signal(SIGINT, sigint_handler) == SIG_ERR)
       	unix_error("signal error");
-      if(Signal(SIGUSR1, handler) == SIG_ERR)
+      if(Signal(SIGUSR1, handler_SIGUSR1) == SIG_ERR)
 	unix_error("signal error");
 
       interrupt = nanosleep(&timeWait, &timeInterrupt);
@@ -62,23 +66,26 @@ int main(int argc, char **argv)
   return 0;
 }
 
-//signal handler
-void handler(int sig) {
+//signal handler for sigInt
+void sigint_handler(int sig) {
   ssize_t bytes; 
   const int STDOUT = 1; 
 
-  if(sig == SIGINT) {
-    bytes = write(STDOUT, "Nice try.\n", 10); 
-    if(bytes != 10) 
-      exit(-999);
-  }
-  else if(sig == SIGUSR1) {
-    bytes = write(STDOUT, "exiting\n", 8);
-    if(bytes != 8) 
-      exit(-999);
-    else
-      exit(1);
-  }
+  bytes = write(STDOUT, "Nice try.\n", 10); 
+  if(bytes != 10) 
+    exit(-999);
+}
+
+//signal handler for SIGUSR1
+void handler_SIGUSR1(int sig) {
+  ssize_t bytes; 
+  const int STDOUT = 1; 
+
+  bytes = write(STDOUT, "exiting\n", 8);
+  if(bytes != 8) 
+    exit(-999);
+  else
+    exit(1);
 }
 
 

@@ -41,6 +41,8 @@ void sigint_handler(int sig);
 void usage(void);
 void sigquit_handler(int sig);
 
+/*additional wrapper function declarations*/
+pid_t Fork(void);
 
 
 /*
@@ -122,6 +124,9 @@ int main(int argc, char **argv)
  * when we type ctrl-c (ctrl-z) at the keyboard.  
  *
  *code snippets from page 735 of B&O book
+ *
+ *Alex and Katherine driving here
+ *
 */
 void eval(char *cmdline) 
 {
@@ -130,33 +135,40 @@ void eval(char *cmdline)
   char buf[MAXLINE];
   int bg;
   pid_t pid;
+  struct job_t my_var;
 
   strcpy(buf, cmdline);
+  //bg = 1 if true, fg if 0
   bg = parseline(buf, argv);
   if(argv[0] == NULL)
     return;
 
+  //
+  // pid_t parentPID = getppid();
+  //addjob(jobs, parentPID, 1, cmdline); 
+
   if(!builtin_cmd(argv)) { //argv
     if((pid=Fork() == 0)) {
+
+      //add a job to the list
+      pid_t childPID = getpid();
+      addjob(jobs, childPID, 1, cmdline);
+
       if(execve(argv[0], argv, environ) < 0) {
 	printf("%s: Command not found.\n", argv[0]);
 	exit(0);
       }
     }
-    //    else { // parent
-      //code from B&O book, page 72
-      /*     while((pid = waitpid(-1, &status, 0)) > 0) {
-	if(!WIFEXITED(status)) {
-	  unix_error("Error with child process! Terminated abnormally");
-	}
-      }*/
     if(!bg) {
-      int status;
-      if(waitpid(pid, &status, 0) < 0)
+      int status2;
+      if(waitpid(pid, &status2, 0) < 0) {
 	unix_error("waitfg: waitpid error");
+      }
     }
-    else
+    else {
       printf("%d %s", pid, cmdline);
+    }
+
   }
   return;
 }
@@ -171,7 +183,18 @@ void eval(char *cmdline)
  */
 int builtin_cmd(char **argv) 
 {
-    return 0;     /* not a builtin command */
+  if(!strcmp(argv[0], "quit")) {
+    exit(0);
+  }
+  else if(!strcmp(argv[0], "jobs")) {
+    listjobs(jobs);
+    return 1;
+  }
+  else if(!strcmp(argv[0], "&")) {
+    do_bgfg(argv);
+    return 1;
+  }
+  return 0;     /* not a builtin command */
 }
 
 /* 
@@ -213,7 +236,14 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig) 
 {
-    return;
+  pid_t currentFGjob = fgpid(jobs);
+  if(currentFGjob == 0) {
+    //do nothing
+  }
+  pid_t groupPID = getpgrp();
+  if(kill(-groupPID, SIGINT) < 0) 
+    unix_error("error: sending SIGINT signal to groupPID");
+  exit(1);
 }
 
 /*
@@ -223,7 +253,14 @@ void sigint_handler(int sig)
  */
 void sigtstp_handler(int sig) 
 {
-    return;
+  pid_t currentFGjob = fgpid(jobs);
+  if(currentFGjob == 0) {
+    //do nothing
+  }
+  pid_t groupPID = getpgrp();
+  if(kill(-groupPID, SIGTSTP) < 0) 
+    unix_error("error: sending SIGSTP signal to groupPID");
+  exit(1);
 }
 
 /*********************
@@ -262,5 +299,13 @@ void sigquit_handler(int sig)
     exit(1);
 }
 
-
-
+/* code from B&O book, page 718
+ * wrapper class for fork()
+ */
+pid_t Fork(void) 
+{
+    pid_t pid;
+    if((pid = fork()) <0)
+      unix_error("Fork error");
+    return pid;
+}
