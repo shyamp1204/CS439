@@ -75,6 +75,7 @@ Questions regarding Part 1
 (2) What is the last assembly language instruction executed by the
   signal handler function that you write?  (You may choose either signal
   handler.)
+	-
 
 (3) After the instruction identified in the previous question executes, 
   what is the next assembly language instruction executed?
