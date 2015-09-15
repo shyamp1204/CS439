@@ -158,35 +158,15 @@ void eval(char *cmdline)
       }
     }
     else {
-      // if (!bg) {
-      if (waitpid(pid, &status, 0) < 0) {
-        unix_error("waitfg: waitpid error");
+      if (!bg) {
+	if (waitpid(pid, &status, 0) < 0) {
+	  unix_error("waitfg: waitpid error");
+	}
       }
-	// }
-      // else {
-      //printf("%d %s", pid, cmdline);
-      //}
-    }
-    /*    else {  //parent
-      // code from B&O book, page 72
-      while((pid = waitpid(-1, &status, 0)) > 0) {
-	if(!WIFEXITED(status)) {
-	  unix_error("Error with child process! Terminated abnormally");
-        }
-      }
-      }*/
-
-
-    /*    if(!bg) {
-      int status2;
-      if(waitpid(pid, &status2, 0) < 0) {
-	unix_error("waitfg: waitpid error");
+      else {
+	printf("%d %s", pid, cmdline);
       }
     }
-    else {
-      printf("%d %s", pid, cmdline);
-    }*/
-
   }
   return;
 }
@@ -277,16 +257,20 @@ void sigint_handler(int sig)
 void sigtstp_handler(int sig) 
 {
   pid_t currentFGjob = fgpid(jobs);
-  if(currentFGjob == 0) {
-    //do nothing
-  }
-  pid_t groupPID = getpgrp();
-  
-  //stop process, move it to the background
+  if(currentFGjob != 0) {
+    pid_t groupPID = getpgrp();
+    // addjob(jobs, groupPID, 3, cmdline);
+    //HOW DO WE MAKE THE STATE OF THE JOB "STOPPED"?*******
+    //stop process, move it to the background
 
-  if(kill(-1*groupPID, SIGTSTP) < 0) 
-    unix_error("error: sending SIGSTP signal to groupPID");
-  exit(0);
+    if(kill(-1*groupPID, SIGTSTP) < 0) 
+      unix_error("error: sending SIGSTP signal to groupPID");
+    deletejob(jobs, currentFGjob);
+    exit(0);
+  }
+  else {
+    deletejob(jobs, currentFGjob);
+  }
 }
 
 /*********************
