@@ -135,7 +135,8 @@ void eval(char *cmdline)
   char buf[MAXLINE];
   int bg;
   pid_t pid;
-  struct job_t my_var;
+  sigset_t mask;
+  pid_t childPID;
 
   strcpy(buf, cmdline);
   //bg = 1 if true, fg if 0
@@ -144,29 +145,29 @@ void eval(char *cmdline)
     return;
 
   if(!builtin_cmd(argv)) { //argv
+
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
+
     if((pid=Fork() == 0)) {
+      //child process
 
       setpgid(0,0);
+      childPID = getpid();
 
-      //add a job to the list
-      pid_t childPID = getpid();
-      addjob(jobs, childPID, 1, cmdline);
+      sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
       if(execve(argv[0], argv, environ) < 0) {
 	printf("%s: Command not found.\n", argv[0]);
 	exit(0);
       }
     }
-    else {
-      if (!bg) {
-	if (waitpid(pid, &status, 0) < 0) {
-	  unix_error("waitfg: waitpid error");
-	}
-      }
-      else {
-	printf("%d %s", pid, cmdline);
-      }
-    }
+    
+    //add a job to the list
+    addjob(jobs, pid, 1, cmdline);  //childPID
+
+  
   }
   return;
 }
@@ -200,7 +201,20 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv) 
 {
-    return;
+  pid_t pid;
+  int bg= 0;  //delete this line
+  int status;
+
+  if (!bg) {
+    if (waitpid(-1, &status, 0) < 0) {
+      unix_error("waitfg: waitpid error");
+    }
+  }
+  else {
+    //printf("%d %s", pid, cmdline);
+  }
+  
+return;
 }
 
 /* 
@@ -224,7 +238,14 @@ void waitfg(pid_t pid)
  */
 void sigchld_handler(int sig) 
 {
-    return;
+  pid_t pid;
+  while((pid = waitpid(-1, NULL, 0)) > 0) {
+    deletejob(jobs, pid);
+    //PRINT OUT REAPED CHILD PROCESS INFO
+  }
+  if(errno != ECHILD) {
+    unix_error("sigchld handler error");
+  }
 }
 
 /* 
