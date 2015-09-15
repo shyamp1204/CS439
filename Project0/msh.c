@@ -143,9 +143,6 @@ void eval(char *cmdline)
   if(argv[0] == NULL)
     return;
 
-  //
-  //pid_t parentPID = getppid();
-
   if(!builtin_cmd(argv)) { //argv
     if((pid=Fork() == 0)) {
 
@@ -160,7 +157,27 @@ void eval(char *cmdline)
 	exit(0);
       }
     }
-    if(!bg) {
+    else {
+      // if (!bg) {
+      if (waitpid(pid, &status, 0) < 0) {
+        unix_error("waitfg: waitpid error");
+      }
+	// }
+      // else {
+      //printf("%d %s", pid, cmdline);
+      //}
+    }
+    /*    else {  //parent
+      // code from B&O book, page 72
+      while((pid = waitpid(-1, &status, 0)) > 0) {
+	if(!WIFEXITED(status)) {
+	  unix_error("Error with child process! Terminated abnormally");
+        }
+      }
+      }*/
+
+
+    /*    if(!bg) {
       int status2;
       if(waitpid(pid, &status2, 0) < 0) {
 	unix_error("waitfg: waitpid error");
@@ -168,7 +185,7 @@ void eval(char *cmdline)
     }
     else {
       printf("%d %s", pid, cmdline);
-    }
+    }*/
 
   }
   return;
@@ -237,18 +254,19 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig) 
 {
-  if( == 0){
   pid_t currentFGjob = fgpid(jobs);
-  if(currentFGjob == 0) {
-    //do nothing
+  if(currentFGjob != 0) {
+    pid_t groupPID = getpgrp();
+
+    //remove foreground job from the job list
+    if(kill(-1*groupPID, SIGINT) < 0) 
+      unix_error("error: sending SIGINT signal to groupPID");
+    deletejob(jobs, currentFGjob);
+    exit(0);
   }
-  pid_t groupPID = getpgrp();
-
-  //remove foreground job from the job list
-
-  if(kill(-1*groupPID, SIGINT) < 0) 
-    unix_error("error: sending SIGINT signal to groupPID");
-  exit(0);
+  else {
+    deletejob(jobs, currentFGjob);
+  }
 }
 
 /*
