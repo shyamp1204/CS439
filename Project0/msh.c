@@ -144,11 +144,12 @@ void eval(char *cmdline)
     return;
 
   //
-  // pid_t parentPID = getppid();
-  //addjob(jobs, parentPID, 1, cmdline); 
+  //pid_t parentPID = getppid();
 
   if(!builtin_cmd(argv)) { //argv
     if((pid=Fork() == 0)) {
+
+      setpgid(0,0);
 
       //add a job to the list
       pid_t childPID = getpid();
@@ -236,14 +237,18 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig) 
 {
+  if( == 0){
   pid_t currentFGjob = fgpid(jobs);
   if(currentFGjob == 0) {
     //do nothing
   }
   pid_t groupPID = getpgrp();
-  if(kill(-groupPID, SIGINT) < 0) 
+
+  //remove foreground job from the job list
+
+  if(kill(-1*groupPID, SIGINT) < 0) 
     unix_error("error: sending SIGINT signal to groupPID");
-  exit(1);
+  exit(0);
 }
 
 /*
@@ -258,9 +263,12 @@ void sigtstp_handler(int sig)
     //do nothing
   }
   pid_t groupPID = getpgrp();
-  if(kill(-groupPID, SIGTSTP) < 0) 
+  
+  //stop process, move it to the background
+
+  if(kill(-1*groupPID, SIGTSTP) < 0) 
     unix_error("error: sending SIGSTP signal to groupPID");
-  exit(1);
+  exit(0);
 }
 
 /*********************
