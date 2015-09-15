@@ -189,8 +189,11 @@ int builtin_cmd(char **argv)
     listjobs(jobs);
     return 1;
   }
-  else if(!strcmp(argv[0], "&")) {
+  else if(!strcmp(argv[0], "bg") || !strcmp(argv[0], "fg")) {
     do_bgfg(argv);
+    return 1;
+  }
+  else if(!strcmp(argv[0], "&")) {
     return 1;
   }
   return 0;     /* not a builtin command */
@@ -239,13 +242,24 @@ void waitfg(pid_t pid)
 void sigchld_handler(int sig) 
 {
   pid_t pid;
-  while((pid = waitpid(-1, NULL, 0)) > 0) {
+  int status;
+
+  while((pid = waitpid(-1, &status, 0)) > 0) {  //WNOHANG|WUNTRACED
     deletejob(jobs, pid);
+
     //PRINT OUT REAPED CHILD PROCESS INFO
+    if(WIFSIGNALED(status)) {
+      fprintf(1, "Job [1] (%d) terminated by signal %d\n", pid, WTERMSIG(status));
+    }
+    else if (WIFSTOPPED(status)) {
+      fprintf(1, "Job [1] (%d) stopped by signal %d\n", pid, WTERMSIG(status));
+    }
   }
   if(errno != ECHILD) {
     unix_error("sigchld handler error");
   }
+
+  return;
 }
 
 /* 
@@ -257,15 +271,8 @@ void sigint_handler(int sig)
 {
   pid_t currentFGjob = fgpid(jobs);
   if(currentFGjob != 0) {
-    pid_t groupPID = getpgrp();
+    kill(-1*currentFGjob, SIGINT);
 
-    //remove foreground job from the job list
-    if(kill(-1*groupPID, SIGINT) < 0) 
-      unix_error("error: sending SIGINT signal to groupPID");
-    deletejob(jobs, currentFGjob);
-    exit(0);
-  }
-  else {
     deletejob(jobs, currentFGjob);
   }
 }
