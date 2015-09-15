@@ -120,10 +120,45 @@ int main(int argc, char **argv)
  * each child process must have a unique process group ID so that our
  * background children don't receive SIGINT (SIGTSTP) from the kernel
  * when we type ctrl-c (ctrl-z) at the keyboard.  
+ *
+ *code snippets from page 735 of B&O book
 */
 void eval(char *cmdline) 
 {
+  int status;
+  char *argv[MAXARGS];
+  char buf[MAXLINE];
+  int bg;
+  pid_t pid;
+
+  strcpy(buf, cmdline);
+  bg = parseline(buf, argv);
+  if(argv[0] == NULL)
     return;
+
+  if(!builtin_cmd(argv)) { //argv
+    if((pid=Fork() == 0)) {
+      if(execve(argv[0], argv, environ) < 0) {
+	printf("%s: Command not found.\n", argv[0]);
+	exit(0);
+      }
+    }
+    //    else { // parent
+      //code from B&O book, page 72
+      /*     while((pid = waitpid(-1, &status, 0)) > 0) {
+	if(!WIFEXITED(status)) {
+	  unix_error("Error with child process! Terminated abnormally");
+	}
+      }*/
+    if(!bg) {
+      int status;
+      if(waitpid(pid, &status, 0) < 0)
+	unix_error("waitfg: waitpid error");
+    }
+    else
+      printf("%d %s", pid, cmdline);
+  }
+  return;
 }
 
 
