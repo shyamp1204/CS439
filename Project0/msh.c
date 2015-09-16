@@ -171,14 +171,7 @@ void eval(char *cmdline)
       sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
       if(!bg) {
-        //add a job to the list IF IN FOREGROUND!
-        int status2;
-
-        // code from B&O page 735
-        //WAIT FOR THIS CHILD PROCESS TO FINISH! (since in foreground)
-        if(waitpid(childPID, &status, 0) < 0)
-          unix_error("waitfg: waitpid error");
-        return;
+        waitfg(childPID);
       } else {
         //add job to BACKGROUND instead
         //and DO NOT wait for child process to terminate!
@@ -228,18 +221,25 @@ void do_bgfg(char **argv)
   //struct job_t* job=NULL;  
   pid_t pid;
   int jid;
+  int id = (int) atoi(argv[1]);
+  if(isdigit((argv[1])[0])) {
+    //argv[1] points to "%5", so it points to a char array, so (argv[1])[1] = '5'
+    //then its the pid
+    //pid = atoi(argv[1]); // GET THE first char (and only) in argv[1]
+    pid = (pid_t) ((argv[1])[0]);
+  } else {
+    //jid = atoi((argv[1])[1]); // GET THE second char in argv[1]!***
+    jid = (int) ((argv[1])[0]);
+  }
+
   if(!strcmp(argv[0], "bg")) {
     //The bg <job> command restarts <job> by sending it a SIGCONT signal,
     // and then runs it in the background. The <job> argument can be either a PID or a JID.
-    if(isdigit(argv[1])) {
-	   //then its the pid
-      pid = atoi(argv[1]); // GET THE first char (and only) in argv[1]
-    } else {
-      jid = atoi(argv[1]); // GET THE second char in argv[1]!***
-    }
     
-    kill(pid, SIGCONT);
+    //kill(pid, SIGCONT);
+    kill(id, SIGCONT);
     //ADD to JOB LIST
+    //addjob(jobs, id, 2, cmdline);
     //PRINT job added
 
   }
@@ -247,8 +247,10 @@ void do_bgfg(char **argv)
 
     //The fg <job> command restarts <job> by sending it a SIGCONT signal,
     // and then runs it in the foreground. The <job> argument can be either a PID or a JID. 
-    kill(pid, SIGCONT);
-    waitfg(pid);
+    kill(id, SIGCONT);
+    //add to job list, and then wait until child process completes
+    //addjob(jobs, id, 1, cmdline);
+    waitfg(id);
   }
   return;
 }
@@ -258,6 +260,13 @@ void do_bgfg(char **argv)
  */
 void waitfg(pid_t pid)
 {
+  //add a job to the list IF IN FOREGROUND!
+  int status;
+
+  // code from B&O page 735
+  //WAIT FOR THIS CHILD PROCESS TO FINISH! (since in foreground)
+  if(waitpid(pid, &status, 0) < 0)
+    unix_error("waitfg: waitpid error");
   return;
 }
 
