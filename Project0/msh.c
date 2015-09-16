@@ -177,7 +177,7 @@ void eval(char *cmdline)
         //and DO NOT wait for child process to terminate!
         // if running in background, 
         struct job_t* childJob = getjobpid(jobs, childPID);
-        printf("[%i] (%d) %s", childJob->jid, childPID, cmdline);
+        printf("[%i] (%d) %s", (int) (childJob->jid), childPID, cmdline);
         return;
       }
     }
@@ -245,11 +245,10 @@ void do_bgfg(char **argv)
     kill(-(job->pid), SIGCONT);
     //make job's state "bg"
     job->state = 2;
-    //ADD to JOB LIST
-    //how do we get cmdline?!?!?
-    //addjob(jobs, id, 2, cmdline);
+    //DO WE: ADD to JOB LIST ??
     //PRINT job added
-
+    char* buf;
+    printf("[%i] (%d) %s", (int) (job->jid), (pid_t) (job->pid), job->cmdline);
   }
   else if(!strcmp(argv[0], "fg")) {
 
@@ -270,13 +269,13 @@ void do_bgfg(char **argv)
  */
 void waitfg(pid_t pid)
 {
-  //add a job to the list IF IN FOREGROUND!
   int status;
-
-  // code from B&O page 735
-  //WAIT FOR THIS CHILD PROCESS TO FINISH! (since in foreground)
-  if(waitpid(pid, &status, 0) < 0)
-    unix_error("waitfg: waitpid error");
+  while(pid == fgpid(jobs)) {
+    // code from B&O page 735
+    //WAIT FOR THIS CHILD PROCESS TO FINISH! (since in foreground)
+    //if(waitpid(pid, &status, 0) < 0)
+      //unix_error("waitfg: waitpid error");
+  }
   return;
 }
 
@@ -296,15 +295,16 @@ void sigchld_handler(int sig)
   pid_t pid;
   int status;
 
-  while((pid = waitpid(-1, NULL, WNOHANG|WUNTRACED)) >= 0) {  //&status
+  while((pid = waitpid(-1, NULL, WNOHANG|WUNTRACED)) > 0) {  //&status
     deletejob(jobs, pid);
 
+    int jid = (getjobpid(jobs, pid))->jid;
     //PRINT OUT REAPED CHILD PROCESS INFO
     if(WIFSIGNALED(status)) {
-      sprintf(1, "Job [1] (%d) terminated by signal %d\n", pid, WTERMSIG(status));
+      printf("Job [%i] (%d) terminated by signal %d\n", jid, pid, WTERMSIG(status));
     }
     else if (WIFSTOPPED(status)) {
-      sprintf(1, "Job [1] (%d) stopped by signal %d\n", pid, WTERMSIG(status));
+      printf("Job [%i] (%d) stopped by signal %d\n", jid, pid, WTERMSIG(status));
     }
   }
   if(errno != ECHILD) {
