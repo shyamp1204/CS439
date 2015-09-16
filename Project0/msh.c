@@ -218,18 +218,23 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv) 
 {
-  //struct job_t* job=NULL;  
   pid_t pid;
   int jid;
   int id = (int) atoi(argv[1]);
+  struct job_t* job;
+
   if(isdigit((argv[1])[0])) {
     //argv[1] points to "%5", so it points to a char array, so (argv[1])[1] = '5'
     //then its the pid
     //pid = atoi(argv[1]); // GET THE first char (and only) in argv[1]
     pid = (pid_t) ((argv[1])[0]);
-  } else {
+    //get the actual job struct associated with pid
+    job = getjobpid(jobs, pid);
+  } else if ((argv[1])[0] == '%') {
     //jid = atoi((argv[1])[1]); // GET THE second char in argv[1]!***
-    jid = (int) ((argv[1])[0]);
+    jid = (int) ((argv[1])[1]);
+    //get the actual job struct associated with jid
+    job = getjobjid(jobs, jid);
   }
 
   if(!strcmp(argv[0], "bg")) {
@@ -237,8 +242,11 @@ void do_bgfg(char **argv)
     // and then runs it in the background. The <job> argument can be either a PID or a JID.
     
     //kill(pid, SIGCONT);
-    kill(id, SIGCONT);
+    kill(-(job->pid), SIGCONT);
+    //make job's state "bg"
+    job->state = 2;
     //ADD to JOB LIST
+    //how do we get cmdline?!?!?
     //addjob(jobs, id, 2, cmdline);
     //PRINT job added
 
@@ -247,10 +255,12 @@ void do_bgfg(char **argv)
 
     //The fg <job> command restarts <job> by sending it a SIGCONT signal,
     // and then runs it in the foreground. The <job> argument can be either a PID or a JID. 
-    kill(id, SIGCONT);
+    kill(-(job->pid), SIGCONT);
+    //make job's satte "fg"
+    job->state = 1;
     //add to job list, and then wait until child process completes
     //addjob(jobs, id, 1, cmdline);
-    waitfg(id);
+    waitfg(job->pid);
   }
   return;
 }
