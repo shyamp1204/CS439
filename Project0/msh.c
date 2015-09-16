@@ -136,7 +136,6 @@ void eval(char *cmdline)
   int bg;
   pid_t pid;
   sigset_t mask;
-  pid_t childPID;
 
   strcpy(buf, cmdline);
   //bg = 1 if true, fg if 0
@@ -150,11 +149,11 @@ void eval(char *cmdline)
     sigaddset(&mask, SIGCHLD);
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
-    if((pid=Fork() == 0)) {
+    if((pid=Fork()) == 0) {
       //child process
 
       setpgid(0,0);
-      childPID = getpid();
+      pid = getpid();
 
       sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
@@ -166,6 +165,7 @@ void eval(char *cmdline)
     
     //add a job to the list
     addjob(jobs, pid, 1, cmdline);  //childPID
+    sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
   
   }
@@ -204,20 +204,28 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv) 
 {
-  pid_t pid;
-  int bg= 0;  //delete this line
-  int status;
-
-  if (!bg) {
-    if (waitpid(-1, &status, 0) < 0) {
-      unix_error("waitfg: waitpid error");
-    }
-  }
-  else {
-    //printf("%d %s", pid, cmdline);
-  }
+  //struct job_t* job=NULL;  
   
-return;
+  if(!strcmp(argv[0], "bg")) {
+    //The bg <job> command restarts <job> by sending it a SIGCONT signal,
+    // and then runs it in the background. The <job> argument can be either a PID or a JID.
+    if(isDigit(argv[1]) {
+	
+    }
+    
+    kill(pid, SIGCONT);
+    //ADD to JOB LIST
+    //PRINT job added
+
+  }
+  else if(!strcmp(argv[0], "fg")) {
+
+    //The fg <job> command restarts <job> by sending it a SIGCONT signal,
+    // and then runs it in the foreground. The <job> argument can be either a PID or a JID. 
+    kill(pid, SIGCONT);
+    waitfg(pid);
+  }
+  return;
 }
 
 /* 
@@ -225,7 +233,7 @@ return;
  */
 void waitfg(pid_t pid)
 {
-    return;
+  return;
 }
 
 /*****************
@@ -244,15 +252,15 @@ void sigchld_handler(int sig)
   pid_t pid;
   int status;
 
-  while((pid = waitpid(-1, &status, 0)) > 0) {  //WNOHANG|WUNTRACED
+  while((pid = waitpid(-1, NULL, WNOHANG|WUNTRACED)) > 0) {  //&status
     deletejob(jobs, pid);
 
     //PRINT OUT REAPED CHILD PROCESS INFO
     if(WIFSIGNALED(status)) {
-      fprintf(1, "Job [1] (%d) terminated by signal %d\n", pid, WTERMSIG(status));
+      sprintf(1, "Job [1] (%d) terminated by signal %d\n", pid, WTERMSIG(status));
     }
     else if (WIFSTOPPED(status)) {
-      fprintf(1, "Job [1] (%d) stopped by signal %d\n", pid, WTERMSIG(status));
+      sprintf(1, "Job [1] (%d) stopped by signal %d\n", pid, WTERMSIG(status));
     }
   }
   if(errno != ECHILD) {
@@ -272,9 +280,8 @@ void sigint_handler(int sig)
   pid_t currentFGjob = fgpid(jobs);
   if(currentFGjob != 0) {
     kill(-1*currentFGjob, SIGINT);
-
-    deletejob(jobs, currentFGjob);
   }
+  return;
 }
 
 /*
@@ -286,19 +293,13 @@ void sigtstp_handler(int sig)
 {
   pid_t currentFGjob = fgpid(jobs);
   if(currentFGjob != 0) {
-    pid_t groupPID = getpgrp();
-    // addjob(jobs, groupPID, 3, cmdline);
-    //HOW DO WE MAKE THE STATE OF THE JOB "STOPPED"?*******
-    //stop process, move it to the background
 
-    if(kill(-1*groupPID, SIGTSTP) < 0) 
-      unix_error("error: sending SIGSTP signal to groupPID");
-    deletejob(jobs, currentFGjob);
-    exit(0);
+    //stop process, move it to the background
+    kill(-1*currentFGjob, SIGTSTP);
+
+    //Do I need to do anything to the job???
   }
-  else {
-    deletejob(jobs, currentFGjob);
-  }
+  return;
 }
 
 /*********************
