@@ -145,7 +145,6 @@ void eval(char *cmdline)
     return;
 
   if(!builtin_cmd(argv)) { //argv
-
     sigemptyset(&mask);
     sigaddset(&mask, SIGCHLD);
     sigprocmask(SIG_BLOCK, &mask, NULL);
@@ -192,6 +191,7 @@ void eval(char *cmdline)
  */
 int builtin_cmd(char **argv) 
 {
+  // printf("ARGV[0] = %s \n", argv[0]);
   if(!strcmp(argv[0], "quit")) {
     exit(0);
   }
@@ -201,6 +201,7 @@ int builtin_cmd(char **argv)
     return 1;
   }
   else if(!strcmp(argv[0], "bg") || !strcmp(argv[0], "fg")) {
+    // printf("IN BG FG IN BUILTIN_CMD\n");
     do_bgfg(argv);
     return 1;
   }
@@ -210,53 +211,53 @@ int builtin_cmd(char **argv)
   return 0;     /* not a builtin command */
 }
 
+
 /* 
  * do_bgfg - Execute the builtin bg and fg commands
+ * BG <JOB> = CHANGES A STOPPED BACKGROUND JOB TO A RUNNING BACKGROUND JOB!
+ * FG <JOB> = CHANGES A STOPPED OR UNNING BACKGROUND JOB TO A RUNNING IN THE FOREGROUND
  */
 void do_bgfg(char **argv) 
 {
   pid_t pid;
   int jid;
-  int id = (int) atoi(argv[1]);
-  struct job_t* job;
+  struct job_t* currentJob;
 
-  if(isdigit((argv[1])[0])) {
-    //argv[1] points to "%5", so it points to a char array, so (argv[1])[1] = '5'
-    //then its the pid
-    //pid = atoi(argv[1]); // GET THE first char (and only) in argv[1]
-    pid = (pid_t) ((argv[1])[0]);
-    //get the actual job struct associated with pid
-    job = getjobpid(jobs, pid);
+  printf("ARGV[1] = %s", argv[1]);
+  //get pid or jid from argv
+  if(isdigit(argv[1])) {
+    pid = (pid_t) atoi(argv[1]); // at char 0
+    currentJob = getjobpid(jobs, pid);
+    printf("pid is: %i \n", pid);
   } else if ((argv[1])[0] == '%') {
-    //******NEED TO FIX THIS******
-    //jid = atoi((argv[1])[1]); // GET THE second char in argv[1]!***
-    jid = (int) ((argv[1])[1]);
-    //get the actual job struct associated with jid
-    job = getjobjid(jobs, jid);
+    //char* jidSymbol = argv[1];
+    //jidSymbol now = char* to argv[1] = "%5"
+    //jid = jidSymbol[1];
+    int temp = (int) atoi(argv[1]);
+    jid = temp % 10;  // 35 % 10 = 
+
+    printf("IN ELSE IF HAVE 'JID SIGN'\n");
+    printf("jid is: %i \n", jid);
+
+    currentJob = getjobjid(jobs, jid);
+  } else {
+    printf("argv[1] should contain a pid or jid");
+    return;
   }
 
-  //kill(-(job->pid), SIGCONT);
-
+  //bg and fg jobs - send in SIGCONT signal to job
+  kill(-(currentJob->pid), SIGCONT);
+  //The bg <job> command restarts <job> by sending it a SIGCONT signal,
+  // and then runs it in the background. The <job> argument can be either a PID or a JID.
   if(!strcmp(argv[0], "bg")) {
-    //The bg <job> command restarts <job> by sending it a SIGCONT signal,
-    // and then runs it in the background. The <job> argument can be either a PID or a JID.
-    kill(-(job->pid), SIGCONT);
-    //make job's state "bg"
-    job->state = 2;
-    //DO WE: ADD to JOB LIST ??
-    //addjob(jobs, job->pid, 2, job->cmdline);
-    //PRINT job added
-    printf("[%i] (%d) %s", (int) (job->jid), (pid_t) (job->pid), job->cmdline);
-  }
-  else if(!strcmp(argv[0], "fg")) {
-    //The fg <job> command restarts <job> by sending it a SIGCONT signal,
-    // and then runs it in the foreground. The <job> argument can be either a PID or a JID. 
-    kill(-(job->pid), SIGCONT);
-    //make job's satte "fg"
-    job->state = 1;
-    //add to job list, and then wait until child process completes
-    //addjob(jobs, job->pid, 1, job->cmdline);
-    waitfg(job->pid);
+    //change state of job
+    currentJob->state = 2;
+    //print all jobs when added to background
+    printf("[%i] (%d) %s", (int) (currentJob->jid), (pid_t) (currentJob->pid), currentJob->cmdline);
+  } else if(!strcmp(argv[0], "fg")) {
+    currentJob->state = 1;
+    //wait for foreground job to finish
+    waitfg(currentJob->pid);
   }
   return;
 }
@@ -266,14 +267,9 @@ void do_bgfg(char **argv)
  */
 void waitfg(pid_t pid)
 {
-  //int status;
   while(pid == fgpid(jobs)) {
-    // code from B&O page 735
-    //WAIT FOR THIS CHILD PROCESS TO FINISH! (since in foreground)
-    //if(waitpid(pid, &status, 0) < 0)
-      //unix_error("waitfg: waitpid error");
-    //SET STATE TO BLOCKED?
-    //do we add sleep function?
+    //*************IS THIS SLEEP NECESSARY? WHAT DOES 0 DO? 1 did not work! (test05)
+    sleep(0);
   }
   return;
 }
@@ -342,9 +338,6 @@ void sigtstp_handler(int sig)
   if(currentFGpid != 0) {
     //stop process, move it to the background
     kill(-1*currentFGpid, SIGTSTP);
-    //need to get current FG job, and change state to "stopped" (3) when job list prints!
-    //struct job_t* currentJob = getjobpid(jobs, currentFGpid);
-    //currentJob->state = 3;
   }
   return;
 }
