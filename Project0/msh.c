@@ -163,18 +163,15 @@ void eval(char *cmdline)
       }
     } else {
       //childPID = child's pid 
-      int state = 1;
-      if(bg)
-        state = 2;
-
-      addjob(jobs, childPID, state, cmdline);
-      sigprocmask(SIG_UNBLOCK, &mask, NULL);
-
       if(!bg) {
+        addjob(jobs, childPID, 1, cmdline);
+        sigprocmask(SIG_UNBLOCK, &mask, NULL);
         waitfg(childPID);
       } else {
         //add job to BACKGROUND instead
         //and DO NOT wait for child process to terminate!
+        addjob(jobs, childPID, 2, cmdline);
+        sigprocmask(SIG_UNBLOCK, &mask, NULL);
         // if running in background, 
         struct job_t* childJob = getjobpid(jobs, childPID);
         printf("[%i] (%d) %s", (int) (childJob->jid), childPID, cmdline);
@@ -231,34 +228,34 @@ void do_bgfg(char **argv)
     //get the actual job struct associated with pid
     job = getjobpid(jobs, pid);
   } else if ((argv[1])[0] == '%') {
+    //******NEED TO FIX THIS******
     //jid = atoi((argv[1])[1]); // GET THE second char in argv[1]!***
     jid = (int) ((argv[1])[1]);
     //get the actual job struct associated with jid
     job = getjobjid(jobs, jid);
   }
 
+  //kill(-(job->pid), SIGCONT);
+
   if(!strcmp(argv[0], "bg")) {
     //The bg <job> command restarts <job> by sending it a SIGCONT signal,
     // and then runs it in the background. The <job> argument can be either a PID or a JID.
-    
-    //kill(pid, SIGCONT);
     kill(-(job->pid), SIGCONT);
     //make job's state "bg"
     job->state = 2;
     //DO WE: ADD to JOB LIST ??
+    //addjob(jobs, job->pid, 2, job->cmdline);
     //PRINT job added
-    char* buf;
     printf("[%i] (%d) %s", (int) (job->jid), (pid_t) (job->pid), job->cmdline);
   }
   else if(!strcmp(argv[0], "fg")) {
-
     //The fg <job> command restarts <job> by sending it a SIGCONT signal,
     // and then runs it in the foreground. The <job> argument can be either a PID or a JID. 
     kill(-(job->pid), SIGCONT);
     //make job's satte "fg"
     job->state = 1;
     //add to job list, and then wait until child process completes
-    //addjob(jobs, id, 1, cmdline);
+    //addjob(jobs, job->pid, 1, job->cmdline);
     waitfg(job->pid);
   }
   return;
@@ -269,13 +266,14 @@ void do_bgfg(char **argv)
  */
 void waitfg(pid_t pid)
 {
-  int status;
+  //int status;
   while(pid == fgpid(jobs)) {
     // code from B&O page 735
     //WAIT FOR THIS CHILD PROCESS TO FINISH! (since in foreground)
     //if(waitpid(pid, &status, 0) < 0)
       //unix_error("waitfg: waitpid error");
-    //SET STATE TO BLOCKED? HOW DO WE BLOCK IT, DOES THIS DO IT?
+    //SET STATE TO BLOCKED?
+    //do we add sleep function?
   }
   return;
 }
@@ -304,7 +302,11 @@ void sigchld_handler(int sig)
       printf("Job [%i] (%d) terminated by signal %d\n", jid, pid, WTERMSIG(status));
     }
     else if (WIFSTOPPED(status)) {
-      printf("Job [%i] (%d) stopped by signal %d\n", jid, pid, WTERMSIG(status));
+      printf("Job [%i] (%d) stopped by signal %d\n", jid, pid, WSTOPSIG(status));
+      //do we make state stop here or in sigtstp_handler??
+      struct job_t* stoppedJob = getjobpid(jobs, pid);
+      stoppedJob->state = 3;
+      return;
     }
     deletejob(jobs, pid);
   }
@@ -336,13 +338,13 @@ void sigint_handler(int sig)
  */
 void sigtstp_handler(int sig) 
 {
-  pid_t currentFGjob = fgpid(jobs);
-  if(currentFGjob != 0) {
-
+  pid_t currentFGpid = fgpid(jobs);
+  if(currentFGpid != 0) {
     //stop process, move it to the background
-    kill(-1*currentFGjob, SIGTSTP);
-
-    //Do I need to do anything to the job???
+    kill(-1*currentFGpid, SIGTSTP);
+    //need to get current FG job, and change state to "stopped" (3) when job list prints!
+    //struct job_t* currentJob = getjobpid(jobs, currentFGpid);
+    //currentJob->state = 3;
   }
   return;
 }
