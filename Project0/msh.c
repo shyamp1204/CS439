@@ -222,22 +222,17 @@ void do_bgfg(char **argv)
   pid_t pid;
   int jid;
   struct job_t* currentJob;
+  char* chArray = argv[1];
 
-  printf("ARGV[1] = %s", argv[1]);
   //get pid or jid from argv
-  if(isdigit(argv[1])) {
-    pid = (pid_t) atoi(argv[1]); // at char 0
+  if(isdigit(chArray[0])) {
+    pid = (pid_t) atoi(chArray); // at char 0
     currentJob = getjobpid(jobs, pid);
-    printf("pid is: %i \n", pid);
-  } else if ((argv[1])[0] == '%') {
+  } else if (chArray[0] == '%') {
     //char* jidSymbol = argv[1];
     //jidSymbol now = char* to argv[1] = "%5"
     //jid = jidSymbol[1];
-    int temp = (int) atoi(argv[1]);
-    jid = temp % 10;  // 35 % 10 = 
-
-    printf("IN ELSE IF HAVE 'JID SIGN'\n");
-    printf("jid is: %i \n", jid);
+    jid = (int) atoi(&chArray[1]);
 
     currentJob = getjobjid(jobs, jid);
   } else {
@@ -296,15 +291,17 @@ void sigchld_handler(int sig)
     //PRINT OUT REAPED CHILD PROCESS INFO
     if(WIFSIGNALED(status)) {
       printf("Job [%i] (%d) terminated by signal %d\n", jid, pid, WTERMSIG(status));
+      deletejob(jobs, pid);
     }
     else if (WIFSTOPPED(status)) {
       printf("Job [%i] (%d) stopped by signal %d\n", jid, pid, WSTOPSIG(status));
       //do we make state stop here or in sigtstp_handler??
-      struct job_t* stoppedJob = getjobpid(jobs, pid);
+      struct job_t* stoppedJob = getjobjid(jobs, jid);
       stoppedJob->state = 3;
       return;
+    } else {
+      deletejob(jobs, pid);
     }
-    deletejob(jobs, pid);
   }
   if(errno != ECHILD) {
     unix_error("sigchld handler error");
