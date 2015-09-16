@@ -275,6 +275,7 @@ void waitfg(pid_t pid)
     //WAIT FOR THIS CHILD PROCESS TO FINISH! (since in foreground)
     //if(waitpid(pid, &status, 0) < 0)
       //unix_error("waitfg: waitpid error");
+    //SET STATE TO BLOCKED? HOW DO WE BLOCK IT, DOES THIS DO IT?
   }
   return;
 }
@@ -295,9 +296,8 @@ void sigchld_handler(int sig)
   pid_t pid;
   int status;
 
-  while((pid = waitpid(-1, NULL, WNOHANG|WUNTRACED)) > 0) {  //&status
-    deletejob(jobs, pid);
-
+  while((pid = waitpid(-1, &status, WNOHANG|WUNTRACED)) > 0) {  //&status
+    //while waiting for child processes to be reaped, delete job at end?
     int jid = (getjobpid(jobs, pid))->jid;
     //PRINT OUT REAPED CHILD PROCESS INFO
     if(WIFSIGNALED(status)) {
@@ -306,6 +306,7 @@ void sigchld_handler(int sig)
     else if (WIFSTOPPED(status)) {
       printf("Job [%i] (%d) stopped by signal %d\n", jid, pid, WTERMSIG(status));
     }
+    deletejob(jobs, pid);
   }
   if(errno != ECHILD) {
     unix_error("sigchld handler error");
