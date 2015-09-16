@@ -136,6 +136,7 @@ void eval(char *cmdline)
   int bg;
   pid_t pid;
   sigset_t mask;
+  pid_t childPID;
 
   strcpy(buf, cmdline);
   //bg = 1 if true, fg if 0
@@ -148,26 +149,45 @@ void eval(char *cmdline)
     sigemptyset(&mask);
     sigaddset(&mask, SIGCHLD);
     sigprocmask(SIG_BLOCK, &mask, NULL);
-
-    if((pid=Fork()) == 0) {
+    if((childPID=Fork()) == 0) {
       //child process
-
+      //childPID = 0 right now
       setpgid(0,0);
-      pid = getpid();
+      childPID = getpid();
 
       sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
       if(execve(argv[0], argv, environ) < 0) {
-	printf("%s: Command not found.\n", argv[0]);
-	exit(0);
+	       printf("%s: Command not found.\n", argv[0]);
+	       exit(0);
+      }
+    } else {
+      //childPID = child's pid 
+      int state = 1;
+      if(bg)
+        state = 2;
+
+      addjob(jobs, childPID, state, cmdline);
+      sigprocmask(SIG_UNBLOCK, &mask, NULL);
+
+      if(!bg) {
+        //add a job to the list IF IN FOREGROUND!
+        int status2;
+
+        // code from B&O page 735
+        //WAIT FOR THIS CHILD PROCESS TO FINISH! (since in foreground)
+        if(waitpid(childPID, &status, 0) < 0)
+          unix_error("waitfg: waitpid error");
+        return;
+      } else {
+        //add job to BACKGROUND instead
+        //and DO NOT wait for child process to terminate!
+        // if running in background, 
+        struct job_t* childJob = getjobpid(jobs, childPID);
+        printf("[%i] (%d) %s", childJob->jid, childPID, cmdline);
+        return;
       }
     }
-    
-    //add a job to the list
-    addjob(jobs, pid, 1, cmdline);  //childPID
-    sigprocmask(SIG_UNBLOCK, &mask, NULL);
-
-  
   }
   return;
 }
@@ -186,6 +206,7 @@ int builtin_cmd(char **argv)
     exit(0);
   }
   else if(!strcmp(argv[0], "jobs")) {
+    //ONLY LIST THE BACKGROUND JOBS!!!
     listjobs(jobs);
     return 1;
   }
@@ -205,12 +226,16 @@ int builtin_cmd(char **argv)
 void do_bgfg(char **argv) 
 {
   //struct job_t* job=NULL;  
-  
+  pid_t pid;
+  int jid;
   if(!strcmp(argv[0], "bg")) {
     //The bg <job> command restarts <job> by sending it a SIGCONT signal,
     // and then runs it in the background. The <job> argument can be either a PID or a JID.
-    if(isDigit(argv[1]) {
-	
+    if(isdigit(argv[1])) {
+	   //then its the pid
+      pid = atoi(argv[1]); // GET THE first char (and only) in argv[1]
+    } else {
+      jid = atoi(argv[1]); // GET THE second char in argv[1]!***
     }
     
     kill(pid, SIGCONT);
@@ -252,7 +277,7 @@ void sigchld_handler(int sig)
   pid_t pid;
   int status;
 
-  while((pid = waitpid(-1, NULL, WNOHANG|WUNTRACED)) > 0) {  //&status
+  while((pid = waitpid(-1, NULL, WNOHANG|WUNTRACED)) >= 0) {  //&status
     deletejob(jobs, pid);
 
     //PRINT OUT REAPED CHILD PROCESS INFO
