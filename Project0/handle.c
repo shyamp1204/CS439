@@ -27,10 +27,10 @@ void handler_SIGUSR1(int sig);
 int main(int argc, char **argv)
 {
   pid_t pid = getpid();
-  if(pid < 0) {
+  if(pid < 0){
     //error
   }
-  else {
+  else{
     printf("PID = %d\n", pid);
     ssize_t bytes;
     const int STDOUT = 1;
@@ -40,15 +40,18 @@ int main(int argc, char **argv)
     timeWait.tv_nsec = 0;
     int interrupt = 0;
 
-    while(1) {   //&&process still running
+    //busy loop that prints "still here every 1 second
+    while(1) {
       if(interrupt != -1) {
 	bytes = write(STDOUT, "Still here\n", 11);
         timeWait.tv_sec = (time_t) 1;
         timeWait.tv_nsec = 0;
       }
-
       if(bytes != 11)
 	exit(-999);
+
+      //declare signal handlers to catch the different signals
+      //check to make sure they return without an error
       if(Signal(SIGINT, sigint_handler) == SIG_ERR)
       	unix_error("signal error");
       if(Signal(SIGUSR1, handler_SIGUSR1) == SIG_ERR)
@@ -56,7 +59,9 @@ int main(int argc, char **argv)
 
       interrupt = nanosleep(&timeWait, &timeInterrupt);
 
+      //if there was an interupt between the 1 second wait, enter this while loop
       while(interrupt == -1) {
+	//restore values of time left over from when the interupt was called
 	timeWait.tv_nsec = timeInterrupt.tv_nsec;
 	timeWait.tv_sec = (time_t) 0;
 	interrupt = nanosleep(&timeWait, &timeInterrupt);
@@ -66,7 +71,10 @@ int main(int argc, char **argv)
   return 0;
 }
 
-//signal handler for sigInt
+/*
+ *signal handler for sigInt
+ *Alex driving here
+ */
 void sigint_handler(int sig) {
   ssize_t bytes; 
   const int STDOUT = 1; 
@@ -76,7 +84,10 @@ void sigint_handler(int sig) {
     exit(-999);
 }
 
-//signal handler for SIGUSR1
+/*
+ *signal handler for SIGUSR1
+ *Alex driving here
+ */
 void handler_SIGUSR1(int sig) {
   ssize_t bytes; 
   const int STDOUT = 1; 

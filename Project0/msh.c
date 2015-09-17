@@ -1,7 +1,8 @@
 /* 
  * msh - A mini shell program with job control
  * 
- * <Put your name and login ID here>
+ * <Alex Irion - aji272>
+ * <Katherine Keyne - khf293
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -139,29 +140,41 @@ void eval(char *cmdline)
   strcpy(buf, cmdline);
   //bg = 1 if true, fg if 0
   bg = parseline(buf, argv);
-  if(argv[0] == NULL)
+  if(argv[0] == NULL) {
     return;
+  }
 
-  if(!builtin_cmd(argv)) { //argv
+  //if its a built in command execute it, return 1
+  //if not built in execute the command line, return 0
+  if(!builtin_cmd(argv)) {
+    //block commands so race condition to delete/add job doesn't occur
     sigemptyset(&mask);
     sigaddset(&mask, SIGCHLD);
     sigprocmask(SIG_BLOCK, &mask, NULL);
+    
     if((childPID=Fork()) == 0) {
-      //child process
+      //in child process
       sigprocmask(SIG_UNBLOCK, &mask, NULL);
+
+      //set the forked child process to a new process group
       setpgid(0,0);
       childPID = getpid();
+      
+      //execute the file entered from the command line
       if(execve(argv[0], argv, environ) < 0) {
-	       printf("%s: Command not found.\n", argv[0]);
-	       exit(1); // exit(1)
+	printf("%s: Command not found.\n", argv[0]);
+	exit(1);
       }
-    } else if (childPID < 0) {
+    }
+    else if (childPID < 0) {
       unix_error("error in creating child\n");
-    } else {
+    }
+    else {
       //childPID = child's pid 
       if(!bg) {
         addjob(jobs, childPID, 1, cmdline);
-      } else {
+      } 
+      else {
         addjob(jobs, childPID, 2, cmdline);
       }
       if(sigprocmask(SIG_UNBLOCK, &mask, NULL) != 0) {
@@ -169,7 +182,8 @@ void eval(char *cmdline)
       }
       if(!bg) {
         waitfg(childPID);
-      } else {
+      }
+      else {
         printf("[%i] (%d) %s", (int) (pid2jid(jobs, childPID)), childPID, cmdline);
         return;
       }
@@ -220,7 +234,8 @@ void do_bgfg(char **argv)
   if(argv[1] == NULL) {
     if(!strcmp(argv[0], "bg")) {
       printf("bg command requires PID or %%jobid argument\n");
-    } else if (!strcmp(argv[0], "fg")) {
+    } 
+    else if (!strcmp(argv[0], "fg")) {
       printf("fg command requires PID or %%jobid argument\n");
     }
     return;
@@ -233,14 +248,16 @@ void do_bgfg(char **argv)
       printf("(%i): No such process \n", pid);
       return;
     }
-  } else if (argv[1][0] == '%') {
+  } 
+  else if (argv[1][0] == '%') {
     jid = atoi(&argv[1][1]);
     currentJob = getjobjid(jobs, jid);
     if(currentJob == NULL) {
       printf("%%%i: No such job \n", jid);
       return;
     }
-  } else {
+  }
+  else {
     if(!strcmp(argv[0], "bg")) {
       printf("bg: argument must be a PID or %%jobid \n");
     } else if(!strcmp(argv[0], "fg")) {
@@ -256,14 +273,16 @@ void do_bgfg(char **argv)
     //print job when added to background
     printf("[%i] (%d) %s", (int) (currentJob->jid), (pid_t) (currentJob->pid), currentJob->cmdline);
     currentJob->state = 2;
-  } else if(!strcmp(argv[0], "fg")) {
+  }
+  else if(!strcmp(argv[0], "fg")) {
     currentJob->state = 1;
     if(kill(-(currentJob->pid), SIGCONT) != 0) {
       unix_error("kill signal error!\n");
     }
     //wait for foreground job to finish
     waitfg(currentJob->pid);
-  } else {
+  }
+  else {
     printf("error! argv[0]: %s", argv[0]);
     return;
   }
@@ -310,7 +329,8 @@ void sigchld_handler(int sig)
       //do we make state stop here or in sigtstp_handler??
       childJob->state = 3;
       return;
-    } else if (WIFEXITED(status)) {
+    }
+    else if (WIFEXITED(status)) {
       deletejob(jobs, pid);
     }
   }

@@ -15,10 +15,10 @@ Slip days used:0
 YOUR PARTNER'S INFO
 ################
 Name1:Katherine Heyne
-EID1:
-CS login:
-Email:
-Unique Number:
+EID1:kfh293
+CS login:kfh293
+Email:katherine.heyne@yahoo.com
+Unique Number:50745
 
 Your partner's ranking (scale below):
 
@@ -63,8 +63,10 @@ Questions regarding Part 0
   the processes beginning with 0 (the original process) and incrementing for
   each child process.
 
-(2) In part 0.3, which flavor of exec did you choose to use?  Why?
 
+(2) In part 0.3, which flavor of exec did you choose to use?  Why?
+execve();
+We used execve because...
 
 ################
 Questions regarding Part 1
@@ -72,23 +74,26 @@ Questions regarding Part 1
 (1) In the provided utility function Signal(), what does the call to
   sigaction() do?  Why was sigaction() used instead of signal()?
 
+
+
 (2) What is the last assembly language instruction executed by the
   signal handler function that you write?  (You may choose either signal
   handler.)
-	-
 
-last 5 assembly instructions are:
+last 5 assembly instructions are(very last instruction indicated by "=>"):
 
    0x0000000000400a58 <+107>:   callq  0x4007b0 <exit@plt>
    0x0000000000400a5d <+112>:   mov    $0x1,%edi
    0x0000000000400a62 <+117>:   callq  0x4007b0 <exit@plt>
    0x0000000000400a67 <+122>:   leaveq 
-   0x0000000000400a68 <+123>:   retq   
+=> 0x0000000000400a68 <+123>:   retq   
 
 
 
 (3) After the instruction identified in the previous question executes, 
   what is the next assembly language instruction executed?
+
+Next instruction indicated by "=>"
 
 Dump of assembler code for function __nanosleep_nocancel:
    0x00007ffff7ad5f19 <+0>:     mov    $0x23,%eax
@@ -112,5 +117,5 @@ Questions regarding Part 2
   You can also use a single signal handler to catch all three signals.  Is
   there a design advantage of one over the other?  Explain your answer.
 
-
+The design advantage in using seperate signal handlers is code readability.  The program was much easier to debug and understand which function wasn't working correctly based on which signal was being sent.  The system may take slightly longer to recognize which function should be called as a result of a signal being sent, relative to the time it takes to call a single signal handler to catch all 3 signals.  
 
