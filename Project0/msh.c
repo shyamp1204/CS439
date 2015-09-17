@@ -144,6 +144,7 @@ void eval(char *cmdline)
   if(argv[0] == NULL)
     return;
 
+  printf("here in eval\n");
   if(!builtin_cmd(argv)) { //argv
     sigemptyset(&mask);
     sigaddset(&mask, SIGCHLD);
@@ -191,7 +192,7 @@ void eval(char *cmdline)
  */
 int builtin_cmd(char **argv) 
 {
-  // printf("ARGV[0] = %s \n", argv[0]);
+  printf("HERE!!! argv[0] = %s \n", argv[0]);
   if(!strcmp(argv[0], "quit")) {
     exit(0);
   }
@@ -201,13 +202,23 @@ int builtin_cmd(char **argv)
     return 1;
   }
   else if(!strcmp(argv[0], "bg") || !strcmp(argv[0], "fg")) {
-    // printf("IN BG FG IN BUILTIN_CMD\n");
-    do_bgfg(argv);
+    //printf("argv[0] = %s \n", argv[0]);
+    //printf("argv[1] = %s \n", argv[1]);
+    if(argv[1] == NULL) {
+      if(!strcmp(argv[0], "bg")) {
+        printf("bg command requires PID or %%jobid argument\n");
+      } else {
+        printf("fg command requires PID or %%jobid argument\n");
+      }
+    } else {
+      do_bgfg(argv);
+    }
     return 1;
   }
   else if(!strcmp(argv[0], "&")) {
     return 1;
   }
+  printf("did it get to the end , aka return 0???\n");
   return 0;     /* not a builtin command */
 }
 
@@ -222,21 +233,31 @@ void do_bgfg(char **argv)
   pid_t pid;
   int jid;
   struct job_t* currentJob;
+
   char* chArray = argv[1];
 
+  printf("argv[1] = %s", argv[1]);
   //get pid or jid from argv
   if(isdigit(chArray[0])) {
+    
     pid = (pid_t) atoi(chArray); // at char 0
     currentJob = getjobpid(jobs, pid);
+    printf("current job = %i\n", pid);
+    if(currentJob == NULL) {
+      printf("No such process \n");
+    }
   } else if (chArray[0] == '%') {
-    //char* jidSymbol = argv[1];
-    //jidSymbol now = char* to argv[1] = "%5"
-    //jid = jidSymbol[1];
     jid = (int) atoi(&chArray[1]);
-
     currentJob = getjobjid(jobs, jid);
+    if(currentJob == NULL) {
+      printf("No such job \n");
+    }
   } else {
-    printf("argv[1] should contain a pid or jid");
+    if(!strcmp(argv[0], "bg")) {
+      printf("bg: argument must be a PID or %%jobid \n");
+    } else if(!strcmp(argv[0], "fg")) {
+      printf("fg: argument must be a PID or %%jobid \n");
+    }
     return;
   }
 
@@ -247,7 +268,7 @@ void do_bgfg(char **argv)
   if(!strcmp(argv[0], "bg")) {
     //change state of job
     currentJob->state = 2;
-    //print all jobs when added to background
+    //print job when added to background
     printf("[%i] (%d) %s", (int) (currentJob->jid), (pid_t) (currentJob->pid), currentJob->cmdline);
   } else if(!strcmp(argv[0], "fg")) {
     currentJob->state = 1;
@@ -263,7 +284,6 @@ void do_bgfg(char **argv)
 void waitfg(pid_t pid)
 {
   while(pid == fgpid(jobs)) {
-    //*************IS THIS SLEEP NECESSARY? WHAT DOES 0 DO? 1 did not work! (test05)
     sleep(0);
   }
   return;
@@ -286,8 +306,8 @@ void sigchld_handler(int sig)
   int status;
 
   while((pid = waitpid(-1, &status, WNOHANG|WUNTRACED)) > 0) {  //&status
-    //while waiting for child processes to be reaped, delete job at end?
-    int jid = (getjobpid(jobs, pid))->jid;
+    struct job_t* childJob = getjobpid(jobs, pid);    
+    int jid = childJob->jid;
     //PRINT OUT REAPED CHILD PROCESS INFO
     if(WIFSIGNALED(status)) {
       printf("Job [%i] (%d) terminated by signal %d\n", jid, pid, WTERMSIG(status));
@@ -296,17 +316,17 @@ void sigchld_handler(int sig)
     else if (WIFSTOPPED(status)) {
       printf("Job [%i] (%d) stopped by signal %d\n", jid, pid, WSTOPSIG(status));
       //do we make state stop here or in sigtstp_handler??
-      struct job_t* stoppedJob = getjobjid(jobs, jid);
-      stoppedJob->state = 3;
+      childJob->state = 3;
       return;
-    } else {
+    } else if (WIFEXITED(status)) {
       deletejob(jobs, pid);
     }
+    //delete job if terminated by a signal or exited normally
+    //deletejob(jobs, pid);
   }
   if(errno != ECHILD) {
     unix_error("sigchld handler error");
   }
-
   return;
 }
 
@@ -333,7 +353,6 @@ void sigtstp_handler(int sig)
 {
   pid_t currentFGpid = fgpid(jobs);
   if(currentFGpid != 0) {
-    //stop process, move it to the background
     kill(-1*currentFGpid, SIGTSTP);
   }
   return;
