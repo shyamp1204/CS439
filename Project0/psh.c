@@ -1,7 +1,8 @@
 /* 
  * psh - A prototype tiny shell program with job control
  * 
- * <Put your name and login ID here>
+ * <Alex Irion - aji272>
+ * <Katherine Heyne - kfh293>
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -102,9 +103,9 @@ int main(int argc, char **argv)
  * run the job in the context of the child. If the job is running in
  * the foreground, wait for it to terminate and then return. 
  *
- *Alex and Katherine driving here
+ * Alex and Katherine driving here
  *
- *code snippets from page 735 of B&O book
+ * code snippets from page 735 of B&O book
  *
 */
 int builtin_cmd(char **argv);
@@ -119,17 +120,20 @@ void eval(char *cmdline)
 
   strcpy(buf, cmdline);
   bg = parseline(buf, argv);
-  if(argv[0]==NULL)
+  if(argv[0]==NULL) {
     return;
+  }
 
-  if(!builtin_cmd(argv)) {  //argv
+  if(!builtin_cmd(argv)) {
+    //its not a builtin command, try to fork and execute the cmdline
     if((pid= Fork() == 0)) {
 	if(execve(argv[0], argv, environ) < 0 ) {
 	  printf("%s: Command not found.\n", argv[0]);
 	  exit(0);
 	}
     }
-    else {  //parent
+    else {  
+      //parent process
       // code from B&O book, page 72
       while((pid = waitpid(-1, &status, 0)) > 0) {
 	if(!WIFEXITED(status)) {
@@ -148,14 +152,17 @@ void eval(char *cmdline)
  * Return 1 if a builtin command was executed; 
  * return 0 if the argument passed in is *not* a builtin command.
  * 
- *Code from B&O book page 735
+ * Alex Driving here
+ * Some code from B&O book page 735
  */
 int builtin_cmd(char **argv) 
 {
-  if(!strcmp(argv[0], "quit"))
+  if(!strcmp(argv[0], "quit")) {
     exit(0);
-  else if(!strcmp(argv[0], "&"))
+  }
+  else if(!strcmp(argv[0], "&")) {
     return 1;
+  }
   return 0;     /* not a builtin command */
 }
 
@@ -179,26 +186,29 @@ void usage(void)
 /*
  * sigquit_handler - The driver program can gracefully terminate the
  *    child shell by sending it a SIGQUIT signal.
+ *
+ *Alex driving here
  */
 void sigquit_handler(int sig) 
 {
     ssize_t bytes;
-    const int STDOUT = 1;
-    bytes = write(STDOUT, "Terminating after receipt of SIGQUIT signal\n", 45);
+    bytes = write(1, "Terminating after receipt of SIGQUIT signal\n", 45);
     if(bytes != 45)
        exit(-999);
     exit(1);
 }
 
-/* code from B&O book, page 718
+/* 
+ * code from B&O book, page 718
  * wrapper class for fork()
- */
+ *
+ * Alex driving here 
+*/
 pid_t Fork(void) 
 {
     pid_t pid;
-    if((pid = fork()) <0)
+    if((pid = fork()) < 0) { 
       unix_error("Fork error");
+    }
     return pid;
 }
-
-

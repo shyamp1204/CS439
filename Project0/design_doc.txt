@@ -63,10 +63,15 @@ Questions regarding Part 0
   the processes beginning with 0 (the original process) and incrementing for
   each child process.
 
+14 child processes are created with "./fib 5"
+0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 5
 
 (2) In part 0.3, which flavor of exec did you choose to use?  Why?
+
 execve();
-We used execve because...
+We used execve() because it executes the program pointed to by "filename" argument and in the "argv[]" pointer in the parameters.
+execve() doesn't return on success.  On an error, it returns -1 and errno is set.
+This is the action that we desire when attempting to run an executeable file from the entered command line request.
 
 ################
 Questions regarding Part 1
@@ -74,7 +79,9 @@ Questions regarding Part 1
 (1) In the provided utility function Signal(), what does the call to
   sigaction() do?  Why was sigaction() used instead of signal()?
 
-
+the signal() function call is less portable than sigaction(), and also has unspecified effects when in a multithreaded process. 
+Although they both allow the programmer to define how to handle each signal, signal() does not block other incomming signals, whereas 
+sigaction() blocks other signals until the handler returns from the current signal.
 
 (2) What is the last assembly language instruction executed by the
   signal handler function that you write?  (You may choose either signal
@@ -106,9 +113,8 @@ Dump of assembler code for function __nanosleep_nocancel:
   the registers from the interrupted thread to exactly their values
   before the signal occurred. How is this done?
 
-The register values are stored in the mode switch
-Could also be pushed onto the stack before the funciton call is made.  They can then be popped off the stack to restore the values into the register
-
+The register values and any other necessary data are stored in a kernel data structure call the Process Control Block(pcb).
+Once returned from the signal handler, the process can retrieve this data and continue execution from where it left off.
 
 ################
 Questions regarding Part 2
@@ -117,5 +123,8 @@ Questions regarding Part 2
   You can also use a single signal handler to catch all three signals.  Is
   there a design advantage of one over the other?  Explain your answer.
 
-The design advantage in using seperate signal handlers is code readability.  The program was much easier to debug and understand which function wasn't working correctly based on which signal was being sent.  The system may take slightly longer to recognize which function should be called as a result of a signal being sent, relative to the time it takes to call a single signal handler to catch all 3 signals.  
+The design advantage in using seperate signal handlers is code readability.  The program was much easier to 
+debug and understand which function wasn't working correctly based on which signal was being sent.  The system 
+may take slightly longer to recognize which function should be called as a result of a signal being sent, 
+relative to the time it takes to call a single signal handler to catch all 3 signals.  
 

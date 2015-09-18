@@ -2,7 +2,9 @@
  * msh - A mini shell program with job control
  * 
  * <Alex Irion - aji272>
- * <Katherine Keyne - khf293
+ * <Katherine Keyne - khf293>
+ *
+ *Septemer 2015
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -140,12 +142,11 @@ void eval(char *cmdline)
   strcpy(buf, cmdline);
   //bg = 1 if true, fg if 0
   bg = parseline(buf, argv);
-  if(argv[0] == NULL) {
+  if(argv[0] == NULL)
     return;
-  }
 
   //if its a built in command execute it, return 1
-  //if not built in execute the command line, return 0
+  //if not built in execute the command line, return 0, enter if statement
   if(!builtin_cmd(argv)) {
     //block commands so race condition to delete/add job doesn't occur
     sigemptyset(&mask);
@@ -166,23 +167,19 @@ void eval(char *cmdline)
 	exit(1);
       }
     }
-    else if (childPID < 0) {
+    else if(childPID < 0)
       unix_error("error in creating child\n");
-    }
     else {
       //childPID = child's pid 
-      if(!bg) {
+      if(!bg)
         addjob(jobs, childPID, 1, cmdline);
-      } 
-      else {
+      else
         addjob(jobs, childPID, 2, cmdline);
-      }
-      if(sigprocmask(SIG_UNBLOCK, &mask, NULL) != 0) {
-        printf("Error in sig unblocking\n");
-      }
-      if(!bg) {
+
+      sigprocmask(SIG_UNBLOCK, &mask, NULL);
+
+      if(!bg)
         waitfg(childPID);
-      }
       else {
         printf("[%i] (%d) %s", (int) (pid2jid(jobs, childPID)), childPID, cmdline);
         return;
@@ -199,12 +196,13 @@ void eval(char *cmdline)
  *    it immediately.  
  * Return 1 if a builtin command was executed; return 0
  * if the argument passed in is *not* a builtin command.
+ *
+ * Alex driving here
  */
 int builtin_cmd(char **argv) 
 {
-  if(!strcmp(argv[0], "quit")) {
+  if(!strcmp(argv[0], "quit"))
     exit(0);
-  }
   else if(!strcmp(argv[0], "jobs")) {
     listjobs(jobs);
     return 1;
@@ -213,9 +211,8 @@ int builtin_cmd(char **argv)
     do_bgfg(argv);
     return 1;
   }
-  else if(!strcmp(argv[0], "&")) {
+  else if(!strcmp(argv[0], "&"))
     return 1;
-  }
   return 0;     /* not a builtin command */
 }
 
@@ -224,6 +221,8 @@ int builtin_cmd(char **argv)
  * do_bgfg - Execute the builtin bg and fg commands
  * BG <JOB> = CHANGES A STOPPED BACKGROUND JOB TO A RUNNING BACKGROUND JOB!
  * FG <JOB> = CHANGES A STOPPED OR UNNING BACKGROUND JOB TO A RUNNING IN THE FOREGROUND
+ *
+ * Katherine driving here
  */
 void do_bgfg(char **argv) 
 {
@@ -232,12 +231,10 @@ void do_bgfg(char **argv)
   struct job_t* currentJob;
 
   if(argv[1] == NULL) {
-    if(!strcmp(argv[0], "bg")) {
+    if(!strcmp(argv[0], "bg"))
       printf("bg command requires PID or %%jobid argument\n");
-    } 
-    else if (!strcmp(argv[0], "fg")) {
+    else if (!strcmp(argv[0], "fg"))
       printf("fg command requires PID or %%jobid argument\n");
-    }
     return;
   }
   //get pid or jid from argv
@@ -258,27 +255,24 @@ void do_bgfg(char **argv)
     }
   }
   else {
-    if(!strcmp(argv[0], "bg")) {
+    if(!strcmp(argv[0], "bg")) 
       printf("bg: argument must be a PID or %%jobid \n");
-    } else if(!strcmp(argv[0], "fg")) {
+    else if(!strcmp(argv[0], "fg"))
       printf("fg: argument must be a PID or %%jobid \n");
-    }
     return;
   }
 
   if(!strcmp(argv[0], "bg")) {
-    if(kill(-(currentJob->pid), SIGCONT) != 0) {
+    if(kill(-(currentJob->pid), SIGCONT) != 0) 
       unix_error("kill signal error!\n");
-    }
     //print job when added to background
     printf("[%i] (%d) %s", (int) (currentJob->jid), (pid_t) (currentJob->pid), currentJob->cmdline);
     currentJob->state = 2;
   }
   else if(!strcmp(argv[0], "fg")) {
     currentJob->state = 1;
-    if(kill(-(currentJob->pid), SIGCONT) != 0) {
+    if(kill(-(currentJob->pid), SIGCONT) != 0) 
       unix_error("kill signal error!\n");
-    }
     //wait for foreground job to finish
     waitfg(currentJob->pid);
   }
@@ -291,6 +285,8 @@ void do_bgfg(char **argv)
 
 /* 
  * waitfg - Block until process pid is no longer the foreground process
+ *
+ * Katherine driving here
  */
 void waitfg(pid_t pid)
 {
@@ -310,15 +306,18 @@ void waitfg(pid_t pid)
  *     received a SIGSTOP or SIGTSTP signal. The handler reaps all
  *     available zombie children, but doesn't wait for any other
  *     currently running children to terminate.  
+ *
+ * Alex and Katherine driving here
  */
 void sigchld_handler(int sig) 
 {
   pid_t pid;
   int status;
 
-  while((pid = waitpid(-1, &status, WNOHANG|WUNTRACED)) > 0) {  //&status
+  while((pid = waitpid(-1, &status, WNOHANG|WUNTRACED)) > 0) { 
     struct job_t* childJob = getjobpid(jobs, pid);    
     int jid = childJob->jid;
+
     //print out reaped child process info
     if(WIFSIGNALED(status)) {
       printf("Job [%i] (%d) terminated by signal %d\n", jid, pid, WTERMSIG(status));
@@ -326,11 +325,11 @@ void sigchld_handler(int sig)
     }
     else if (WIFSTOPPED(status)) {
       printf("Job [%i] (%d) stopped by signal %d\n", jid, pid, WSTOPSIG(status));
-      //do we make state stop here or in sigtstp_handler??
       childJob->state = 3;
       return;
     }
     else if (WIFEXITED(status)) {
+      //job exited normally or a reason other than the signals above
       deletejob(jobs, pid);
     }
   }
@@ -340,7 +339,9 @@ void sigchld_handler(int sig)
 /* 
  * sigint_handler - The kernel sends a SIGINT to the shell whenver the
  *    user types ctrl-c at the keyboard.  Catch it and send it along
- *    to the foreground job.  
+ *    to the foreground job.
+ * 
+ * Alex and Katherine driving here
  */
 void sigint_handler(int sig) 
 {
@@ -390,12 +391,13 @@ void usage(void)
 /*
  * sigquit_handler - The driver program can gracefully terminate the
  *    child shell by sending it a SIGQUIT signal.
+ *
+ * Alex driving here
  */
 void sigquit_handler(int sig) 
 {
     ssize_t bytes;
-    const int STDOUT = 1;
-    bytes = write(STDOUT, "Terminating after receipt of SIGQUIT signal\n", 45);
+    bytes = write(1, "Terminating after receipt of SIGQUIT signal\n", 45);
     if(bytes != 45)
        exit(-999);
     exit(1);
@@ -403,6 +405,8 @@ void sigquit_handler(int sig)
 
 /* code from B&O book, page 718
  * wrapper class for fork()
+ *
+ *Alex driving here
  */
 pid_t Fork(void) 
 {

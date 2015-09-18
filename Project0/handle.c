@@ -17,8 +17,7 @@
  * Finally, loop forever, printing "Still here\n" once every
  * second.
  *
- *
- *Alex and Katherine driving here
+ * Alex and Katherine driving here
  *
  */
 void sigint_handler(int sig);
@@ -30,10 +29,9 @@ int main(int argc, char **argv)
   if(pid < 0){
     //error
   }
-  else{
+  else {
     printf("PID = %d\n", pid);
     ssize_t bytes;
-    const int STDOUT = 1;
     struct timespec timeWait;
     struct timespec timeInterrupt;
     timeWait.tv_sec = (time_t) 1;
@@ -43,18 +41,18 @@ int main(int argc, char **argv)
     //busy loop that prints "still here every 1 second
     while(1) {
       if(interrupt != -1) {
-	bytes = write(STDOUT, "Still here\n", 11);
+	bytes = write(1, "Still here\n", 11);
         timeWait.tv_sec = (time_t) 1;
         timeWait.tv_nsec = 0;
       }
       if(bytes != 11)
 	exit(-999);
-
+  
       //declare signal handlers to catch the different signals
       //check to make sure they return without an error
       if(Signal(SIGINT, sigint_handler) == SIG_ERR)
       	unix_error("signal error");
-      if(Signal(SIGUSR1, handler_SIGUSR1) == SIG_ERR)
+      if(Signal(SIGUSR1, handler_SIGUSR1) == SIG_ERR) 
 	unix_error("signal error");
 
       interrupt = nanosleep(&timeWait, &timeInterrupt);
@@ -75,28 +73,29 @@ int main(int argc, char **argv)
  *signal handler for sigInt
  *Alex driving here
  */
-void sigint_handler(int sig) {
+void sigint_handler(int sig) 
+{
   ssize_t bytes; 
-  const int STDOUT = 1; 
-
-  bytes = write(STDOUT, "Nice try.\n", 10); 
-  if(bytes != 10) 
+  bytes = write(1, "Nice try.\n", 10); 
+  if(bytes != 10) {
     exit(-999);
+  }
 }
 
 /*
  *signal handler for SIGUSR1
  *Alex driving here
  */
-void handler_SIGUSR1(int sig) {
-  ssize_t bytes; 
-  const int STDOUT = 1; 
-
-  bytes = write(STDOUT, "exiting\n", 8);
-  if(bytes != 8) 
+void handler_SIGUSR1(int sig) 
+{
+  ssize_t bytes;
+  bytes = write(1, "exiting\n", 8);
+  if(bytes != 8) {
     exit(-999);
-  else
+  }
+  else {
     exit(1);
+  }
 }
 
 

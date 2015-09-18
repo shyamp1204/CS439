@@ -72,13 +72,11 @@ static void doFib(int n, int doPrint)
   int sum = 0;
   int sum2 = 0;
 
-  if(n == 0){
+  if(n == 0)
     exit(0);
-  }
-  else if(n == 1){
+  else if(n == 1)
     exit(1);
-  }
-  else{
+  else {
     //fork for n-1 value
     pid = Fork();
     if((pid == 0)){
@@ -89,52 +87,52 @@ static void doFib(int n, int doPrint)
     
     //fork for n-2 value
     pid2 = Fork();
-    if(pid2 == 0){
+    if(pid2 == 0) {
       doFib(n-2, doPrint);
       exit(n-2);
     }
   
     // code from B&O book, page 72
     //waiting for an artibrary child process to end, then reap it
-    while((pid = waitpid(-1, &status, 0)) > 0){
-      if(WIFEXITED(status)){
+    while((pid = waitpid(-1, &status, 0)) > 0) {
+      if(WIFEXITED(status)) {
         //child terminated normally
         sum += WEXITSTATUS(status);
       } 
-      else{
+      else
         unix_error("Error with child process! Terminated abnormally");
-      }
     }
 
     // code from B&O book, page 72
-    while((pid2 = waitpid(-1, &status2, 0)) > 0){ 
-      if(WIFEXITED(status2)){
+    while((pid2 = waitpid(-1, &status2, 0)) > 0) { 
+      if(WIFEXITED(status2)) {
         //child terminated normally
         sum2 += WEXITSTATUS(status2);
       } 
-      else{
+      else
         unix_error("Error with 2nd child process! Terminated abnormally");
-      }
     }
   }
 
   //add the two previous fibonacci values together
   int total = sum + sum2;
-  if(doPrint && (getpid() == first_pid)){
+  if(doPrint && (getpid() == first_pid)) {
     printf("%d\n", total);
   } 
-  else{
+  else
     exit(total);
-  }
 }
 
-/* code from B&O book, page 718
+/* 
+ *code from B&O book, page 718
  * wrapper class for fork()
+ *
+ *Alex drove here
  */
 pid_t Fork(void) 
 {
     pid_t pid;
-    if((pid = fork()) <0 )
+    if((pid = fork()) < 0) 
       unix_error("Fork error");
     return pid;
 }
