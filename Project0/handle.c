@@ -39,28 +39,28 @@ int main(int argc, char **argv)
     //busy loop that prints "still here every 1 second
     while(1) {
       if(interrupt != -1) {
-	bytes = write(1, "Still here\n", 11);
+	      bytes = write(1, "Still here\n", 11);
         timeWait.tv_sec = (time_t) 1;
         timeWait.tv_nsec = 0;
       }
       if(bytes != 11)
-	exit(-999);
+	      exit(-999);
   
       //declare signal handlers to catch the different signals
       //check to make sure they return without an error
       if(Signal(SIGINT, sigint_handler) == SIG_ERR)
       	unix_error("signal error");
       if(Signal(SIGUSR1, handler_SIGUSR1) == SIG_ERR) 
-	unix_error("signal error");
+	      unix_error("signal error");
 
       interrupt = nanosleep(&timeWait, &timeInterrupt);
 
       //if there was an interupt between the 1 second wait, enter this while loop
       while(interrupt == -1) {
-	//restore values of time left over from when the interupt was called
-	timeWait.tv_nsec = timeInterrupt.tv_nsec;
-	timeWait.tv_sec = (time_t) 0;
-	interrupt = nanosleep(&timeWait, &timeInterrupt);
+	      //restore values of time left over from when the interupt was called
+	      timeWait.tv_nsec = timeInterrupt.tv_nsec;
+	      timeWait.tv_sec = (time_t) 0;
+	      interrupt = nanosleep(&timeWait, &timeInterrupt);
       }
     }
   }

@@ -29,17 +29,17 @@ int main(int argc, char **argv)
   int arg;
   int print;
 
-  if(argc != 2){
+  if(argc != 2) {
     fprintf(stderr, "Usage: fib <num>\n");
     exit(-1);
   }
 
-  if(argc >= 3){
+  if(argc >= 3) {
     print = 1;
   }
 
   arg = atoi(argv[1]);
-  if(arg < 0 || arg > MAX){
+  if(arg < 0 || arg > MAX) {
     fprintf(stderr, "number must be between 0 and %d\n", MAX);
     exit(-1);
   }
@@ -79,7 +79,7 @@ static void doFib(int n, int doPrint)
   else {
     //fork for n-1 value
     pid = Fork();
-    if((pid == 0)){
+    if((pid == 0)) {
       //in child process
       doFib(n-1, doPrint); 
       exit(n-1);

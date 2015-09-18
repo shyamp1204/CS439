@@ -163,8 +163,8 @@ void eval(char *cmdline)
       
       //execute the file entered from the command line
       if(execve(argv[0], argv, environ) < 0) {
-	printf("%s: Command not found.\n", argv[0]);
-	exit(1);
+	      printf("%s: Command not found.\n", argv[0]);
+	      exit(1);
       }
     }
     else if(childPID < 0)
