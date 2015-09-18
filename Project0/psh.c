@@ -120,9 +120,8 @@ void eval(char *cmdline)
 
   strcpy(buf, cmdline);
   bg = parseline(buf, argv);
-  if(argv[0]==NULL) {
+  if(argv[0]==NULL) 
     return;
-  }
 
   if(!builtin_cmd(argv)) {
     //its not a builtin command, try to fork and execute the cmdline
@@ -157,12 +156,10 @@ void eval(char *cmdline)
  */
 int builtin_cmd(char **argv) 
 {
-  if(!strcmp(argv[0], "quit")) {
+  if(!strcmp(argv[0], "quit"))
     exit(0);
-  }
-  else if(!strcmp(argv[0], "&")) {
+  else if(!strcmp(argv[0], "&")) 
     return 1;
-  }
   return 0;     /* not a builtin command */
 }
 
@@ -207,8 +204,7 @@ void sigquit_handler(int sig)
 pid_t Fork(void) 
 {
     pid_t pid;
-    if((pid = fork()) < 0) { 
+    if((pid = fork()) < 0)
       unix_error("Fork error");
-    }
     return pid;
 }

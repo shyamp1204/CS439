@@ -26,10 +26,8 @@ void handler_SIGUSR1(int sig);
 int main(int argc, char **argv)
 {
   pid_t pid = getpid();
-  if(pid < 0){
-    //error
-  }
-  else {
+
+  if(pid >= 0) {
     printf("PID = %d\n", pid);
     ssize_t bytes;
     struct timespec timeWait;
@@ -77,9 +75,8 @@ void sigint_handler(int sig)
 {
   ssize_t bytes; 
   bytes = write(1, "Nice try.\n", 10); 
-  if(bytes != 10) {
+  if(bytes != 10)
     exit(-999);
-  }
 }
 
 /*
@@ -90,12 +87,10 @@ void handler_SIGUSR1(int sig)
 {
   ssize_t bytes;
   bytes = write(1, "exiting\n", 8);
-  if(bytes != 8) {
+  if(bytes != 8)
     exit(-999);
-  }
-  else {
+  else 
     exit(1);
-  }
 }
 
 

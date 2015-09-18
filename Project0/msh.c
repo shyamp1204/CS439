@@ -346,9 +346,8 @@ void sigchld_handler(int sig)
 void sigint_handler(int sig) 
 {
   pid_t currentFGjob = fgpid(jobs);
-  if(currentFGjob != 0) {
+  if(currentFGjob != 0)
     kill(-1*currentFGjob, SIGINT);
-  }
   return;
 }
 
@@ -360,9 +359,8 @@ void sigint_handler(int sig)
 void sigtstp_handler(int sig) 
 {
   pid_t currentFGpid = fgpid(jobs);
-  if(currentFGpid != 0) {
+  if(currentFGpid != 0)
     kill(-1*currentFGpid, SIGTSTP);
-  }
   return;
 }
 
