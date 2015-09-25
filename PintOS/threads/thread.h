@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "synch.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -92,7 +93,6 @@ struct thread
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
 
-    uint32_t ticksSleeping;             /* number of ticks the thread should sleep for*/
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
@@ -103,6 +103,13 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+
+
+    //ADDED VALUES
+    uint32_t wakeupTime;             /* number of ticks the thread should sleep for*/
+    struct semaphore sema_sleep;
+    struct list_elem waiting_elem;
+    
   };
 
 /* If false (default), use round-robin scheduler.

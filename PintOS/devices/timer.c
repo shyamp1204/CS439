@@ -7,6 +7,7 @@
 #include "threads/interrupt.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+#include "list.h"
   
 /* See [8254] for hardware details of the 8254 timer chip. */
 
@@ -19,6 +20,7 @@
 
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
+struct list wait_list;
 
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
@@ -89,27 +91,39 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
-  //WORKING ON THIS FUNCTION
+    /*int64_t start = timer_ticks ();
+    ASSERT (intr_get_level () == INTR_ON);
+    while (timer_elapsed (start) < ticks) 
+      thread_yield ();*/
 
+    int64_t stop = timer_ticks () + ticks;  
+    struct thread *current = thread_current();
+    current->wakeupTime = stop;//start
+ 
+    if (ticks > 0) { 
+      list_push_back (&wait_list, &(current->waiting_elem));  
+      sema_down(&current->sema_sleep);  //block thread until wakeup call 
+    }
+
+
+  //initialize semaphore to 0  (thread init or init thread)
+
+/*
   int64_t start = timer_ticks (); 
-  //start = number of ticks since the OS booted
+  struct thread *t = thread_current ();
+ 
+  if (ticks <= 0)
+    return;
 
-  struct thread *t = thread_current();
-  t->ticksSleeping = ticks;
-
+  t->wakeupTime = start + ticks;
   ASSERT (intr_get_level () == INTR_ON);
-  if (timer_elapsed (start) < ticks) {
-    
-    //turn off interupts
-    enum intr_level old_level = intr_disable();
-    //block the thread
-    thread_yield();
-    //change interupts back to what they were before turning them off
-    intr_set_level(old_level);
 
-    //thread_yield ();
 
-  }
+  //Thread blocks itself by calling sema_down (). 
+  sema_down (&t->timer_sema);
+  //add now sleeping thread to sleeping struct (linked list)
+  list_insert_ordered (&timer_wait_list, &t->timer_elem, less_wakeup, NULL);
+*/
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -188,6 +202,21 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
+ 
+
+  struct thread *current;     
+
+  struct list_elem *e;
+ 
+  for (e = list_begin (&wait_list); e != list_end (&wait_list); e = list_next (e)){
+
+    current = list_entry (e, struct thread, waiting_elem); 
+    if (current->wakeupTime <= ticks){
+       
+      list_remove (e);
+      sema_up(&current->sema_sleep); 
+    }
+  } 
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
