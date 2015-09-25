@@ -106,10 +106,9 @@ struct thread
 
 
     //ADDED VALUES
-    uint32_t wakeupTime;             /* number of ticks the thread should sleep for*/
-    struct semaphore sema_sleep;
-    struct list_elem waiting_elem;
-    
+    uint64_t wakeupTime;             /* number of ticks the thread should sleep for*/
+    struct semaphore sema_sleep;      /* Semaphore that blocks the thread while sleeping  */
+    struct list_elem waiting_elem;    /* a list element so that each thread can be put into lists, spefically wait_list */
   };
 
 /* If false (default), use round-robin scheduler.

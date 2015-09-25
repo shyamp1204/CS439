@@ -472,8 +472,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 
-  //add semaphore
-  sema_init(&t->sema_sleep,0);
+  //add semaphore + initialize its value to 0
+  //Alex driving now
+  sema_init (&(t->sema_sleep),0);
 
 }
 

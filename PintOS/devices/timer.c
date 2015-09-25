@@ -21,6 +21,7 @@
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
 
+//list to hold the waiting threads
 struct list wait_list;
 
 /* Number of loops per timer tick.
@@ -41,7 +42,7 @@ timer_init (void)
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
 
-  //initialize our sleeping thread list
+  //initialize our wait_thread list
   list_init (&wait_list);
 }
 
@@ -90,25 +91,30 @@ timer_elapsed (int64_t then)
   return timer_ticks () - then;
 }
 
-/* Sleeps for approximately TICKS timer ticks.  Interrupts must
-   be turned on. */
+/* Sleeps for approximately sleep_TICKS timer ticks.  Interrupts must
+   be turned on. 
+   Alex + Katherine driving here*/
 void
 timer_sleep (int64_t sleep_ticks) 
 {
-    /*int64_t start = timer_ticks ();
-    ASSERT (intr_get_level () == INTR_ON);
-    while (timer_elapsed (start) < ticks) 
-      thread_yield ();*/
+  if(sleep_ticks < 0) {
+    //don't run any code below
+    return;
+  }
+  
+  int64_t stop = timer_ticks ();
 
-    int64_t stop = timer_ticks () + sleep_ticks;
+  //if sleeping for more than 0 ticks
+  if (sleep_ticks > 0) { 
+    //put the thread at the end of the wait list
+    stop = timer_ticks () + sleep_ticks;
     struct thread *current = thread_current();
-    current->wakeupTime = stop;//start
- 
-    if (ticks > 0) { 
-      //put the thread at the end of the wait list
-      list_push_back (&wait_list, &(current->waiting_elem));  
-      sema_down (&(current->sema_sleep));    //block thread until wakeup call 
-    }
+    current->wakeupTime = stop; 
+
+    //put the sleeping thread in the wait list and block it via sema_down
+    list_push_back (&wait_list, &(current->waiting_elem));  
+    sema_down (&(current->sema_sleep));
+  }
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -181,7 +187,8 @@ timer_print_stats (void)
   printf ("Timer: %"PRId64" ticks\n", timer_ticks ());
 }
 
-/* Timer interrupt handler. */
+/* Timer interrupt handler. 
+Alex driving here */
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
@@ -191,10 +198,13 @@ timer_interrupt (struct intr_frame *args UNUSED)
   struct thread *current;     
   struct list_elem *temp;
 
+  //loop over our wait list
   for (temp = list_begin (&wait_list); temp != list_end (&wait_list); temp = list_next (temp)){
 
+    //get the current element in the linked list
     current = list_entry (temp, struct thread, waiting_elem);
     
+    //if the wakeup time <= computer time, remove the thread from the wait_list and unblock it via sema_up
     if (current->wakeupTime <= ticks) {
       list_remove (temp);
       sema_up (&(current->sema_sleep));
