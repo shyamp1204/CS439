@@ -20,6 +20,7 @@
 
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
+
 struct list wait_list;
 
 /* Number of loops per timer tick.
@@ -39,6 +40,9 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
+
+  //initialize our sleeping thread list
+  list_init (&wait_list);
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -89,41 +93,22 @@ timer_elapsed (int64_t then)
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
    be turned on. */
 void
-timer_sleep (int64_t ticks) 
+timer_sleep (int64_t sleep_ticks) 
 {
     /*int64_t start = timer_ticks ();
     ASSERT (intr_get_level () == INTR_ON);
     while (timer_elapsed (start) < ticks) 
       thread_yield ();*/
 
-    int64_t stop = timer_ticks () + ticks;  
+    int64_t stop = timer_ticks () + sleep_ticks;
     struct thread *current = thread_current();
     current->wakeupTime = stop;//start
  
     if (ticks > 0) { 
+      //put the thread at the end of the wait list
       list_push_back (&wait_list, &(current->waiting_elem));  
-      sema_down(&current->sema_sleep);  //block thread until wakeup call 
+      sema_down (&(current->sema_sleep));    //block thread until wakeup call 
     }
-
-
-  //initialize semaphore to 0  (thread init or init thread)
-
-/*
-  int64_t start = timer_ticks (); 
-  struct thread *t = thread_current ();
- 
-  if (ticks <= 0)
-    return;
-
-  t->wakeupTime = start + ticks;
-  ASSERT (intr_get_level () == INTR_ON);
-
-
-  //Thread blocks itself by calling sema_down (). 
-  sema_down (&t->timer_sema);
-  //add now sleeping thread to sleeping struct (linked list)
-  list_insert_ordered (&timer_wait_list, &t->timer_elem, less_wakeup, NULL);
-*/
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -203,18 +188,16 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
  
-
   struct thread *current;     
+  struct list_elem *temp;
 
-  struct list_elem *e;
- 
-  for (e = list_begin (&wait_list); e != list_end (&wait_list); e = list_next (e)){
+  for (temp = list_begin (&wait_list); temp != list_end (&wait_list); temp = list_next (temp)){
 
-    current = list_entry (e, struct thread, waiting_elem); 
-    if (current->wakeupTime <= ticks){
-       
-      list_remove (e);
-      sema_up(&current->sema_sleep); 
+    current = list_entry (temp, struct thread, waiting_elem);
+    
+    if (current->wakeupTime <= ticks) {
+      list_remove (temp);
+      sema_up (&(current->sema_sleep));
     }
   } 
 }
