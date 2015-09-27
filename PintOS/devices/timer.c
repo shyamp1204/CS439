@@ -117,22 +117,9 @@ timer_sleep (int64_t sleep_ticks)
 
     //put the sleeping thread in the wait list and block it via sema_down
     //insert element in sorted order into wait_list
-    list_insert_ordered(&wait_list, &(current->waiting_elem), value_less, NULL);
+    list_insert_ordered (&wait_list, &(current->waiting_elem), value_less, NULL);
     sema_down (&(current->sema_sleep));
   }
-}
-
-
-/* Returns true if value A is less than value B, false
-   otherwise. */
-static bool
-value_less (const struct list_elem *a_, const struct list_elem *b_,
-            void *aux UNUSED) 
-{
-  struct thread *a = list_entry (a_, struct thread, waiting_elem);
-  struct thread *b = list_entry (b_, struct thread, waiting_elem);
-  
-  return a->wakeupTime < b->wakeupTime;
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -302,4 +289,18 @@ real_time_delay (int64_t num, int32_t denom)
      the possibility of overflow. */
   ASSERT (denom % 1000 == 0);
   busy_wait (loops_per_tick * num / 1000 * TIMER_FREQ / (denom / 1000)); 
+}
+
+
+/* Returns true if value A is less than value B, false
+   otherwise. */
+static bool
+value_less (const struct list_elem *a_, const struct list_elem *b_,
+            void *aux UNUSED) 
+{
+  struct thread *a = list_entry (a_, struct thread, waiting_elem);
+  struct thread *b = list_entry (b_, struct thread, waiting_elem);
+  
+  //compare so to smaller wakeuptime is ordered first
+  return a->wakeupTime < b->wakeupTime;
 }

@@ -323,8 +323,8 @@ swap (struct list_elem **a, struct list_elem **b)
 
 /* Reverses the order of LIST. */
 void
-list_reverse (struct list *list)
-{
+list_reverse (struct list *list
+){
   if (!list_empty (list)) 
     {
       struct list_elem *e;

@@ -70,6 +70,8 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
+static bool value_less (const struct list_elem *a_, const struct list_elem *b_,
+            void *aux UNUSED);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -246,7 +248,10 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+
+  list_insert_ordered (&ready_list, &t->elem, value_less, NULL);
+  //list_push_back (&ready_list, &t->elem);
+
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -344,7 +349,16 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  struct thread *current_thread = thread_current ();
+  // GET FIRST ELEMENT IN LIST  / AKA HIGHEST PRIORITY THREAD
+  current_thread->priority = new_priority;
+//if first element in list's priority < currently running thread, yield CPU to highest priority thread
+  list_sort(&ready_list, value_less, NULL);
+  //CHECK TO SEE IF THE NEW PRIORITY > THE CURRENT RUNNING THREAD PRIORITY
+  //CHECK IF THE THREAD IS IN THE READY LIST?
+  //NEED TO RESORT THE LIST HERE
+
+  //if(!is_sorted(&(ready_list->head), &(ready_list->tail), value_less, NULL)) 
 }
 
 /* Returns the current thread's priority. */
@@ -470,6 +484,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+
+  //list_insert_ordered (&ready_list, &(current->elem), value_less, NULL);
   list_push_back (&all_list, &t->allelem);
 
   //add semaphore + initialize its value to 0
@@ -591,3 +607,17 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+
+/* Returns true if value A is less than value B, false
+   otherwise. */
+static bool
+value_less (const struct list_elem *a_, const struct list_elem *b_,
+            void *aux UNUSED) 
+{
+  struct thread *a = list_entry (a_, struct thread, elem);
+  struct thread *b = list_entry (b_, struct thread, elem);
+  
+  //compare so to larger priority is ordered first
+  return a->priority > b->priority;
+}
