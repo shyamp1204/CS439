@@ -312,6 +312,7 @@ thread_exit (void)
 
 /* Yields the CPU.  The current thread is not put to sleep and
    may be scheduled again immediately at the scheduler's whim. */
+// wes drove
 void
 thread_yield (void) 
 {
@@ -322,7 +323,8 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    // list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered (&ready_list, &cur->elem, value_less, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -352,9 +354,15 @@ thread_set_priority (int new_priority)
   struct thread *current_thread = thread_current ();
   // GET FIRST ELEMENT IN LIST  / AKA HIGHEST PRIORITY THREAD
   current_thread->priority = new_priority;
-//if first element in list's priority < currently running thread, yield CPU to highest priority thread
+  //if first element in list's priority < currently running thread, yield CPU to highest priority thread
   list_sort(&ready_list, value_less, NULL);
   //CHECK TO SEE IF THE NEW PRIORITY > THE CURRENT RUNNING THREAD PRIORITY
+
+  struct thread *ready_head = list_entry(list_begin(&ready_list), struct thread, elem);
+
+  if(ready_head->priority > current_thread->priority){
+    thread_yield();
+  }
   //CHECK IF THE THREAD IS IN THE READY LIST?
   //NEED TO RESORT THE LIST HERE
 
@@ -515,6 +523,7 @@ alloc_frame (struct thread *t, size_t size)
 static struct thread *
 next_thread_to_run (void) 
 {
+  //list_sort(&ready_list, value_less, NULL);
   if (list_empty (&ready_list))
     return idle_thread;
   else
