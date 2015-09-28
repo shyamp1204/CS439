@@ -197,6 +197,7 @@ lock_init (struct lock *lock)
 void
 lock_acquire (struct lock *lock)
 {
+  //https://code.google.com/p/pintosof4p/source/browse/trunk/pintos/src/threads/synch.c?r=8
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
@@ -303,7 +304,7 @@ cond_wait (struct condition *cond, struct lock *lock)
   sema_init (&waiter.semaphore, 0);
   // list_push_back (&cond->waiters, &waiter.elem);
   //put the items in order
-  list_insert_ordered (&cond->waiters, &waiter.elem, value_less, NULL);
+   list_insert_ordered (&cond->waiters, &waiter.elem, value_less, NULL);
   lock_release (lock);
   sema_down (&waiter.semaphore);
   lock_acquire (lock);
