@@ -238,19 +238,30 @@ thread_block (void)
    This function does not preempt the running thread.  This can
    be important: if the caller had disabled interrupts itself,
    it may expect that it can atomically unblock a thread and
-   update other data. */
+   update other data. 
+   Alex Driving here */
 void
 thread_unblock (struct thread *t) 
 {
   enum intr_level old_level;
-
   ASSERT (is_thread (t));
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
 
+  //when unblocked, add thread to the ready list based on its priority
   list_insert_ordered (&ready_list, &t->elem, value_less, NULL);
-  //list_push_back (&ready_list, &t->elem);
+
+  //CHECK TO SEE IF UNBLOCKED THREAD PRIORITY > CURRENT RUNNING THREAD PRIORITY
+  if(!list_empty(&ready_list)) {
+    //GET THE FIRST THREAD IN THE READY LIST (WITH HIGHEST PRIORITY)
+    struct thread *ready_head = list_entry(list_begin(&ready_list), struct thread, elem);
+
+    //check if the current threads needs to yeield and if it is not the idle thread
+    if((thread_current ()->priority < ready_head->priority) && (thread_current() != idle_thread)) {
+        thread_yield ();
+    }
+  }
 
   t->status = THREAD_READY;
   intr_set_level (old_level);
@@ -312,7 +323,7 @@ thread_exit (void)
 
 /* Yields the CPU.  The current thread is not put to sleep and
    may be scheduled again immediately at the scheduler's whim. */
-// wes drove
+// Wes drove here
 void
 thread_yield (void) 
 {
@@ -322,9 +333,9 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  if (cur != idle_thread) 
-    // list_push_back (&ready_list, &cur->elem);
+  if (cur != idle_thread) {
     list_insert_ordered (&ready_list, &cur->elem, value_less, NULL);
+  }
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -347,26 +358,26 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
-/* Sets the current thread's priority to NEW_PRIORITY. */
+/* Sets the current thread's priority to NEW_PRIORITY. 
+Alex driving here */
 void
 thread_set_priority (int new_priority) 
 {
+  ASSERT (new_priority <= PRI_MAX);
+  ASSERT (new_priority >= PRI_MIN);
   struct thread *current_thread = thread_current ();
-  // GET FIRST ELEMENT IN LIST  / AKA HIGHEST PRIORITY THREAD
+
   current_thread->priority = new_priority;
-  //if first element in list's priority < currently running thread, yield CPU to highest priority thread
-  list_sort(&ready_list, value_less, NULL);
-  //CHECK TO SEE IF THE NEW PRIORITY > THE CURRENT RUNNING THREAD PRIORITY
+
+  //SHOULD WE SORT THE LIST?  EVERYTHING SHOULD HAVE BEEN INSERTED IN ORDER
+  //list_sort(&ready_list, value_less, NULL);
 
   struct thread *ready_head = list_entry(list_begin(&ready_list), struct thread, elem);
 
-  if(ready_head->priority > current_thread->priority){
+  //if first element in list's priority > currently running thread, yield CPU to highest priority thread
+  if(ready_head->priority > current_thread->priority) {
     thread_yield();
   }
-  //CHECK IF THE THREAD IS IN THE READY LIST?
-  //NEED TO RESORT THE LIST HERE
-
-  //if(!is_sorted(&(ready_list->head), &(ready_list->tail), value_less, NULL)) 
 }
 
 /* Returns the current thread's priority. */
@@ -493,13 +504,11 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
 
-  //list_insert_ordered (&ready_list, &(current->elem), value_less, NULL);
   list_push_back (&all_list, &t->allelem);
 
   //add semaphore + initialize its value to 0
   //Alex driving now
   sema_init (&(t->sema_sleep),0);
-
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
