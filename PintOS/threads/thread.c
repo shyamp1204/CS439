@@ -636,6 +636,9 @@ value_less (const struct list_elem *a_, const struct list_elem *b_,
   struct thread *a = list_entry (a_, struct thread, elem);
   struct thread *b = list_entry (b_, struct thread, elem);
   
+  //return a > b ; if a == b, then do ROUND ROBIN order -- put a behind all 
+  // elements with the same values, until it reaches one with a lesser priority!
+
   //compare so to larger priority is ordered first
   return a->priority > b->priority;
 }
