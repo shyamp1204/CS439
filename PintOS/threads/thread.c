@@ -227,10 +227,7 @@ thread_block (void)
   ASSERT (!intr_context ());
   ASSERT (intr_get_level () == INTR_OFF);
 
-  //list_sort (&ready_list, value_less, NULL);
-
   thread_current ()->status = THREAD_BLOCKED;
-
   schedule ();
 }
 
@@ -248,30 +245,21 @@ thread_unblock (struct thread *t)
 {
   enum intr_level old_level;
   ASSERT (is_thread (t));
-
   old_level = intr_disable ();
-
-  t->status = THREAD_BLOCKED;
-
   ASSERT (t->status == THREAD_BLOCKED);
-  //make sure the list is in or
-  list_sort (&ready_list, value_less, NULL);
 
-  //when unblocked, add thread to the ready list based on its priority
-  list_insert_ordered (&ready_list, &t->elem, value_less, NULL);
+  list_insert_ordered( &ready_list, &t->elem, value_less, NULL);
+  t->status = THREAD_READY;
 
-  //CHECK TO SEE IF UNBLOCKED THREAD PRIORITY > CURRENT RUNNING THREAD PRIORITY
   if(!list_empty(&ready_list)) {
-    //GET THE FIRST THREAD IN THE READY LIST (WITH HIGHEST PRIORITY)
-    struct thread *ready_head = list_entry(list_begin(&ready_list), struct thread, elem);
+    //struct list_elem *ready_head = list_begin (&ready_list);
+    struct thread* ready_head = list_entry(list_begin(&ready_list), struct thread, elem);
+    struct thread* cur = thread_current ();
 
-    //check if the current threads needs to yeield and if it is not the idle thread
-    if((thread_current ()->priority < ready_head->priority) && (thread_current() != idle_thread)) {
-        thread_yield ();
+    if((cur->priority < ready_head->priority) && (cur != idle_thread)) {
+      thread_yield ();
     }
   }
-
-  t->status = THREAD_READY;
   intr_set_level (old_level);
 }
 
@@ -348,6 +336,7 @@ thread_yield (void)
   schedule ();
   intr_set_level (old_level);
 }
+
 
 /* Invoke function 'func' on all threads, passing along 'aux'.
    This function must be called with interrupts off. */
@@ -516,9 +505,7 @@ init_thread (struct thread *t, const char *name, int priority)
 
   //add semaphore + initialize its value to 0
   //Alex driving now
-  t->base_priority = priority;
   sema_init (&(t->sema_sleep),0);
-  list_init (&(t->lock_list));
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -646,9 +633,6 @@ value_less (const struct list_elem *a_, const struct list_elem *b_,
   struct thread *a = list_entry (a_, struct thread, elem);
   struct thread *b = list_entry (b_, struct thread, elem);
   
-  //return a > b ; if a == b, then do ROUND ROBIN order -- put a behind all 
-  // elements with the same values, until it reaches one with a lesser priority!
-
   //compare so to larger priority is ordered first
   return a->priority > b->priority;
 }
