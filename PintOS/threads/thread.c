@@ -227,7 +227,10 @@ thread_block (void)
   ASSERT (!intr_context ());
   ASSERT (intr_get_level () == INTR_OFF);
 
+  //list_sort (&ready_list, value_less, NULL);
+
   thread_current ()->status = THREAD_BLOCKED;
+
   schedule ();
 }
 
@@ -247,7 +250,12 @@ thread_unblock (struct thread *t)
   ASSERT (is_thread (t));
 
   old_level = intr_disable ();
+
+  t->status = THREAD_BLOCKED;
+
   ASSERT (t->status == THREAD_BLOCKED);
+  //make sure the list is in or
+  list_sort (&ready_list, value_less, NULL);
 
   //when unblocked, add thread to the ready list based on its priority
   list_insert_ordered (&ready_list, &t->elem, value_less, NULL);
@@ -508,7 +516,9 @@ init_thread (struct thread *t, const char *name, int priority)
 
   //add semaphore + initialize its value to 0
   //Alex driving now
+  t->base_priority = priority;
   sema_init (&(t->sema_sleep),0);
+  list_init (&(t->lock_list));
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

@@ -52,3 +52,13 @@ Katherine, 30 mins
 Alex, 30 mins
 Katherine, 30 mins
 Alex, 30 mins
+
+10/1, 330pm-7pm Alex and Katherine, 3.5 hours
+Driver Order and Time Length:
+Katherine, 30 mins
+Alex, 30 mins
+Katherine, 30 mins
+Alex, 30 mins
+Katherine, 30 mins
+Alex, 30 mins
+Katherine, 30 mins

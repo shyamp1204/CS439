@@ -90,7 +90,7 @@ struct thread
     enum thread_status status;          /* Thread state. */
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
-    int priority;                       /* Priority. */
+    int priority;                       /* Priority. */  /* used as effective priority */
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
@@ -111,10 +111,9 @@ struct thread
     struct list_elem waiting_elem;    /* a list element so that each thread can be put into lists, spefically wait_list */
 
     //FOR PRIORITY DONATION
-    int base priority;    /* the thread's original priority before donations */
-    int effec_priority;   /* the higher of the newly set priority of the highest donated priority */
-    struct lock lock_to_acquire;    /* the lock that the thread owns and uses */
-    struct list donations_list;   /* list of all priority donations donated to this thread */
+    int base_priority;    /* the thread's original priority before donations.  Never changes after thread init */
+    struct lock* my_lock;    /* the lock that the thread owns and uses */
+    struct list lock_list;   /* list of all priority donations donated to this thread */
   };
 
 /* If false (default), use round-robin scheduler.
