@@ -303,7 +303,7 @@ cond_wait (struct condition *cond, struct lock *lock)
   sema_init (&waiter.semaphore, 0);
   // list_push_back (&cond->waiters, &waiter.elem);
   //put the items in order
-   list_insert_ordered (&cond->waiters, &waiter.elem, value_less, NULL);
+  list_insert_ordered (&cond->waiters, &waiter.elem, value_less, NULL);
   lock_release (lock);
   sema_down (&waiter.semaphore);
   lock_acquire (lock);

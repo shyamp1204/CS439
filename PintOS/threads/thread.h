@@ -109,6 +109,10 @@ struct thread
     int64_t wakeupTime;             /* number of ticks the thread should sleep for*/
     struct semaphore sema_sleep;      /* Semaphore that is used to block the thread so that it can */
     struct list_elem waiting_elem;    /* a list element so that each thread can be put into lists, spefically wait_list */
+
+    int base_priority;
+    struct lock lock_to_acquire;    /* the lock that the thread owns and uses */
+    struct list donations_list;   /* list of all priority donations donated to this thread */
   };
 
 /* If false (default), use round-robin scheduler.

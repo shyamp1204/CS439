@@ -505,6 +505,7 @@ init_thread (struct thread *t, const char *name, int priority)
 
   //add semaphore + initialize its value to 0
   //Alex driving now
+  t->base_priority = priority;
   sema_init (&(t->sema_sleep),0);
 }
 
