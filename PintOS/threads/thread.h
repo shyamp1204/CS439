@@ -111,7 +111,6 @@ struct thread
     struct list_elem waiting_elem;    /* a list element so that each thread can be put into lists, spefically wait_list */
 
     int base_priority;
-    struct lock lock_to_acquire;    /* the lock that the thread owns and uses */
     struct list donations_list;   /* list of all priority donations donated to this thread */
   };
 

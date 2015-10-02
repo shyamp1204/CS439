@@ -72,6 +72,7 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
+      //insert the thread to be blocked onto the waiters list in order, then block it
       list_insert_ordered (&sema->waiters, &thread_current ()->elem, value_less, NULL);
       thread_block ();
     }
@@ -118,8 +119,9 @@ sema_up (struct semaphore *sema)
   ASSERT (sema != NULL);
 
   old_level = intr_disable ();
-    sema->value++;
+  sema->value++;
   if (!list_empty (&sema->waiters)) {
+    //take the highest priority thread off of the waiters list, and unblock it
     thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
   }
   intr_set_level (old_level);

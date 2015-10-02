@@ -101,10 +101,7 @@ void
 timer_sleep (int64_t sleep_ticks) 
 {
   ASSERT (intr_get_level () == INTR_ON);
-  if(sleep_ticks < 0) {
-    //don't run any code below
-    return;
-  }
+  ASSERT (sleep_ticks > 0);
 
   int64_t stop;
 

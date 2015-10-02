@@ -248,14 +248,16 @@ thread_unblock (struct thread *t)
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
 
-  list_insert_ordered( &ready_list, &t->elem, value_less, NULL);
+  //put the thread in order on the ready list based on priority
+  list_insert_ordered (&ready_list, &t->elem, value_less, NULL);
   t->status = THREAD_READY;
 
   if(!list_empty(&ready_list)) {
-    //struct list_elem *ready_head = list_begin (&ready_list);
+    //get the thead with the most priority off of the ready list and the current thread
     struct thread* ready_head = list_entry(list_begin(&ready_list), struct thread, elem);
     struct thread* cur = thread_current ();
 
+    //if the first thread on the ready list has more priority than the currently running thread, yield to it
     if((cur->priority < ready_head->priority) && (cur != idle_thread)) {
       thread_yield ();
     }
@@ -330,8 +332,10 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) {
+    //put the current thread on the ready list in sorted order based on priority
     list_insert_ordered (&ready_list, &cur->elem, value_less, NULL);
   }
+  //change the running threads status back to ready and then schedule the next thread to run
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
