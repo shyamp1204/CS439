@@ -70,6 +70,8 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
+static bool value_less (const struct list_elem *a_, const struct list_elem *b_,
+            void *aux UNUSED);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -236,18 +238,30 @@ thread_block (void)
    This function does not preempt the running thread.  This can
    be important: if the caller had disabled interrupts itself,
    it may expect that it can atomically unblock a thread and
-   update other data. */
+   update other data. 
+   Alex Driving here */
 void
 thread_unblock (struct thread *t) 
 {
   enum intr_level old_level;
-
   ASSERT (is_thread (t));
-
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+
+  //put the thread in order on the ready list based on priority
+  list_insert_ordered (&ready_list, &t->elem, value_less, NULL);
   t->status = THREAD_READY;
+
+  if(!list_empty(&ready_list)) {
+    //get the thead with the most priority off of the ready list and the current thread
+    struct thread* ready_head = list_entry(list_begin(&ready_list), struct thread, elem);
+    struct thread* cur = thread_current ();
+
+    //if the first thread on the ready list has more priority than the currently running thread, yield to it
+    if((cur->priority < ready_head->priority) && (cur != idle_thread)) {
+      thread_yield ();
+    }
+  }
   intr_set_level (old_level);
 }
 
@@ -307,6 +321,7 @@ thread_exit (void)
 
 /* Yields the CPU.  The current thread is not put to sleep and
    may be scheduled again immediately at the scheduler's whim. */
+// Wes drove here
 void
 thread_yield (void) 
 {
@@ -316,12 +331,16 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+  if (cur != idle_thread) {
+    //put the current thread on the ready list in sorted order based on priority
+    list_insert_ordered (&ready_list, &cur->elem, value_less, NULL);
+  }
+  //change the running threads status back to ready and then schedule the next thread to run
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
 }
+
 
 /* Invoke function 'func' on all threads, passing along 'aux'.
    This function must be called with interrupts off. */
@@ -340,11 +359,26 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
-/* Sets the current thread's priority to NEW_PRIORITY. */
+/* Sets the current thread's priority to NEW_PRIORITY. 
+Alex driving here */
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  ASSERT (new_priority <= PRI_MAX);
+  ASSERT (new_priority >= PRI_MIN);
+  struct thread *current_thread = thread_current ();
+
+  current_thread->priority = new_priority;
+
+  //SHOULD WE SORT THE LIST?  EVERYTHING SHOULD HAVE BEEN INSERTED IN ORDER
+  //list_sort(&ready_list, value_less, NULL);
+
+  struct thread *ready_head = list_entry(list_begin(&ready_list), struct thread, elem);
+
+  //if first element in list's priority > currently running thread, yield CPU to highest priority thread
+  if(ready_head->priority > current_thread->priority) {
+    thread_yield();
+  }
 }
 
 /* Returns the current thread's priority. */
@@ -470,7 +504,13 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+
   list_push_back (&all_list, &t->allelem);
+
+  //add semaphore + initialize its value to 0
+  //Alex driving now
+  t->base_priority = priority;
+  sema_init (&(t->sema_sleep),0);
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -494,6 +534,7 @@ alloc_frame (struct thread *t, size_t size)
 static struct thread *
 next_thread_to_run (void) 
 {
+  //list_sort(&ready_list, value_less, NULL);
   if (list_empty (&ready_list))
     return idle_thread;
   else
@@ -586,3 +627,17 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+
+/* Returns true if value A is less than value B, false
+   otherwise. */
+static bool
+value_less (const struct list_elem *a_, const struct list_elem *b_,
+            void *aux UNUSED) 
+{
+  struct thread *a = list_entry (a_, struct thread, elem);
+  struct thread *b = list_entry (b_, struct thread, elem);
+  
+  //compare so to larger priority is ordered first
+  return a->priority > b->priority;
+}
