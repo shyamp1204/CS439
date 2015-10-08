@@ -24,12 +24,14 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
-   thread id, or TID_ERROR if the thread cannot be created. */
+   thread id, or TID_ERROR if the thread cannot be created. 
+
+   Alex driving here  */
 tid_t
 process_execute (const char *file_name) 
 {
   if(file_name == NULL) {
-    //send null pointer to exception handler
+    //SEND NULL POINTER EXCEPTION TO EXCEPTION
   }
 
   char *fn_copy;
@@ -43,33 +45,8 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-
-  /* Create an array to store the arguments */
-  char **args = palloc_get_page (0);
-
-  /* Tokenise command_copy and populate arguments */
-  int32_t i = 0;
-  char *token, *save_ptr;
-  char *my_filename;
-
-  for (token = strtok_r (fn_copy, " ", &save_ptr);token != NULL; token = strtok_r (NULL, " ", &save_ptr), i++)
-  {
-    //check to make sure number of arguments is less than 14
-    if (i >= 14)
-    {
-      palloc_free_page (fn_copy);
-      palloc_free_page (args);
-      return TID_ERROR;
-    }
-    args [i] = token;
-  }
-  args [i] = NULL;
-
-  /* Create a new thread to execute the command. */
-  printf("!!!!file name + args: %s %s %s\n", args[0], args [1], args [2]);
-
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (args[0], PRI_DEFAULT, start_process, *args);
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -241,7 +218,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp);
+static bool setup_stack (void **esp, char *file_name);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -268,10 +245,20 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
   /* Open executable file. */
-  file = filesys_open (file_name);
+  //Alex driving here
+  //variables needed
+  char *my_filename, *save_ptr;
+  char *fn_copy;
+  fn_copy = palloc_get_page (0);
+
+  //copy the string and get the first "token" which should be the filename
+  strlcpy (fn_copy, file_name, PGSIZE);
+  my_filename = strtok_r (fn_copy, " ", &save_ptr);
+
+  file = filesys_open (my_filename);
   if (file == NULL) 
     {
-      printf ("load: %s: open failed\n", file_name);
+      printf ("load: %s: open failed\n", my_filename);
       goto done; 
     }
 
@@ -284,7 +271,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       || ehdr.e_phentsize != sizeof (struct Elf32_Phdr)
       || ehdr.e_phnum > 1024) 
     {
-      printf ("load: %s: error loading executable\n", file_name);
+      printf ("load: %s: error loading executable\n", my_filename);
       goto done; 
     }
 
@@ -348,7 +335,12 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp))
+  //get a char * copy of the command line and pass it to setup_stack
+  char *cmdline_copy;
+  cmdline_copy = palloc_get_page (0);
+  strlcpy (cmdline_copy, file_name, PGSIZE);
+  
+  if (!setup_stack (esp, cmdline_copy))
     goto done;
 
   /* Start address. */
@@ -473,14 +465,55 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp) 
+setup_stack (void **esp, char *file_name) 
 {
   uint8_t *kpage;
   bool success = false;
-
+  size_t numOfBytes;
+  //create a copy of stack pointer so we can do arithmetic on it
+  char *myEsp = (char *) *esp;
+ 
+  //pointer to array to store each of the arguments
   char **args = palloc_get_page (0);
-  printf("#### %s %s %s\n", args[0], args[1], args[2]);
 
+  int32_t counter = 0;
+  char *token, *save_ptr;
+  // create a "token" for each string seperated by a space
+  for (token = strtok_r (file_name, " ", &save_ptr); token != NULL; 
+        token = strtok_r (NULL, " ", &save_ptr), counter++) 
+  {
+    //check to make sure number of arguments is less than 100
+    if (counter >= 100) 
+    {
+      palloc_free_page (file_name);
+      palloc_free_page (args);
+      return TID_ERROR;
+    }
+    args [counter] = token;
+    numOfBytes += strlen (token) + 1;    //add 1 for null terminator?
+  }
+
+  //ALL ARGUMENTS ARE IN ARGS ARRAY NEED TO PUSH THEM ON THE STACK
+  int32_t index = 0;
+  while (args[index] < counter) {
+    myEsp = args[index];
+    index++;
+    myEsp -= 4;  //subtract number of bytes in args[index] ????
+  }
+
+
+  //PUSH bytes%4 "0's onto esp
+  //PUSH POINTERS ONTO THE STACK THAT REFERENCE THE STACK VARIABLES IN THE CORRECT ORDER
+
+  //reset the stack pointer to the origional pointer
+  *esp = myEsp;
+
+  //CALL HEX DUMP TO SEE IF THE STACK IS SET UP CORRECTLY.  FOR TESTING ONLY
+  //void hex_dump (uintptr_t ofs, const void *, size_t size, bool ascii);
+  //esp, esp, esp-12, 1
+
+  
+  /* Create a new thread to execute the command. */
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
