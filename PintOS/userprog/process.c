@@ -494,18 +494,33 @@ setup_stack (void **esp, char *cmd_line)
   }
 
   //ALL ARGUMENTS ARE IN ARGS ARRAY NEED TO PUSH THEM ON THE STACK
-  int32_t index = 0;
+  int32_t index = counter;
   size_t indexBytes = 0;
-  while (args[index] < counter) {
+  while (index > 0) {
     indexBytes = strlen (args[index]) + 1;
     myEsp = args[index];
-    index++;
+    index--;
     myEsp -= indexBytes;  //subtract number of bytes in args[index] or 4????
+    myEsp = '\0';
+    myEsp--;
   }
 
   //PUSH bytes%4 "0's onto esp
-  //PUSH POINTERS ONTO THE STACK THAT REFERENCE THE STACK VARIABLES IN THE CORRECT ORDER
+  int32_t padding = numOfBytes%4;
+  int32_t x;
+  for (x = 0; x<padding; x++) {
+    //push 0 onto stack for paddding
+    myEsp = '0';
+    myEsp--;
+  }
 
+  //PUSH POINTERS ONTO THE STACK THAT REFERENCE THE STACK VARIABLES IN THE CORRECT ORDER
+  int32_t indexAddr = counter;
+  while (indexAddr > 0) {
+    myEsp = &args[indexAddr];
+    indexAddr--;
+    myEsp -= 4;  //subtract number of bytes in args[index] or 4????
+  }
   //reset the stack pointer to the origional pointer
   *esp = myEsp;
 
