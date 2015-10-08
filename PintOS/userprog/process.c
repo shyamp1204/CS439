@@ -28,18 +28,48 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name) 
 {
+  if(file_name == NULL) {
+    //send null pointer to exception handler
+  }
+
   char *fn_copy;
   tid_t tid;
 
   /* Make a copy of FILE_NAME.
-     Otherwise there's a race between the caller and load(). */
+  Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
+
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+
+  /* Create an array to store the arguments */
+  char **args = palloc_get_page (0);
+
+  /* Tokenise command_copy and populate arguments */
+  int32_t i = 0;
+  char *token, *save_ptr;
+  char *my_filename;
+
+  for (token = strtok_r (fn_copy, " ", &save_ptr);token != NULL; token = strtok_r (NULL, " ", &save_ptr), i++)
+  {
+    //check to make sure number of arguments is less than 14
+    if (i >= 14)
+    {
+      palloc_free_page (fn_copy);
+      palloc_free_page (args);
+      return TID_ERROR;
+    }
+    args [i] = token;
+  }
+  args [i] = NULL;
+
+  /* Create a new thread to execute the command. */
+  printf("!!!!file name + args: %s %s %s\n", args[0], args [1], args [2]);
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (args[0], PRI_DEFAULT, start_process, *args);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -53,6 +83,7 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
+
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -88,10 +119,25 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+  while(1) {}
   return -1;
 }
 
-/* Free the current process's resources. */
+/* Free the current process's resources. 
+
+Whenever a user process terminates, because it called exit or for any other 
+reason, print the process's name and exit code, formatted as if printed by
+ printf ("%s: exit(%d)\n", ...);. The name printed should be the full name
+  passed to process_execute(), omitting command-line arguments. 
+
+  Do not print these messages when a kernel thread that is not a user process 
+  terminates, or when the halt system call is invoked. The message is optional 
+  when a process fails to load.
+Aside from this, don't print any other messages that Pintos as provided doesn't 
+already print. You may find extra messages useful during debugging, but they
+ will confuse the grading scripts and thus lower your score.
+
+*/
 void
 process_exit (void)
 {
@@ -432,12 +478,15 @@ setup_stack (void **esp)
   uint8_t *kpage;
   bool success = false;
 
+  char **args = palloc_get_page (0);
+  printf("#### %s %s %s\n", args[0], args[1], args[2]);
+
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE;
+        *esp = PHYS_BASE - 12;
       else
         palloc_free_page (kpage);
     }
