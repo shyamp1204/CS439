@@ -465,11 +465,11 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp, char *file_name) 
+setup_stack (void **esp, char *cmd_line) 
 {
   uint8_t *kpage;
   bool success = false;
-  size_t numOfBytes;
+  size_t numOfBytes = 0;
   //create a copy of stack pointer so we can do arithmetic on it
   char *myEsp = (char *) *esp;
  
@@ -479,28 +479,29 @@ setup_stack (void **esp, char *file_name)
   int32_t counter = 0;
   char *token, *save_ptr;
   // create a "token" for each string seperated by a space
-  for (token = strtok_r (file_name, " ", &save_ptr); token != NULL; 
+  for (token = strtok_r (cmd_line, " ", &save_ptr); token != NULL; 
         token = strtok_r (NULL, " ", &save_ptr), counter++) 
   {
     //check to make sure number of arguments is less than 100
     if (counter >= 100) 
     {
-      palloc_free_page (file_name);
+      palloc_free_page (cmd_line);
       palloc_free_page (args);
       return TID_ERROR;
     }
     args [counter] = token;
-    numOfBytes += strlen (token) + 1;    //add 1 for null terminator?
+    numOfBytes += strlen (token) + 1;  //add 1 for null terminator on each token
   }
 
   //ALL ARGUMENTS ARE IN ARGS ARRAY NEED TO PUSH THEM ON THE STACK
   int32_t index = 0;
+  size_t indexBytes = 0;
   while (args[index] < counter) {
+    indexBytes = strlen (args[index]) + 1;
     myEsp = args[index];
     index++;
-    myEsp -= 4;  //subtract number of bytes in args[index] ????
+    myEsp -= indexBytes;  //subtract number of bytes in args[index] or 4????
   }
-
 
   //PUSH bytes%4 "0's onto esp
   //PUSH POINTERS ONTO THE STACK THAT REFERENCE THE STACK VARIABLES IN THE CORRECT ORDER
@@ -509,7 +510,7 @@ setup_stack (void **esp, char *file_name)
   *esp = myEsp;
 
   //CALL HEX DUMP TO SEE IF THE STACK IS SET UP CORRECTLY.  FOR TESTING ONLY
-  //void hex_dump (uintptr_t ofs, const void *, size_t size, bool ascii);
+  //hex_dump (uintptr_t ofs, const void *, size_t size, bool ascii);
   //esp, esp, esp-12, 1
 
   
