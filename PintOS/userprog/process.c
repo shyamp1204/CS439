@@ -470,8 +470,7 @@ setup_stack (void **esp, char *cmd_line)
   uint8_t *kpage;
   bool success = false;
   size_t numOfBytes = 0;
-  //create a copy of stack pointer so we can do arithmetic on it
-  char *myEsp = (char *) *esp;
+
  
   //pointer to array to store each of the arguments
   char **args = palloc_get_page (0);
@@ -493,52 +492,67 @@ setup_stack (void **esp, char *cmd_line)
     numOfBytes += strlen (token) + 1;  //add 1 for null terminator on each token
   }
 
-  //ALL ARGUMENTS ARE IN ARGS ARRAY NEED TO PUSH THEM ON THE STACK
-  int32_t index = counter;
-  size_t indexBytes = 0;
-  while (index > 0) {
-    indexBytes = strlen (args[index]) + 1;
-    myEsp = args[index];
-    index--;
-    myEsp -= indexBytes;  //subtract number of bytes in args[index] or 4????
-    myEsp = '\0';
-    myEsp--;
-  }
-
-  //PUSH bytes%4 "0's onto esp
-  int32_t padding = numOfBytes%4;
-  int32_t x;
-  for (x = 0; x<padding; x++) {
-    //push 0 onto stack for paddding
-    myEsp = '0';
-    myEsp--;
-  }
-
-  //PUSH POINTERS ONTO THE STACK THAT REFERENCE THE STACK VARIABLES IN THE CORRECT ORDER
-  int32_t indexAddr = counter;
-  while (indexAddr > 0) {
-    myEsp = &args[indexAddr];
-    indexAddr--;
-    myEsp -= 4;  //subtract number of bytes in args[index] or 4????
-  }
-  //reset the stack pointer to the origional pointer
-  *esp = myEsp;
-
-  //CALL HEX DUMP TO SEE IF THE STACK IS SET UP CORRECTLY.  FOR TESTING ONLY
-  //hex_dump (uintptr_t ofs, const void *, size_t size, bool ascii);
-  //esp, esp, esp-12, 1
-
   
   /* Create a new thread to execute the command. */
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success)
-        *esp = PHYS_BASE - 12;
+      if (success) {
+        *esp = PHYS_BASE -4;
+
+        //create a copy of stack pointer so we can do arithmetic on it
+        char *myEsp = (char *) *esp;
+        //printf("^^^^ ESP: %#08x\n", myEsp);
+
+        //ALL ARGUMENTS ARE IN ARGS ARRAY NEED TO PUSH THEM ON THE STACK
+        int32_t index = counter;
+        size_t indexBytes = 0;
+        size_t totalBytes = 0;
+
+        while (index > 0) {
+          indexBytes = strlen (args[index]);
+          *myEsp = args[index];
+          printf("!!! ESP: %#08x", myEsp);
+          printf("    &&&& %s \n", *myEsp);
+          index--;
+          myEsp -= indexBytes;  //subtract number of bytes in args[index] or 4????
+          myEsp = '\0';
+          myEsp--;
+          totalBytes += indexBytes+1;
+        }
+
+
+        /*
+        //PUSH bytes%4 "0's onto esp
+        int32_t padding = numOfBytes%4;
+        int32_t x;
+        for (x = 0; x<padding; x++) {
+          //push 0 onto stack for paddding
+          myEsp = '0';
+          myEsp--;
+        }
+
+        //PUSH POINTERS ONTO THE STACK THAT REFERENCE THE STACK VARIABLES IN THE CORRECT ORDER
+        int32_t indexAddr = counter;
+        while (indexAddr > 0) {
+          myEsp = &args[indexAddr];
+          indexAddr--;
+          myEsp -= 4;  //subtract number of bytes in args[index] or 4????
+        }
+        */
+
+        //reset the stack pointer to the origional pointer
+        *esp = myEsp;
+      }
       else
         palloc_free_page (kpage);
     }
+
+  //CALL HEX DUMP TO SEE IF THE STACK IS SET UP CORRECTLY.  FOR TESTING ONLY
+  //hex_dump (uintptr_t ofs, const void *, size_t size, bool ascii);
+  //esp, esp, esp-12, 1
+
   return success;
 }
 
