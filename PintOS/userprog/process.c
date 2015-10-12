@@ -489,8 +489,12 @@ setup_stack (void **esp, char *cmd_line)
       return TID_ERROR;
     }
     args [counter] = token;
+    // printf("    &&&& %s", args[counter]);
+    //  printf("    &&&& %d \n", counter);
     numOfBytes += strlen (token) + 1;  //add 1 for null terminator on each token
   }
+  //  printf("    args [counter] %s \n", args[counter]);
+  // printf("args is full \n");
 
   
   /* Create a new thread to execute the command. */
@@ -506,20 +510,22 @@ setup_stack (void **esp, char *cmd_line)
         //printf("^^^^ ESP: %#08x\n", myEsp);
 
         //ALL ARGUMENTS ARE IN ARGS ARRAY NEED TO PUSH THEM ON THE STACK
-        int32_t index = counter;
+        int32_t index = counter - 1;
         size_t indexBytes = 0;
         size_t totalBytes = 0;
 
-        while (index > 0) {
-          indexBytes = strlen (args[index]);
-          *myEsp = args[index];
-          printf("!!! ESP: %#08x", myEsp);
-          printf("    &&&& %s \n", *myEsp);
+        while (index >= 0) {
+          indexBytes = strlen (args[index]) + 1;
+          // printf("    args[index] %s", args[index]);
+          // printf("    numOfBytes %d \n", indexBytes);
+          // printf("    *myESP during memcpy %s \n", (char *) memcpy(myEsp, args[index],indexBytes));
+          memcpy(myEsp, args[index],indexBytes);
+          // printf("!!! ESP: %#08x", myEsp);
+          // printf("    *myESP %s \n", myEsp);
           index--;
           myEsp -= indexBytes;  //subtract number of bytes in args[index] or 4????
-          myEsp = '\0';
-          myEsp--;
-          totalBytes += indexBytes+1;
+          // printf("!!! ESP after decrement: %#08x", myEsp);
+          totalBytes += indexBytes;
         }
 
 
