@@ -516,37 +516,57 @@ setup_stack (void **esp, char *cmd_line)
 
         while (index >= 0) {
           indexBytes = strlen (args[index]) + 1;
-          // printf("    args[index] %s", args[index]);
-          // printf("    numOfBytes %d \n", indexBytes);
+          printf("    args[index] %s", args[index]);
+          printf("    indexBytes %d \n", indexBytes);
           // printf("    *myESP during memcpy %s \n", (char *) memcpy(myEsp, args[index],indexBytes));
           memcpy(myEsp, args[index],indexBytes);
-          // printf("!!! ESP: %#08x", myEsp);
-          // printf("    *myESP %s \n", myEsp);
+          printf("!!! ESP: %#08x", myEsp);
+          printf("    *myESP %s \n", myEsp);
           index--;
           myEsp -= indexBytes;  //subtract number of bytes in args[index] or 4????
           // printf("!!! ESP after decrement: %#08x", myEsp);
           totalBytes += indexBytes;
         }
 
+        printf("!!! After  ESP: %#08x \n", myEsp);
 
-        /*
+        
+        char zero = '0';
+
         //PUSH bytes%4 "0's onto esp
-        int32_t padding = numOfBytes%4;
+        int32_t padding = 4 - (totalBytes % 4);
+        printf(" padding %d\n", padding);
         int32_t x;
-        for (x = 0; x<padding; x++) {
+        for (x = 0; x < padding; x++) {
           //push 0 onto stack for paddding
-          myEsp = '0';
+          memcpy(myEsp, &zero, 1);
+          printf("!!! ESP: %#08x     *myESP %s \n", myEsp, myEsp);
           myEsp--;
         }
 
+        // Put 0 char * on the stack
+        memcpy(myEsp,  &zero, 1);
+        myEsp -= 4;
+        printf(" im here somehow \n");
+
+
+        char * myOtherEsp = (char *) *esp;
+        printf("!!!  myOtherEsp: %#08x \n",  myOtherEsp);
         //PUSH POINTERS ONTO THE STACK THAT REFERENCE THE STACK VARIABLES IN THE CORRECT ORDER
-        int32_t indexAddr = counter;
-        while (indexAddr > 0) {
-          myEsp = &args[indexAddr];
+        int32_t indexAddr = counter - 1;
+        while (indexAddr >= 0) {
+          // printf("SDFSDFSDF ESP: %#08x \n", myEsp);
+          memcpy(myEsp, myOtherEsp, 4);
+          int x = strlen (args[index]) + 1;// breaks here
+          printf("x : %d\n", x);
+          myOtherEsp -= x;
+          printf("!!!  myOtherEsp: %#08x \n",  myOtherEsp);
+          // myEsp = &args[indexAddr];
+
           indexAddr--;
           myEsp -= 4;  //subtract number of bytes in args[index] or 4????
         }
-        */
+        printf("hello \n");
 
         //reset the stack pointer to the origional pointer
         *esp = myEsp;
