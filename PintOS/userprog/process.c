@@ -525,90 +525,61 @@ setup_stack (void **esp, char *cmd_line)
           myEsp-=1;
 
           indexBytes = strlen (args[index]) + 1;
-          //printf("    args[index] %s", args[index]);
-          //printf("    indexBytes %d \n", indexBytes);
-          // printf("    *myESP during memcpy %s \n", (char *) memcpy(myEsp, args[index],indexBytes));
-
           int32_t i;
           for(i = indexBytes-2; i >= 0; i--) {
             char* temp = args[index];
-            printf("! ESP BEFORE decrement: %#08x \n", myEsp);
 
-            printf("temp = %s\n", args[index]);
-            printf("temp[%d] = %c \n", i, *(temp+i));
-            // memcpy(myEsp, &(*(temp+i)), 1);
-            printf("temp during memcpy %s \n", (char *) memcpy(myEsp, &(*(temp+i)),1));
-            printf("!! ESP before decrement: %s \n", myEsp);
+            memcpy(myEsp, &(*(temp+i)),1);
             myEsp-=1;
-            printf("!!! ESP after decrement: %#08x \n", myEsp);
           }
-          printf("!!! ESP: %#08x", myEsp);
-          printf("    *myESP %s \n", myEsp);
           index--;
-          totalBytes += indexBytes + 1;
-
-          // memcpy(myEsp, &nullVal, 1);
-          // myEsp-=1;
+          totalBytes += indexBytes;
       }
-
-     
-        // while (index >= 0) {
-        //   indexBytes = strlen (args[index]) + 1;
-        //   printf("    args[index] %s", args[index]);
-        //   printf("    indexBytes %d \n", indexBytes);
-        //   // printf("    *myESP during memcpy %s \n", (char *) memcpy(myEsp, args[index],indexBytes));
-        //   memcpy(myEsp, args[index],indexBytes);
-        //   printf("!!! ESP: %#08x", myEsp);
-        //   printf("    *myESP %s \n", myEsp);
-        //   index--;
-        //   myEsp -= indexBytes;  //subtract number of bytes in args[index] or 4????
-        //   // printf("!!! ESP after decrement: %#08x", myEsp);
-        //   totalBytes += indexBytes;
-        // }
-
-        printf("!!! After  ESP: %#08x \n", myEsp);
-        printf("    *myESP %s \n", *myEsp);
-
 
         //PUSH bytes%4 "0's onto esp
         int32_t padding = 4 - (totalBytes % 4);
-        printf(" padding %d\n", padding);
         int32_t x;
         for (x = 0; x < padding; x++) {
           //push 0 onto stack for paddding
           memcpy(myEsp, &nullVal, 1);
-          printf("!!! ESP: %#08x     *myESP %s \n", myEsp, myEsp);
           myEsp--;
         }
 
+        //if padding, myEsp-3; if no padding, myEsp-4
+        //get to char* null pointer's beginning address! (have already done once -1)
+        if(padding==0) {
+          myEsp-=4;
+        }
+        else {
+          myEsp-=3;
+        }
+
         // Put 0 char * on the stack
-        memcpy(myEsp,  &nullVal, 1);
+        char* nullString = (char*) "\0";
+        memcpy(myEsp, nullString, 1);
         myEsp -= 4;
 
-        printf("!!! ESP: %#08x     *myESP %s \n", myEsp, myEsp);
+
         char * myOtherEsp = (char *) *esp;
         //PUSH POINTERS ONTO THE STACK THAT REFERENCE THE STACK VARIABLES IN THE CORRECT ORDER
         int32_t indexAddr = counter - 1;
         while (indexAddr >= 0) {
-          printf("!!!  myOtherEsp (mem location): %#08x    value pushing: %#08x"
-                      "subtract: %d\n", myEsp, myOtherEsp, (strlen (args[indexAddr]) + 1));
+          
           myOtherEsp -= (strlen (args[indexAddr]) + 1);// breaks here
           memcpy(myEsp, &myOtherEsp, 4);
 
           indexAddr--;
           myEsp -= 4;  //subtract number of bytes in args[index] or 4????
         }
-        printf("hello \n");
         
         // Put argv char ** on the stack
-        memcpy(myEsp, &myEsp, 4);
+        char* beginArgv = myEsp + 4;
+        memcpy(myEsp, &beginArgv, 4);
         myEsp -= 4;
-
 
         // num args
-        *myEsp = 4;
+        *myEsp = counter;
         myEsp -= 4;
-
 
         //reset the stack pointer to the origional pointer
         *esp = myEsp;
@@ -620,9 +591,8 @@ setup_stack (void **esp, char *cmd_line)
 
   //CALL HEX DUMP TO SEE IF THE STACK IS SET UP CORRECTLY.  FOR TESTING ONLY
   // hex_dump (*esp, esp, 42, 1);
-    hex_dump(*esp, *esp, PHYS_BASE-*esp, 1);
+  hex_dump(*esp, *esp, PHYS_BASE-*esp, 1);
   //esp, esp, esp-12, 1
-  printf("hello \n");
 
   return success;
 }
