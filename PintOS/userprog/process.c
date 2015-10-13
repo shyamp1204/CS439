@@ -464,6 +464,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
+// KK, and wes, alex driving things 
 static bool
 setup_stack (void **esp, char *cmd_line) 
 {
@@ -503,7 +504,7 @@ setup_stack (void **esp, char *cmd_line)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success) {
-        *esp = PHYS_BASE -4;
+        *esp = PHYS_BASE;
 
         //create a copy of stack pointer so we can do arithmetic on it
         char *myEsp = (char *) *esp;
@@ -514,24 +515,60 @@ setup_stack (void **esp, char *cmd_line)
         size_t indexBytes = 0;
         size_t totalBytes = 0;
 
+        char nullVal = '\0';
+
+        memcpy(myEsp, &nullVal, 1);
+        myEsp-=1;
+
         while (index >= 0) {
+          memcpy(myEsp, &nullVal, 1);
+          myEsp-=1;
+
           indexBytes = strlen (args[index]) + 1;
-          printf("    args[index] %s", args[index]);
-          printf("    indexBytes %d \n", indexBytes);
+          //printf("    args[index] %s", args[index]);
+          //printf("    indexBytes %d \n", indexBytes);
           // printf("    *myESP during memcpy %s \n", (char *) memcpy(myEsp, args[index],indexBytes));
-          memcpy(myEsp, args[index],indexBytes);
+
+          int32_t i;
+          for(i = indexBytes-2; i >= 0; i--) {
+            char* temp = args[index];
+            printf("! ESP BEFORE decrement: %#08x \n", myEsp);
+
+            printf("temp = %s\n", args[index]);
+            printf("temp[%d] = %c \n", i, *(temp+i));
+            // memcpy(myEsp, &(*(temp+i)), 1);
+            printf("temp during memcpy %s \n", (char *) memcpy(myEsp, &(*(temp+i)),1));
+            printf("!! ESP before decrement: %s \n", myEsp);
+            myEsp-=1;
+            printf("!!! ESP after decrement: %#08x \n", myEsp);
+          }
           printf("!!! ESP: %#08x", myEsp);
           printf("    *myESP %s \n", myEsp);
           index--;
-          myEsp -= indexBytes;  //subtract number of bytes in args[index] or 4????
-          // printf("!!! ESP after decrement: %#08x", myEsp);
-          totalBytes += indexBytes;
-        }
+          totalBytes += indexBytes + 1;
+
+          // memcpy(myEsp, &nullVal, 1);
+          // myEsp-=1;
+      }
+
+     
+        // while (index >= 0) {
+        //   indexBytes = strlen (args[index]) + 1;
+        //   printf("    args[index] %s", args[index]);
+        //   printf("    indexBytes %d \n", indexBytes);
+        //   // printf("    *myESP during memcpy %s \n", (char *) memcpy(myEsp, args[index],indexBytes));
+        //   memcpy(myEsp, args[index],indexBytes);
+        //   printf("!!! ESP: %#08x", myEsp);
+        //   printf("    *myESP %s \n", myEsp);
+        //   index--;
+        //   myEsp -= indexBytes;  //subtract number of bytes in args[index] or 4????
+        //   // printf("!!! ESP after decrement: %#08x", myEsp);
+        //   totalBytes += indexBytes;
+        // }
 
         printf("!!! After  ESP: %#08x \n", myEsp);
+        printf("    *myESP %s \n", *myEsp);
 
-        
-        char zero = '0';
 
         //PUSH bytes%4 "0's onto esp
         int32_t padding = 4 - (totalBytes % 4);
@@ -539,48 +576,59 @@ setup_stack (void **esp, char *cmd_line)
         int32_t x;
         for (x = 0; x < padding; x++) {
           //push 0 onto stack for paddding
-          memcpy(myEsp, &zero, 1);
+          memcpy(myEsp, &nullVal, 1);
           printf("!!! ESP: %#08x     *myESP %s \n", myEsp, myEsp);
           myEsp--;
         }
 
         // Put 0 char * on the stack
-        memcpy(myEsp,  &zero, 1);
+        memcpy(myEsp,  &nullVal, 1);
         myEsp -= 4;
-        printf(" im here somehow \n");
 
-
+        printf("!!! ESP: %#08x     *myESP %s \n", myEsp, myEsp);
         char * myOtherEsp = (char *) *esp;
-        printf("!!!  myOtherEsp: %#08x \n",  myOtherEsp);
         //PUSH POINTERS ONTO THE STACK THAT REFERENCE THE STACK VARIABLES IN THE CORRECT ORDER
         int32_t indexAddr = counter - 1;
         while (indexAddr >= 0) {
-          // printf("SDFSDFSDF ESP: %#08x \n", myEsp);
-          memcpy(myEsp, myOtherEsp, 4);
-          int x = strlen (args[index]) + 1;// breaks here
-          printf("x : %d\n", x);
-          myOtherEsp -= x;
-          printf("!!!  myOtherEsp: %#08x \n",  myOtherEsp);
-          // myEsp = &args[indexAddr];
+          printf("!!!  myOtherEsp (mem location): %#08x    value pushing: %#08x"
+                      "subtract: %d\n", myEsp, myOtherEsp, (strlen (args[indexAddr]) + 1));
+          myOtherEsp -= (strlen (args[indexAddr]) + 1);// breaks here
+          memcpy(myEsp, &myOtherEsp, 4);
 
           indexAddr--;
           myEsp -= 4;  //subtract number of bytes in args[index] or 4????
         }
         printf("hello \n");
+        
+        // Put argv char ** on the stack
+        memcpy(myEsp, &myEsp, 4);
+        myEsp -= 4;
+
+
+        // num args
+        *myEsp = 4;
+        myEsp -= 4;
+
 
         //reset the stack pointer to the origional pointer
         *esp = myEsp;
+
       }
       else
         palloc_free_page (kpage);
-    }
+    } 
 
   //CALL HEX DUMP TO SEE IF THE STACK IS SET UP CORRECTLY.  FOR TESTING ONLY
-  //hex_dump (uintptr_t ofs, const void *, size_t size, bool ascii);
+  // hex_dump (*esp, esp, 42, 1);
+    hex_dump(*esp, *esp, PHYS_BASE-*esp, 1);
   //esp, esp, esp-12, 1
+  printf("hello \n");
 
   return success;
 }
+
+
+
 
 /* Adds a mapping from user virtual address UPAGE to kernel
    virtual address KPAGE to the page table.
