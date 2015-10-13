@@ -463,8 +463,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 }
 
 /* Create a minimal stack by mapping a zeroed page at the top of
-   user virtual memory. */
-// KK, and wes, alex driving things 
+   user virtual memory. 
+   Wes, Alex, Katherine driving here */
 static bool
 setup_stack (void **esp, char *cmd_line) 
 {
@@ -472,8 +472,8 @@ setup_stack (void **esp, char *cmd_line)
   bool success = false;
   size_t numOfBytes = 0;
 
- 
-  //pointer to array to store each of the arguments
+  //ALEX DRIVING HERE
+  //pointer to array to store each of the arguments from cmd_line
   char **args = palloc_get_page (0);
 
   int32_t counter = 0;
@@ -485,91 +485,86 @@ setup_stack (void **esp, char *cmd_line)
     //check to make sure number of arguments is less than 100
     if (counter >= 100) 
     {
-      palloc_free_page (cmd_line);
-      palloc_free_page (args);
+      //need to free the pages??
       return TID_ERROR;
     }
     args [counter] = token;
-    // printf("    &&&& %s", args[counter]);
-    //  printf("    &&&& %d \n", counter);
-    numOfBytes += strlen (token) + 1;  //add 1 for null terminator on each token
+    //add 1 for null terminator on each token
+    numOfBytes += strlen (token) + 1; 
   }
-  //  printf("    args [counter] %s \n", args[counter]);
-  // printf("args is full \n");
-
   
-  /* Create a new thread to execute the command. */
+  //Create a new thread to execute the command. 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
+      //WES DRIVING HERE
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success) {
         *esp = PHYS_BASE;
-
         //create a copy of stack pointer so we can do arithmetic on it
         char *myEsp = (char *) *esp;
-        //printf("^^^^ ESP: %#08x\n", myEsp);
 
         //ALL ARGUMENTS ARE IN ARGS ARRAY NEED TO PUSH THEM ON THE STACK
         int32_t index = counter - 1;
         size_t indexBytes = 0;
         size_t totalBytes = 0;
-
         char nullVal = '\0';
 
+        //null value at the end of the stack
         memcpy(myEsp, &nullVal, 1);
         myEsp-=1;
 
         while (index >= 0) {
+          //null value after each argument
           memcpy(myEsp, &nullVal, 1);
           myEsp-=1;
 
+          //need to know how long the argument is (aka num of bytes to memcpy)
           indexBytes = strlen (args[index]) + 1;
           int32_t i;
           for(i = indexBytes-2; i >= 0; i--) {
+            //write each char from args[index] into myEsp
             char* temp = args[index];
-
             memcpy(myEsp, &(*(temp+i)),1);
             myEsp-=1;
           }
+          //move to next argument index
           index--;
-          totalBytes += indexBytes;
-      }
+          //count the total number of bytes written
+          totalBytes += indexBytes;   
+        }
 
-        //PUSH bytes%4 "0's onto esp
+        //katherine DRIVING HERE
+        //PUSH 4-(bytes%4) '\0' onto esp for 4 byte alligned padding
         int32_t padding = 4 - (totalBytes % 4);
         int32_t x;
         for (x = 0; x < padding; x++) {
-          //push 0 onto stack for paddding
+          //push '\0' onto stack for paddding
           memcpy(myEsp, &nullVal, 1);
           myEsp--;
         }
 
-        //if padding, myEsp-3; if no padding, myEsp-4
-        //get to char* null pointer's beginning address! (have already done once -1)
-        if(padding==0) {
-          myEsp-=4;
-        }
-        else {
-          myEsp-=3;
-        }
+        //move stack pointer to the next 4 byte alignment (fence post issue)
+        //get to char* null pointer's beginning address!
+        myEsp -= (padding==0) ? 4 : 3;
 
-        // Put 0 char * on the stack
+        // Put a null char* on the stack
         char* nullString = (char*) "\0";
         memcpy(myEsp, nullString, 1);
         myEsp -= 4;
 
-
-        char * myOtherEsp = (char *) *esp;
-        //PUSH POINTERS ONTO THE STACK THAT REFERENCE THE STACK VARIABLES IN THE CORRECT ORDER
+        //PUSH POINTERS ONTO THE STACK THAT REFERENCE THE STACK VARIABLES IN... 
+        //THE CORRECT ORDER
+        char * ptr_to_args = (char *) *esp;
         int32_t indexAddr = counter - 1;
         while (indexAddr >= 0) {
-          
-          myOtherEsp -= (strlen (args[indexAddr]) + 1);// breaks here
-          memcpy(myEsp, &myOtherEsp, 4);
+          //subtract the number of bytes already written, add a pointer to the.. 
+          //next argument on the stack
+          ptr_to_args -= (strlen (args[indexAddr]) + 1);
+          memcpy(myEsp, &ptr_to_args, 4);
 
           indexAddr--;
-          myEsp -= 4;  //subtract number of bytes in args[index] or 4????
+          myEsp -= 4;  
         }
         
         // Put argv char ** on the stack
@@ -577,27 +572,21 @@ setup_stack (void **esp, char *cmd_line)
         memcpy(myEsp, &beginArgv, 4);
         myEsp -= 4;
 
-        // num args
+        //push ARGC on the stack
         *myEsp = counter;
         myEsp -= 4;
 
-        //reset the stack pointer to the origional pointer
+        //reset the stack pointer to the original pointer
         *esp = myEsp;
-
       }
       else
         palloc_free_page (kpage);
     } 
-
   //CALL HEX DUMP TO SEE IF THE STACK IS SET UP CORRECTLY.  FOR TESTING ONLY
-  // hex_dump (*esp, esp, 42, 1);
   hex_dump(*esp, *esp, PHYS_BASE-*esp, 1);
-  //esp, esp, esp-12, 1
 
   return success;
 }
-
-
 
 
 /* Adds a mapping from user virtual address UPAGE to kernel
