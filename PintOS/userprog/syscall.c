@@ -3,8 +3,26 @@
 	#include <syscall-nr.h>
 	#include "threads/interrupt.h"
 	#include "threads/thread.h"
+	#include <lib/user/syscall.h>
+	#include "userprog/pagedir.h"
+	#include "threads/vaddr.h"
 
 	static void syscall_handler (struct intr_frame *);
+	int invalid_ptr (void *ptr);
+	void halt (void);
+	void exit (int status);
+	pid_t exec (const char *file); //file is same as cmd_line
+	int wait (pid_t pid);
+	bool create (const char *file, unsigned initial_size);
+	bool remove (const char *file);
+	int open (const char *file);
+	int filesize (int fd);
+	int read (int fd, void *buffer, unsigned length);
+	int write (int fd, const void *buffer, unsigned length);
+	void seek (int fd, unsigned position);
+	unsigned tell (int fd);
+	void close (int fd);
+
 
 	void
 	syscall_init (void) 
@@ -17,11 +35,13 @@
 	{
 		if (invalid_ptr (f->esp))
 	  {
+	 		printf("invalid pointer");
 	  	//Exit
 	    return;
 	  }
 	      
 	  int syscall_num = *((int *)f->esp);
+	  printf("### SYSCALL: %d  ", syscall_num);
 
 		switch (syscall_num)
 	  {
@@ -64,6 +84,7 @@
 			break;
 		case SYS_WRITE:
 			printf("### Calling Write");
+			thread_exit ();
 			//write (int fd, const void *buffer, unsigned length);
 			break;
 		case SYS_SEEK:
@@ -84,20 +105,6 @@
 			break;
 	    }
 	}
-
-	void halt (void);
-	void exit (int status);
-	pid_t exec (const char *file); //file is same as cmd_line
-	int wait (pid_t pid);
-	bool create (const char *file, unsigned initial_size);
-	bool remove (const char *file);
-	int open (const char *file);
-	int filesize (int fd);
-	int read (int fd, void *buffer, unsigned length);
-	int write (int fd, const void *buffer, unsigned length);
-	void seek (int fd, unsigned position);
-	unsigned tell (int fd);
-	void close (int fd);
 
 	/*
 	enum {
@@ -140,8 +147,17 @@
 
 	FUNCTION TO HANDLE INVALID MEMORY ADDRESS POINTERS FROM USER CALLS
 	*/
-	int invalid_ptr (char *ptr) {
-
+	int invalid_ptr (void *ptr) {
+		if (ptr == NULL) {
+			return 1;
+		}
+		if (!is_user_vaddr (ptr)) {
+			return 1;
+		}
+		else if (pagedir_get_page (thread_current ()->pagedir, ptr) == NULL) {
+			return 1;
+		}
+    return 0;
 	}
 
 
@@ -150,7 +166,7 @@
 	 This should be seldom used, because you lose some information about possible 
 	 deadlock situations, etc. */
 	void halt (void) {
-
+		return;
 	}
 
 	/*Whenever a user process terminates, because it called exit or for any other 
@@ -167,7 +183,6 @@
 	indicate errors.
 	 */
 	void exit (int status) {
-
 	}
 
 	/* file is same as cmd_line
@@ -179,6 +194,7 @@
 	  knows whether the child process successfully loaded its executable. You must 
 	  use appropriate synchronization to ensure this. */
 	pid_t exec (const char *file)  {
+		return 0;
 
 	} 
 
@@ -186,6 +202,7 @@
 	 ALOT.....
 	 */
 	int wait (pid_t pid)  {
+		return 0;
 
 	}
 
@@ -195,6 +212,7 @@
 	pening the new file is a separate operation which would require a open system 
 	call. */
 	bool create (const char *file, unsigned initial_size) {
+		return false;
 
 	}
 
@@ -203,17 +221,18 @@
 	A file may be removed regardless of whether it is open or closed, and removing
 	an open file does not close it. */
 	bool remove (const char *file) {
+		return false;
 
 	}
 
 	/* */
 	int open (const char *file) {
-
+		return 0;
 	}
 
 	/* */
 	int filesize (int fd) {
-
+		return 0;
 	}
 
 	/* 
@@ -223,23 +242,23 @@
 	input_getc().
 	*/
 	int read (int fd, void *buffer, unsigned length) {
-
+		return 0;
 	}
 
 	/* */
 	int write (int fd, const void *buffer, unsigned length) {
-
+		return 0;
 	}
 
 	/* */
 	void seek (int fd, unsigned position) {
-
 	}
 
 	/*
 	Returns the position of the next byte to be read or written in open file fd,
 	expressed in bytes from the beginning of the file. */
 	unsigned tell (int fd) {
+		return 0;
 
 	}
 
@@ -248,7 +267,6 @@
 	all its open file descriptors, as if by calling this function for each one.
 	*/
 	void close (int fd) {
-
 	}
 
 
