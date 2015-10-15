@@ -31,7 +31,7 @@ tid_t
 process_execute (const char *file_name) 
 {
   if(file_name == NULL) {
-    //SEND NULL POINTER EXCEPTION TO EXCEPTION
+    //SEND NULL POINTER EXCEPTION TO EXCEPTION?
   }
 
   char *fn_copy;
