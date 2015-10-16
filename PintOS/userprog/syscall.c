@@ -6,6 +6,8 @@
 	#include <lib/user/syscall.h>
 	#include "userprog/pagedir.h"
 	#include "threads/vaddr.h"
+	#include <lib/kernel/list.h>
+
 
 	static void syscall_handler (struct intr_frame *);
 	static int invalid_ptr (void *ptr);
@@ -36,7 +38,7 @@
 		if (invalid_ptr (f->esp))
 	  {
 	 		printf("invalid pointer");
-	  	//Exit
+	  	my_exit (f);
 	    return;
 	  }
 	      
@@ -145,7 +147,8 @@
 
 	FUNCTION TO HANDLE INVALID MEMORY ADDRESS POINTERS FROM USER CALLS
 	*/
-	static int invalid_ptr (void *ptr) {
+	static int 
+	invalid_ptr (void *ptr) {
 		if (ptr == NULL) {
 			return 1;
 		}
@@ -163,26 +166,51 @@
 	Terminates Pintos by calling shutdown_power_off() (declared in devices/shutdown.h).
 	 This should be seldom used, because you lose some information about possible 
 	 deadlock situations, etc. */
-	static void my_halt (void) {
+	static void 
+	my_halt (void) {
 		printf("  ### In Halt\n");
 	}
 
 	/*Whenever a user process terminates, because it called exit or for any other 
 	reason, print the process's name and exit code, formatted as if printed by 
 	printf ("%s: exit(%d)\n", ...);. The name printed should be the full name passed
-	 to process_execute(), omitting command-line arguments. Do not print these 
-	 messages when a kernel thread that is not a user process terminates, or when 
-	 the halt system call is invoked. The message is optional when a process fails 
-	 to load.
+	to process_execute(), omitting command-line arguments. Do not print these 
+	messages when a kernel thread that is not a user process terminates, or when 
+	the halt system call is invoked. The message is optional when a process fails 
+	to load.
 	 
 	Terminates the current user program, returning status to the kernel. If 
 	the process's parent waits for it (see below), this is the status that will 
 	be returned. Conventionally, a status of 0 indicates success and nonzero values
 	indicate errors.
-	 */
-	static void my_exit (struct intr_frame *f) {
+	*/
+	static void 
+	my_exit (struct intr_frame *f) {
 		printf("  ### In exit\n");
-		int status;
+
+  	int status;
+  	if (invalid_ptr (4+(f->esp)))
+    	status = -1;
+  	else 
+			status = *((int *)(4+(f->esp)));
+
+		printf("%s: exit(%d)\n", thread_name (), status);
+
+  	// close all open files
+  	struct thread *t = thread_current ();
+ 		struct list_elem *temp_file;
+
+  	// Need a lock ?
+  	while (!list_empty (&t->open_files_list))
+    {
+      //temp_file = list_pop_front (&t->open_files_list);
+      //struct list_elem *file_elem = list_entry (temp_file, struct list_elem, elem);
+      //free (file_elem);
+    }
+  	// Need to release the lock?
+
+  	thread_exit ();
+  	f->eax = status;
 	}
 
 	/* file is same as cmd_line
@@ -193,21 +221,25 @@
 	 for any reason. Thus, the parent process cannot return from the exec until it
 	  knows whether the child process successfully loaded its executable. You must 
 	  use appropriate synchronization to ensure this. */
-	static pid_t my_exec (struct intr_frame *f)  {
+	static pid_t 
+	my_exec (struct intr_frame *f)  {
 		printf("  ### In exec\n");
-		const char *file;
-		return 0;
 
+		const char *file = *((int *)(4+(f->esp)));
+
+		return 0;
 	} 
 
 	/*
 	 ALOT.....
 	 */
-	static int my_wait (struct intr_frame *f)  {
+	static int 
+	my_wait (struct intr_frame *f)  {
 		printf("  ### In wait\n");
-		pid_t pid;
-		return 0;
 
+		pid_t pid = *((int *)(4+(f->esp)));
+
+		return 0;
 	}
 
 	/*
@@ -215,36 +247,46 @@
 	true if successful, false otherwise. Creating a new file does not open it: o
 	pening the new file is a separate operation which would require a open system 
 	call. */
-	static bool my_create (struct intr_frame *f) {
+	static bool 
+	my_create (struct intr_frame *f) {
 		printf("  ### In create\n");
-		const char *file;
-		unsigned initial_size;
-		return false;
 
+		const char *file = *((int *)(4+(f->esp)));
+		unsigned initial_size = *((int *)(8+(f->esp)));
+
+		return false;
 	}
 
 	/*
 	Deletes the file called file. Returns true if successful, false otherwise. 
 	A file may be removed regardless of whether it is open or closed, and removing
 	an open file does not close it. */
-	static bool my_remove (struct intr_frame *f) {
+	static bool 
+	my_remove (struct intr_frame *f) {
 		printf("  ### In remove\n");
-		const char *file;
-		return false;
 
+		const char *file = *((int *)(4+(f->esp)));
+
+		return false;
 	}
 
 	/* */
-	static int my_open (struct intr_frame *f) {
+	static int 
+	my_open (struct intr_frame *f) {
 		printf("  ### In open\n");
-		const char *file;
+
+		const char *file = *((int *)(4+(f->esp)));
+
 		return 0;
 	}
 
 	/* */
-	static int my_filesize (struct intr_frame *f) {
+	static int 
+	my_filesize (struct intr_frame *f) {
 		printf("  ### In filesize\n");
-		int fd;
+
+		int fd = *((int *)(4+(f->esp)));
+
 		return 0;
 	}
 
@@ -254,48 +296,62 @@
 	(due to a condition other than end of file). fd 0 reads from the keyboard using
 	input_getc().
 	*/
-	static int my_read (struct intr_frame *f) {
+	static int 
+	my_read (struct intr_frame *f) {
 		printf("  ### In read\n");
-		int fd; 
-		void *buffer; 
-		unsigned length;
+
+		int fd = *((int *)(4+(f->esp)));
+		void *buffer = *((int *)(8+(f->esp))); 
+		unsigned length = *((int *)(12+(f->esp)));
+
 		return 0;
 	}
 
 	/* */
-	static int my_write (struct intr_frame *f) {
+	static int 
+	my_write (struct intr_frame *f) {
 		printf("  ### In write\n");
-		thread_exit();
-		int fd; 
-		const void *buffer; 
-		unsigned length;		
+
+		int fd = *((int *)(4+(f->esp)));
+		const void *buffer = *((int *)(8+(f->esp)));
+		unsigned length = *((int *)(12+(f->esp)));
+
+		printf("THING TO PRINT: %s\n", (char*)buffer);
+
 		return 0;
 	}
 
 	/* */
-	static void my_seek (struct intr_frame *f) {
+	static void 
+	my_seek (struct intr_frame *f) {
 		printf("  ### In seek\n");
-		int fd; 
-		unsigned position;
+
+		int fd = *((int *)(4+(f->esp))); 
+		unsigned position = *((int *)(4+(f->esp)));
 	}
 
 	/*
 	Returns the position of the next byte to be read or written in open file fd,
 	expressed in bytes from the beginning of the file. */
-	static unsigned my_tell (struct intr_frame *f) {
+	static unsigned 
+	my_tell (struct intr_frame *f) {
 		printf("  ### In tell\n");
-		int fd;
-		return 0;
 
+		int fd = *((int *)(4+(f->esp)));
+
+		return 0;
 	}
+
 
 	/* 
 	Closes file descriptor fd. Exiting or terminating a process implicitly closes 
 	all its open file descriptors, as if by calling this function for each one.
 	*/
-	static void my_close (struct intr_frame *f) {
+	static void 
+	my_close (struct intr_frame *f) {
 		printf("  ### In Close\n");
-		int fd;
+
+		int fd = *((int *)(4+(f->esp)));
 	}
 
 
