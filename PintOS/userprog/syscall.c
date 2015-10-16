@@ -8,27 +8,22 @@
 	#include "threads/vaddr.h"
 
 	static void syscall_handler (struct intr_frame *);
-	int invalid_ptr (void *ptr);
-	void halt (void);
-	void exit (int status);
-	pid_t exec (const char *file); //file is same as cmd_line
-	int wait (pid_t pid);
-	bool create (const char *file, unsigned initial_size);
-	bool remove (const char *file);
-	int open (const char *file);
-	int filesize (int fd);
-	int read (int fd, void *buffer, unsigned length);
-	int write (int fd, const void *buffer, unsigned length);
-	void seek (int fd, unsigned position);
-	unsigned tell (int fd);
-	void close (int fd);
+	static int invalid_ptr (void *ptr);
+	static void my_halt (void);
+	static void my_exit (struct intr_frame *f);
+	static pid_t my_exec (struct intr_frame *f); //file is same as cmd_line
+	static int my_wait (struct intr_frame *f);
+	static bool my_create (struct intr_frame *f);
+	static bool my_remove (struct intr_frame *f);
+	static int my_open (struct intr_frame *f);
+	static int my_filesize (struct intr_frame *f);
+	static int my_read (struct intr_frame *f);
+	static int my_write (struct intr_frame *f);
+	static void my_seek (struct intr_frame *f);
+	static unsigned my_tell (struct intr_frame *f);
+	static void my_close (struct intr_frame *f);
 
-	//http://jawpintos.googlecode.com/svn-history/r96/trunk/project2/src/userprog/syscall.c
-	//http://jawpintos.googlecode.com/svn-history/r101/trunk/project2/src/userprog/syscall.c
-	//http://jawpintos.googlecode.com/svn/trunk/project4_3/src/userprog/syscall.c
-	//https://github.com/pindexis/pintos-project2/blob/master/userprog/syscall.c
-	//https://github.com/EddieCarlson/pintos/blob/master/src/userprog/syscall.c
-	//https://github.com/I-have-no-pants/PINTOS/blob/master/LAB1/syscall.c.diff
+
 	void
 	syscall_init (void) 
 	{
@@ -52,55 +47,55 @@
 	  {
 	  case SYS_HALT:
 	  	printf("### Calling Halt");
-			halt ();
+			my_halt ();
 			break;
 		case SYS_EXIT:
 			printf("### Calling Exit");
-			exit (f);
+			my_exit (f);
 			break;
 		case SYS_EXEC:
 			printf("### Calling Exec");
-			exec (f);
+			my_exec (f);
 			break;
 		case SYS_WAIT:
 			printf("### Calling Wait");
-			wait (f);
+			my_wait (f);
 			break;
 		case SYS_CREATE:
 			printf("### Calling create");
-			create (f);
+			my_create (f);
 			break;
 		case SYS_REMOVE:
 			printf("### Calling Remove");
-			remove (f);
+			my_remove (f);
 			break;
 		case SYS_OPEN:
 			printf("### Calling Open");
-			open (f);
+			my_open (f);
 			break;
 		case SYS_FILESIZE:
 			printf("### Calling FileSize");
-			filesize (f);
+			my_filesize (f);
 			break;
 		case SYS_READ:
 			printf("### Calling Read");
-			read (f);
+			my_read (f);
 			break;
 		case SYS_WRITE:
 			printf("### Calling Write");
-			write (f);
+			my_write (f);
 			break;
 		case SYS_SEEK:
 			printf("### Calling Seek");
-			seek (f);
+			my_seek (f);
 			break;
 		case SYS_TELL:
 			printf("### Calling Tell");
-			tell (f);
+			my_tell (f);
 			break;
 		case SYS_CLOSE:
 			printf("### Calling Close");
-			close (f);
+			my_close (f);
 			break;
 		default :
 			printf ("Invalid system call! #%d\n", syscall_num);
@@ -150,7 +145,7 @@
 
 	FUNCTION TO HANDLE INVALID MEMORY ADDRESS POINTERS FROM USER CALLS
 	*/
-	int invalid_ptr (void *ptr) {
+	static int invalid_ptr (void *ptr) {
 		if (ptr == NULL) {
 			return 1;
 		}
@@ -168,9 +163,8 @@
 	Terminates Pintos by calling shutdown_power_off() (declared in devices/shutdown.h).
 	 This should be seldom used, because you lose some information about possible 
 	 deadlock situations, etc. */
-	void halt (void) {
-		printf("### In Halt");
-		return;
+	static void my_halt (void) {
+		printf("  ### In Halt\n");
 	}
 
 	/*Whenever a user process terminates, because it called exit or for any other 
@@ -186,8 +180,8 @@
 	be returned. Conventionally, a status of 0 indicates success and nonzero values
 	indicate errors.
 	 */
-	void exit (struct intr_frame *f) {
-		printf("### In Halt");
+	static void my_exit (struct intr_frame *f) {
+		printf("  ### In exit\n");
 		int status;
 	}
 
@@ -199,9 +193,9 @@
 	 for any reason. Thus, the parent process cannot return from the exec until it
 	  knows whether the child process successfully loaded its executable. You must 
 	  use appropriate synchronization to ensure this. */
-	pid_t exec (struct intr_frame *f)  {
-		printf("### In exec");
-		const char *file
+	static pid_t my_exec (struct intr_frame *f)  {
+		printf("  ### In exec\n");
+		const char *file;
 		return 0;
 
 	} 
@@ -209,8 +203,8 @@
 	/*
 	 ALOT.....
 	 */
-	int wait (struct intr_frame *f)  {
-		printf("### In wait");
+	static int my_wait (struct intr_frame *f)  {
+		printf("  ### In wait\n");
 		pid_t pid;
 		return 0;
 
@@ -221,8 +215,8 @@
 	true if successful, false otherwise. Creating a new file does not open it: o
 	pening the new file is a separate operation which would require a open system 
 	call. */
-	bool create (struct intr_frame *f) {
-		printf("### In create");
+	static bool my_create (struct intr_frame *f) {
+		printf("  ### In create\n");
 		const char *file;
 		unsigned initial_size;
 		return false;
@@ -233,23 +227,23 @@
 	Deletes the file called file. Returns true if successful, false otherwise. 
 	A file may be removed regardless of whether it is open or closed, and removing
 	an open file does not close it. */
-	bool remove (struct intr_frame *f) {
-		printf("### In remove");
+	static bool my_remove (struct intr_frame *f) {
+		printf("  ### In remove\n");
 		const char *file;
 		return false;
 
 	}
 
 	/* */
-	int open (struct intr_frame *f) {
-		printf("### In open");
+	static int my_open (struct intr_frame *f) {
+		printf("  ### In open\n");
 		const char *file;
 		return 0;
 	}
 
 	/* */
-	int filesize (struct intr_frame *f) {
-		printf("### In filesize");
+	static int my_filesize (struct intr_frame *f) {
+		printf("  ### In filesize\n");
 		int fd;
 		return 0;
 	}
@@ -260,8 +254,8 @@
 	(due to a condition other than end of file). fd 0 reads from the keyboard using
 	input_getc().
 	*/
-	int read (struct intr_frame *f) {
-		printf("### In read");
+	static int my_read (struct intr_frame *f) {
+		printf("  ### In read\n");
 		int fd; 
 		void *buffer; 
 		unsigned length;
@@ -269,8 +263,9 @@
 	}
 
 	/* */
-	int write (struct intr_frame *f) {
-		printf("### In write");
+	static int my_write (struct intr_frame *f) {
+		printf("  ### In write\n");
+		thread_exit();
 		int fd; 
 		const void *buffer; 
 		unsigned length;		
@@ -278,8 +273,8 @@
 	}
 
 	/* */
-	void seek (struct intr_frame *f) {
-		printf("### In seek");
+	static void my_seek (struct intr_frame *f) {
+		printf("  ### In seek\n");
 		int fd; 
 		unsigned position;
 	}
@@ -287,8 +282,8 @@
 	/*
 	Returns the position of the next byte to be read or written in open file fd,
 	expressed in bytes from the beginning of the file. */
-	unsigned tell (struct intr_frame *f) {
-		printf("### In tell");
+	static unsigned my_tell (struct intr_frame *f) {
+		printf("  ### In tell\n");
 		int fd;
 		return 0;
 
@@ -298,8 +293,8 @@
 	Closes file descriptor fd. Exiting or terminating a process implicitly closes 
 	all its open file descriptors, as if by calling this function for each one.
 	*/
-	void close (struct intr_frame *f) {
-		printf("### In Close");
+	static void my_close (struct intr_frame *f) {
+		printf("  ### In Close\n");
 		int fd;
 	}
 
