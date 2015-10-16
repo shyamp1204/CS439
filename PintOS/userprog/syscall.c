@@ -23,7 +23,12 @@
 	unsigned tell (int fd);
 	void close (int fd);
 
-
+	//http://jawpintos.googlecode.com/svn-history/r96/trunk/project2/src/userprog/syscall.c
+	//http://jawpintos.googlecode.com/svn-history/r101/trunk/project2/src/userprog/syscall.c
+	//http://jawpintos.googlecode.com/svn/trunk/project4_3/src/userprog/syscall.c
+	//https://github.com/pindexis/pintos-project2/blob/master/userprog/syscall.c
+	//https://github.com/EddieCarlson/pintos/blob/master/src/userprog/syscall.c
+	//https://github.com/I-have-no-pants/PINTOS/blob/master/LAB1/syscall.c.diff
 	void
 	syscall_init (void) 
 	{
@@ -31,7 +36,7 @@
 	}
 
 	static void
-	syscall_handler (struct intr_frame *f UNUSED) 
+	syscall_handler (struct intr_frame *f) 
 	{
 		if (invalid_ptr (f->esp))
 	  {
@@ -51,57 +56,55 @@
 			break;
 		case SYS_EXIT:
 			printf("### Calling Exit");
-			//int status = 
-			//exit (int status);
+			exit (f);
 			break;
 		case SYS_EXEC:
 			printf("### Calling Exec");
-			//exec (const char *file);
+			exec (f);
 			break;
 		case SYS_WAIT:
 			printf("### Calling Wait");
-			//wait (pid_t pid);
+			wait (f);
 			break;
 		case SYS_CREATE:
 			printf("### Calling create");
-			//create (const char *file, unsigned initial_size);
+			create (f);
 			break;
 		case SYS_REMOVE:
 			printf("### Calling Remove");
-			//remove (const char *file);
+			remove (f);
 			break;
 		case SYS_OPEN:
 			printf("### Calling Open");
-			//open (const char *file);
+			open (f);
 			break;
 		case SYS_FILESIZE:
 			printf("### Calling FileSize");
-			//filesize (int fd);
+			filesize (f);
 			break;
 		case SYS_READ:
 			printf("### Calling Read");
-			//read (int fd, void *buffer, unsigned length);
+			read (f);
 			break;
 		case SYS_WRITE:
 			printf("### Calling Write");
-			thread_exit ();
-			//write (int fd, const void *buffer, unsigned length);
+			write (f);
 			break;
 		case SYS_SEEK:
 			printf("### Calling Seek");
-			//seek (int fd, unsigned position);
+			seek (f);
 			break;
 		case SYS_TELL:
 			printf("### Calling Tell");
-			//tell (int fd);
+			tell (f);
 			break;
 		case SYS_CLOSE:
 			printf("### Calling Close");
-			//close (int fd);
+			close (f);
 			break;
 		default :
 			printf ("Invalid system call! #%d\n", syscall_num);
-			//Exit???
+			thread_exit();   //Exit???  
 			break;
 	    }
 	}
@@ -166,6 +169,7 @@
 	 This should be seldom used, because you lose some information about possible 
 	 deadlock situations, etc. */
 	void halt (void) {
+		printf("### In Halt");
 		return;
 	}
 
@@ -182,7 +186,9 @@
 	be returned. Conventionally, a status of 0 indicates success and nonzero values
 	indicate errors.
 	 */
-	void exit (int status) {
+	void exit (struct intr_frame *f) {
+		printf("### In Halt");
+		int status;
 	}
 
 	/* file is same as cmd_line
@@ -193,7 +199,9 @@
 	 for any reason. Thus, the parent process cannot return from the exec until it
 	  knows whether the child process successfully loaded its executable. You must 
 	  use appropriate synchronization to ensure this. */
-	pid_t exec (const char *file)  {
+	pid_t exec (struct intr_frame *f)  {
+		printf("### In exec");
+		const char *file
 		return 0;
 
 	} 
@@ -201,7 +209,9 @@
 	/*
 	 ALOT.....
 	 */
-	int wait (pid_t pid)  {
+	int wait (struct intr_frame *f)  {
+		printf("### In wait");
+		pid_t pid;
 		return 0;
 
 	}
@@ -211,7 +221,10 @@
 	true if successful, false otherwise. Creating a new file does not open it: o
 	pening the new file is a separate operation which would require a open system 
 	call. */
-	bool create (const char *file, unsigned initial_size) {
+	bool create (struct intr_frame *f) {
+		printf("### In create");
+		const char *file;
+		unsigned initial_size;
 		return false;
 
 	}
@@ -220,18 +233,24 @@
 	Deletes the file called file. Returns true if successful, false otherwise. 
 	A file may be removed regardless of whether it is open or closed, and removing
 	an open file does not close it. */
-	bool remove (const char *file) {
+	bool remove (struct intr_frame *f) {
+		printf("### In remove");
+		const char *file;
 		return false;
 
 	}
 
 	/* */
-	int open (const char *file) {
+	int open (struct intr_frame *f) {
+		printf("### In open");
+		const char *file;
 		return 0;
 	}
 
 	/* */
-	int filesize (int fd) {
+	int filesize (struct intr_frame *f) {
+		printf("### In filesize");
+		int fd;
 		return 0;
 	}
 
@@ -241,23 +260,36 @@
 	(due to a condition other than end of file). fd 0 reads from the keyboard using
 	input_getc().
 	*/
-	int read (int fd, void *buffer, unsigned length) {
+	int read (struct intr_frame *f) {
+		printf("### In read");
+		int fd; 
+		void *buffer; 
+		unsigned length;
 		return 0;
 	}
 
 	/* */
-	int write (int fd, const void *buffer, unsigned length) {
+	int write (struct intr_frame *f) {
+		printf("### In write");
+		int fd; 
+		const void *buffer; 
+		unsigned length;		
 		return 0;
 	}
 
 	/* */
-	void seek (int fd, unsigned position) {
+	void seek (struct intr_frame *f) {
+		printf("### In seek");
+		int fd; 
+		unsigned position;
 	}
 
 	/*
 	Returns the position of the next byte to be read or written in open file fd,
 	expressed in bytes from the beginning of the file. */
-	unsigned tell (int fd) {
+	unsigned tell (struct intr_frame *f) {
+		printf("### In tell");
+		int fd;
 		return 0;
 
 	}
@@ -266,7 +298,9 @@
 	Closes file descriptor fd. Exiting or terminating a process implicitly closes 
 	all its open file descriptors, as if by calling this function for each one.
 	*/
-	void close (int fd) {
+	void close (struct intr_frame *f) {
+		printf("### In Close");
+		int fd;
 	}
 
 
