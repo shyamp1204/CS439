@@ -97,6 +97,7 @@ thread_init (void)
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
+  list_init(&(initial_thread->children));  // add this dont know if it 
   initial_thread->tid = allocate_tid ();
 }
 
@@ -161,7 +162,8 @@ thread_print_stats (void)
 
    The code provided sets the new thread's `priority' member to
    PRIORITY, but no actual priority scheduling is implemented.
-   Priority scheduling is the goal of Problem 1-3. */
+   Priority scheduling is the goal of Problem 1-3.
+   Wes Drove */
 tid_t
 thread_create (const char *name, int priority,
                thread_func *function, void *aux) 
@@ -205,6 +207,22 @@ thread_create (const char *name, int priority,
   sf->ebp = 0;
 
   intr_set_level (old_level);
+
+  //init child thread of list, and add to parents child list
+  // //initialize the child threads children list
+  list_init (&(t->children));
+  struct thread *cur = thread_current();
+  printf("   ***  in %s children list is %s and it is %d empty \n", cur->name,cur->children, list_empty(&(cur->children)));
+  // if(!list_empty(&(cur->children))){
+  //   // printf("#!$@#$#@$#@     init main children list \n");
+  //   // printf("   ***  in %s initailizing children list \n", cur->name);
+  //   list_init(&(cur->children));
+  // }
+  printf("   ***  in %s trying to add %s to %s children list\n", cur->name, t->name, cur->name);
+  // //add the current thread to the parrent thread's children list
+  list_push_front(&(cur->children), &(t->child_of));
+
+
 
   /* Add to run queue. */
   thread_unblock (t);
