@@ -274,29 +274,17 @@ my_wait (struct intr_frame *f)  {
 
 	struct thread *cur = thread_current ();
 
-	/*
-  tid_t pid;
-  VALIDATE_AND_GET_ARG(cur_sp, pid, f);
+  struct list_elem *temp_thread;
 
-  // check pid validity 
-  struct thread *t = thread_current ();
-  
-  struct list_elem *e;
   // Need to lock
-  for (e = list_begin (&t->children_list); 
-       e != list_end (&t->children_list);
-       e = list_next (e))
-    {
-      struct child_elem *c_elem = list_entry (e, struct child_elem, elem);
-      if (c_elem->pid == pid)
-	{
-	  f->eax = process_wait (pid); // wrong status
-	  return;
-	}
-    }
+  for (temp_thread = list_begin (&cur->children_list); temp_thread != list_end (&cur->children_list);temp_thread = list_next (temp_thread)) {
+  	struct thread *t = list_entry (temp_thread, struct thread, child_of);
+  	if (((int)(t->tid))  == ((int) pid)) {
+  		f->eax = process_wait (pid); //IS THIS VALUE CORRECT???  ARE WE ALLOWED TO CALL PROCESS WAIT?
+	  	return;
+  	}
+  }
   f->eax = -1;
-
-	*/
 
 	//return int;
 }
@@ -403,7 +391,7 @@ my_write (struct intr_frame *f) {
 	const void *buffer = *((int *)(8+(f->esp)));
 	unsigned length = *((int *)(12+(f->esp)));
 
-	//printf("THING TO PRINT: %s\n", (char*)buffer);
+	//printf("THING TO PRINT: %s\n", (char*)buffer);  //WHAT DO WE PRINT?
 
 	//return int;
 }
