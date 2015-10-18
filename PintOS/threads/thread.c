@@ -97,7 +97,10 @@ thread_init (void)
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
+
   list_init(&(initial_thread->children));  // add this dont know if it 
+  printf("initailizing main children list\n");
+  
   initial_thread->tid = allocate_tid ();
 }
 
