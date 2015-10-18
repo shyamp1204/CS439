@@ -17,9 +17,9 @@ static void my_exit (struct intr_frame *f);
 static pid_t my_exec (struct intr_frame *f); //file is same as cmd_line
 static int my_wait (struct intr_frame *f);
 static bool my_create (struct intr_frame *f);
-static bool my_remove (struct intr_frame *f);
+static bool my_remove (const char *file);
 static int my_open (struct intr_frame *f);
-static int my_filesize (struct intr_frame *f);
+static void my_filesize (struct intr_frame *f);
 static int my_read (struct intr_frame *f);
 static int my_write (struct intr_frame *f);
 static void my_seek (struct intr_frame *f);
@@ -70,7 +70,7 @@ syscall_handler (struct intr_frame *f)
 		break;
 	case SYS_REMOVE:
 		printf("### Calling Remove");
-		my_remove (f);
+		my_remove (*((int *)(4+(f->esp))));
 		break;
 	case SYS_OPEN:
 		printf("### Calling Open");
@@ -181,32 +181,33 @@ static void
 my_exit (struct intr_frame *f) {
 	printf("  ### In exit\n");
 
-  	int e_status;
-  	if (invalid_ptr (4+(f->esp)))
-    	e_status = -1;
-  	else 
-		e_status = *((int *)(4+(f->esp)));
+	int e_status;
+	if (invalid_ptr (4+(f->esp)))
+  	e_status = -1;
+	else 
+	e_status = *((int *)(4+(f->esp)));
 
 	printf("%s: exit(%d)\n", thread_name (), e_status);
 
-  	// close all open files
-  	struct thread *t = thread_current ();
- 		struct list_elem *temp_file;
+	// close all open files
+	struct thread *t = thread_current ();
+	//struct list_elem *temp_file;
 
-  	// Need a lock ?
-  	while (!list_empty (&t->open_files_list))
-    {
-    	printf("+++ list of FILES is not empty");
-      //temp_file = list_pop_front (&t->open_files_list);
-      //struct list_elem *file_elem = list_entry (temp_file, struct list_elem, elem);
-      //free (file_elem);
-    }
-  	// Need to release the lock?
+	// Need a lock ?
+	while (!list_empty (&t->open_files_list))
+  {
+  	printf("+++ list of FILES is not empty\n");
+    
+    //temp_file = list_pop_front (&t->open_files_list);
+    //struct list_elem *file_elem = list_entry (temp_file, struct list_elem, elem);
+   	//free (file_elem);
+  }
+	// Need to release the lock?
 
-  	//add the status to the tid
-  	t->exit_status = e_status;
-		f->eax = e_status;    //return value in eax
-  	thread_exit ();
+	//add the status to the tid
+	t->exit_status = e_status;
+	f->eax = e_status;    //return value in eax
+	thread_exit ();
 }
 
 /* file is same as cmd_line
@@ -228,13 +229,58 @@ my_exec (struct intr_frame *f)  {
 } 
 
 /*
- ALOT.....
+Waits for a child process pid and retrieves the child's exit status.
+If pid is still alive, waits until it terminates. Then, returns the status that 
+pid passed to exit. If pid did not call exit(), but was terminated by the kernel 
+(e.g. killed due to an exception), wait(pid) must return -1. It is perfectly 
+legal for a parent process to wait for child processes that have already 
+terminated by the time the parent calls wait, but the kernel must still allow 
+the parent to retrieve its child's exit status or learn that the child was 
+terminated by the kernel.
+
+wait must fail and return -1 immediately if any of the following conditions are 
+true:
+
+pid does not refer to a direct child of the calling process. pid is a direct 
+child of the calling process if and only if the calling process received pid as 
+a return value from a successful call to exec.
+Note that children are not inherited: if A spawns child B and B spawns child 
+process C, then A cannot wait for C, even if B is dead. A call to wait(C) by 
+process A must fail. Similarly, orphaned processes are not assigned to a new 
+parent if their parent process exits before they do.
+
+The process that calls wait has already called wait on pid. That is, a process 
+may wait for any given child at most once.
+Processes may spawn any number of children, wait for them in any order, and may 
+even exit without having waited for some or all of their children. Your design 
+should consider all the ways in which waits can occur. All of a process's 
+resources, including its struct thread, must be freed whether its parent ever 
+waits for it or not, and regardless of whether the child exits before or after 
+its parent.
+
+You must ensure that Pintos does not terminate until the initial process exits. 
+The supplied Pintos code tries to do this by calling process_wait() 
+(in userprog/process.c) from main() (in threads/init.c). We suggest that you 
+implement process_wait() according to the comment at the top of the function and 
+then implement the wait system call in terms of process_wait().
+
+Implementing this system call requires considerably more work than any of the 
+rest.
  */
 static int 
 my_wait (struct intr_frame *f)  {
 	printf("  ### In wait\n");
-
 	pid_t pid = *((int *)(4+(f->esp)));
+
+	struct thread *cur = thread_current ();
+
+	/*
+	while (!list_empty (children_list))
+	if (pid != a child of the calling process)
+		return -1;
+	else if ( )
+
+	*/
 
 	return 0;
 }
@@ -259,10 +305,8 @@ Deletes the file called file. Returns true if successful, false otherwise.
 A file may be removed regardless of whether it is open or closed, and 
 removing an open file does not close it. */
 static bool 
-my_remove (struct intr_frame *f) {
+my_remove (const char *file) {
 	printf("  ### In remove\n");
-
-	const char *file = *((int *)(4+(f->esp)));
 
 	return false;
 }
@@ -296,13 +340,12 @@ my_open (struct intr_frame *f) {
 /*
 Returns the size, in bytes, of the file open as fd.
 */
-static int 
+static void 
 my_filesize (struct intr_frame *f) {
 	printf("  ### In filesize\n");
 
 	int fd = *((int *)(4+(f->esp)));
-
-	return 0;
+	f->eax = fd;    //return value in eax
 }
 
 /* 
@@ -344,7 +387,7 @@ my_write (struct intr_frame *f) {
 	const void *buffer = *((int *)(8+(f->esp)));
 	unsigned length = *((int *)(12+(f->esp)));
 
-	printf("THING TO PRINT: %s\n", (char*)buffer);
+	//printf("THING TO PRINT: %s\n", (char*)buffer);
 
 	return 0;
 }
@@ -393,5 +436,3 @@ my_close (struct intr_frame *f) {
 
 	int fd = *((int *)(4+(f->esp)));
 }
-
-
