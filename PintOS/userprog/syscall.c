@@ -14,16 +14,16 @@ static void syscall_handler (struct intr_frame *);
 static int invalid_ptr (void *ptr);
 static void my_halt (void);
 static void my_exit (struct intr_frame *f);
-static pid_t my_exec (struct intr_frame *f); //file is same as cmd_line
-static int my_wait (struct intr_frame *f);
-static bool my_create (struct intr_frame *f);
-static bool my_remove (const char *file);
-static int my_open (struct intr_frame *f);
+static void my_exec (struct intr_frame *f); //file is same as cmd_line
+static void my_wait (struct intr_frame *f);
+static void my_create (struct intr_frame *f);
+static void my_remove (const char *file);
+static void my_open (struct intr_frame *f);
 static void my_filesize (struct intr_frame *f);
-static int my_read (struct intr_frame *f);
-static int my_write (struct intr_frame *f);
+static void my_read (struct intr_frame *f);
+static void my_write (struct intr_frame *f);
 static void my_seek (struct intr_frame *f);
-static unsigned my_tell (struct intr_frame *f);
+static void my_tell (struct intr_frame *f);
 static void my_close (struct intr_frame *f);
 
 
@@ -219,13 +219,13 @@ for any reason. Thus, the parent process cannot return from the exec until it
 knows whether the child process successfully loaded its executable. You must 
 use appropriate synchronization to ensure this.
 */
-static pid_t 
+static void 
 my_exec (struct intr_frame *f)  {
 	printf("  ### In exec\n");
 
 	const char *file = *((int *)(4+(f->esp)));
 
-	return 0;
+	//return pid_t;
 } 
 
 /*
@@ -267,7 +267,7 @@ then implement the wait system call in terms of process_wait().
 Implementing this system call requires considerably more work than any of the 
 rest.
  */
-static int 
+static void 
 my_wait (struct intr_frame *f)  {
 	printf("  ### In wait\n");
 	pid_t pid = *((int *)(4+(f->esp)));
@@ -275,14 +275,30 @@ my_wait (struct intr_frame *f)  {
 	struct thread *cur = thread_current ();
 
 	/*
-	while (!list_empty (children_list))
-	if (pid != a child of the calling process)
-		return -1;
-	else if ( )
+  tid_t pid;
+  VALIDATE_AND_GET_ARG(cur_sp, pid, f);
+
+  // check pid validity 
+  struct thread *t = thread_current ();
+  
+  struct list_elem *e;
+  // Need to lock
+  for (e = list_begin (&t->children_list); 
+       e != list_end (&t->children_list);
+       e = list_next (e))
+    {
+      struct child_elem *c_elem = list_entry (e, struct child_elem, elem);
+      if (c_elem->pid == pid)
+	{
+	  f->eax = process_wait (pid); // wrong status
+	  return;
+	}
+    }
+  f->eax = -1;
 
 	*/
 
-	return 0;
+	//return int;
 }
 
 /*
@@ -290,25 +306,25 @@ Creates a new file called file initially initial_size bytes in size. Returns
 true if successful, false otherwise. Creating a new file does not open it: o
 pening the new file is a separate operation which would require a open system 
 call. */
-static bool 
+static void 
 my_create (struct intr_frame *f) {
 	printf("  ### In create\n");
 
 	const char *file = *((int *)(4+(f->esp)));
 	unsigned initial_size = *((int *)(8+(f->esp)));
 
-	return false;
+	//return bool;
 }
 
 /*
 Deletes the file called file. Returns true if successful, false otherwise. 
 A file may be removed regardless of whether it is open or closed, and 
 removing an open file does not close it. */
-static bool 
+static void 
 my_remove (const char *file) {
 	printf("  ### In remove\n");
 
-	return false;
+	//return bool;
 }
 
 /* 
@@ -328,13 +344,13 @@ different processes, each open returns a new file descriptor. Different file
 descriptors for a single file are closed independently in separate calls to 
 close and they do not share a file position.
 */
-static int 
+static void 
 my_open (struct intr_frame *f) {
 	printf("  ### In open\n");
 
 	const char *file = *((int *)(4+(f->esp)));
 
-	return 0;
+	//return int;
 }
 
 /*
@@ -354,7 +370,7 @@ bytes actually read (0 at end of file), or -1 if the file could not be read
 (due to a condition other than end of file). fd 0 reads from the keyboard using
 input_getc().
 */
-static int 
+static void 
 my_read (struct intr_frame *f) {
 	printf("  ### In read\n");
 
@@ -362,7 +378,7 @@ my_read (struct intr_frame *f) {
 	void *buffer = *((int *)(8+(f->esp))); 
 	unsigned length = *((int *)(12+(f->esp)));
 
-	return 0;
+	//return int;
 }
 
 /* 
@@ -379,7 +395,7 @@ few hundred bytes. (It is reasonable to break up larger buffers.) Otherwise,
 lines of text output by different processes may end up interleaved on the 
 console, confusing both human readers and our grading scripts.
 */
-static int 
+static void 
 my_write (struct intr_frame *f) {
 	printf("  ### In write\n");
 
@@ -389,7 +405,7 @@ my_write (struct intr_frame *f) {
 
 	//printf("THING TO PRINT: %s\n", (char*)buffer);
 
-	return 0;
+	//return int;
 }
 
 /*
@@ -416,13 +432,13 @@ my_seek (struct intr_frame *f) {
 Returns the position of the next byte to be read or written in open file fd,
 expressed in bytes from the beginning of the file. 
 */
-static unsigned 
+static void 
 my_tell (struct intr_frame *f) {
 	printf("  ### In tell\n");
 
 	int fd = *((int *)(4+(f->esp)));
 
-	return 0;
+	// return unsigned;
 }
 
 
