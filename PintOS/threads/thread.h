@@ -103,11 +103,10 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 
-    struct list open_files_list;
-
     /* used for keeping track of who the parenty of the thread is*/
+    struct list open_files_list;
+    struct list children_list;
     struct list_elem child_of;              /* List element. */
-    struct list children;
     int exit_status;
   };
 

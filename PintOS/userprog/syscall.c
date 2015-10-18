@@ -181,13 +181,13 @@ static void
 my_exit (struct intr_frame *f) {
 	printf("  ### In exit\n");
 
-  	int status;
+  	int e_status;
   	if (invalid_ptr (4+(f->esp)))
-    	status = -1;
+    	e_status = -1;
   	else 
-		status = *((int *)(4+(f->esp)));
+		e_status = *((int *)(4+(f->esp)));
 
-	printf("%s: exit(%d)\n", thread_name (), status);
+	printf("%s: exit(%d)\n", thread_name (), e_status);
 
   	// close all open files
   	struct thread *t = thread_current ();
@@ -196,14 +196,17 @@ my_exit (struct intr_frame *f) {
   	// Need a lock ?
   	while (!list_empty (&t->open_files_list))
     {
+    	printf("+++ list of FILES is not empty");
       //temp_file = list_pop_front (&t->open_files_list);
       //struct list_elem *file_elem = list_entry (temp_file, struct list_elem, elem);
       //free (file_elem);
     }
   	// Need to release the lock?
 
+  	//add the status to the tid
+  	t->exit_status = e_status;
+		f->eax = e_status;    //return value in eax
   	thread_exit ();
-  	f->eax = status;
 }
 
 /* file is same as cmd_line
