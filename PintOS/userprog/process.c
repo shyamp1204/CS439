@@ -30,10 +30,6 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name) 
 {
-  if(file_name == NULL) {
-    //SEND NULL POINTER EXCEPTION TO EXCEPTION?
-  }
-
   char *fn_copy;
   tid_t tid;
 
@@ -96,7 +92,9 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while(1) {}
+  while(1) {
+
+  }
   return -1;
 }
 
@@ -104,15 +102,15 @@ process_wait (tid_t child_tid UNUSED)
 
 Whenever a user process terminates, because it called exit or for any other 
 reason, print the process's name and exit code, formatted as if printed by
- printf ("%s: exit(%d)\n", ...);. The name printed should be the full name
-  passed to process_execute(), omitting command-line arguments. 
+printf ("%s: exit(%d)\n", ...);. The name printed should be the full name
+passed to process_execute(), omitting command-line arguments. 
 
-  Do not print these messages when a kernel thread that is not a user process 
-  terminates, or when the halt system call is invoked. The message is optional 
-  when a process fails to load.
+Do not print these messages when a kernel thread that is not a user process 
+terminates, or when the halt system call is invoked. The message is optional 
+when a process fails to load.
 Aside from this, don't print any other messages that Pintos as provided doesn't 
 already print. You may find extra messages useful during debugging, but they
- will confuse the grading scripts and thus lower your score.
+will confuse the grading scripts and thus lower your score.
 
 */
 void

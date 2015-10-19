@@ -17,14 +17,14 @@ static void my_exit (struct intr_frame *f);
 static void my_exec (struct intr_frame *f); //file is same as cmd_line
 static void my_wait (struct intr_frame *f);
 static void my_create (struct intr_frame *f);
-static void my_remove (const char *file);
+static void my_remove (struct intr_frame *f);
 static void my_open (struct intr_frame *f);
 static void my_filesize (struct intr_frame *f);
 static void my_read (struct intr_frame *f);
 static void my_write (struct intr_frame *f);
 static void my_seek (struct intr_frame *f);
 static void my_tell (struct intr_frame *f);
-static void my_close (struct intr_frame *f);
+static void my_close (int fd);
 
 
 void
@@ -36,9 +36,9 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
-	if (invalid_ptr (f->esp))
+  if (invalid_ptr (f->esp))
   {
- 		printf("invalid pointer");
+ 	printf("invalid pointer");
   	my_exit (f);
     return;
   }
@@ -70,7 +70,7 @@ syscall_handler (struct intr_frame *f)
 		break;
 	case SYS_REMOVE:
 		printf("### Calling Remove");
-		my_remove (*((int *)(4+(f->esp))));
+		my_remove (f);
 		break;
 	case SYS_OPEN:
 		printf("### Calling Open");
@@ -98,7 +98,7 @@ syscall_handler (struct intr_frame *f)
 		break;
 	case SYS_CLOSE:
 		printf("### Calling Close");
-		my_close (f);
+		my_close (*((int *)(4+(f->esp))));
 		break;
 	default :
 		printf ("Invalid system call! #%d\n", syscall_num);
@@ -191,22 +191,26 @@ my_exit (struct intr_frame *f) {
 
 	// close all open files
 	struct thread *t = thread_current ();
-	//struct list_elem *temp_file;
 
 	// Need a lock ?
 	while (!list_empty (&t->open_files_list))
   {
   	printf("+++ list of FILES is not empty\n");
-    
-    //temp_file = list_pop_front (&t->open_files_list);
-    //struct list_elem *file_elem = list_entry (temp_file, struct list_elem, elem);
+
+    //struct file *temp_file = list_entry (list_pop_front (&t->open_files_list), struct file, file_elem);
+    //my_close (fd);  		//close the file
    	//free (file_elem);
   }
 	// Need to release the lock?
 
+	//EXIT ALL CHILDREN?
+	//RELEASE ALL LOCKS WE ARE HOLDING?
+	//SEMA UP IF SOMETHING IS WAITING ON IT?
+
 	//add the status to the tid
 	t->exit_status = e_status;
-	f->eax = e_status;    //return value in eax
+	//return value in eax
+	f->eax = e_status;
 	thread_exit ();
 }
 
@@ -225,6 +229,30 @@ my_exec (struct intr_frame *f)  {
 
 	const char *file = *((int *)(4+(f->esp)));
 
+	//CHECK TO MAKE SURE THE FILE POINTER IS VALID
+	if (invalid_ptr (file)) {
+    //Exit???
+    return;	
+	}
+  tid_t pid = process_execute (file);
+ 
+  if (pid == TID_ERROR)
+  {
+    f->eax = -1;
+    return;
+  }
+
+  struct thread *cur = thread_current ();
+  //GET THE CHILD PROCESS FROM ITS PID
+
+  //struct child_elem *child_elem = (struct child_elem *) malloc (sizeof(struct child_elem));
+  //ASSERT (c_elem);
+	//c_elem->pid = pid;
+
+  //PUT NEW EXEC'ED PROCESS ON CURRENTS CHILDREN LIST
+ //list_push_back (&cur->children_list, &child_elem->child_of);
+
+  f->eax = pid;
 	//return pid_t;
 } 
 
@@ -301,7 +329,13 @@ my_create (struct intr_frame *f) {
 	const char *file = *((int *)(4+(f->esp)));
 	unsigned initial_size = *((int *)(8+(f->esp)));
 
-	//return bool;
+ if (invalid_ptr(file))
+ {
+		//exit???
+    return;
+ }
+
+	f->eax = filesys_create (file, initial_size);   //returns boolean
 }
 
 /*
@@ -309,10 +343,18 @@ Deletes the file called file. Returns true if successful, false otherwise.
 A file may be removed regardless of whether it is open or closed, and 
 removing an open file does not close it. */
 static void 
-my_remove (const char *file) {
+my_remove (struct intr_frame *f) {
 	printf("  ### In remove\n");
 
-	//return bool;
+	const char *file = *((int *)(4+(f->esp)));
+
+  if (invalid_ptr (file))
+  {
+  	//exit
+  	return;
+  }
+
+  f->eax = filesys_remove (file);  //returns bool
 }
 
 /* 
@@ -391,9 +433,18 @@ my_write (struct intr_frame *f) {
 	const void *buffer = *((int *)(8+(f->esp)));
 	unsigned length = *((int *)(12+(f->esp)));
 
+	printf("FFFFF fd= %d   ", fd);
+	printf("LLLLL length= %d\n", length);
+
+	if (fd == STDOUT_FILENO)
+	{
+		printf("IGETHERE\n");
+	  putbuf (buffer, length);
+  }
 	//printf("THING TO PRINT: %s\n", (char*)buffer);  //WHAT DO WE PRINT?
 
-	//return int;
+  f->eax = length; // FIXME:
+	//return int;  bytes actaully written
 }
 
 /*
@@ -435,8 +486,10 @@ Closes file descriptor fd. Exiting or terminating a process implicitly closes
 all its open file descriptors, as if by calling this function for each one.
 */
 static void 
-my_close (struct intr_frame *f) {
+my_close (int fd) {
 	printf("  ### In Close\n");
+  
+  struct thread *cur = thread_current ();
 
-	int fd = *((int *)(4+(f->esp)));
+  //GIVEN THE FD, CLOSE THE FILE
 }
