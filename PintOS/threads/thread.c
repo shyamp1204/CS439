@@ -298,9 +298,9 @@ thread_exit (void)
 
   struct thread* cur = thread_current();
   //when thread exits, sema_up to let other threads know
-  if(cur->sema_child != NULL) {
-    sema_up(cur->sema_child);
-  }
+  // if(cur->sema_child != NULL) {
+  //   sema_up(cur->sema_child);
+  // }
 
 #ifdef USERPROG
   process_exit ();

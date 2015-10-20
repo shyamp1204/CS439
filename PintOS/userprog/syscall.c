@@ -169,6 +169,8 @@ indicate errors.
 static void 
 my_exit (struct intr_frame *f) {
 	printf("  ### In exit\n");
+	struct thread *cur = thread_current ();
+
 
 	int e_status;
   //if (invalid_ptr ((int*)(f->esp)+1))
@@ -182,22 +184,21 @@ my_exit (struct intr_frame *f) {
 	printf("%s: exit(%d)\n", thread_name (), e_status);
 
 	// close all open files
-	struct thread *cur = thread_current ();
 
 	// Need a lock ?
-	while (0)  //there are still open files
+	while (0)  //there are still open files  //next_fd(cur) == 0;
   {
-  	printf("+++ list of FILES is not empty\n");
+  // 	printf("+++ list of FILES is not empty\n");
 
-		//GET NEXT OPEN FILE and close it
-		int i;
-		for (i = 0; i <128; i++) {
-			struct file *temp_file = cur->open_files[i];
-			if (temp_file != NULL) {
-				my_close (i);  		//close the file
-   			//free (temp_file);  ???
-			}
-		}
+		// //GET NEXT OPEN FILE and close it
+		// int i;
+		// for (i = 0; i <128; i++) {
+		// 	struct file *temp_file = cur->open_files[i];
+		// 	if (temp_file != NULL) {
+		// 		my_close (i);  		//close the file
+  //  			//free (temp_file);  ???
+		// 	}
+		// }
   }
 	// Need to release the lock?
 
@@ -209,6 +210,7 @@ my_exit (struct intr_frame *f) {
 	cur->exit_status = e_status;
 	//return value in eax
 	f->eax = e_status;
+
 	thread_exit ();
 }
 
@@ -379,8 +381,8 @@ my_open (struct intr_frame *f) {
 	//open the file
 	struct file *cur_file = filesys_open (filename);
 	//get the next open file descriptor available, and put the file in it
-	int fd = next_fd(cur);
-	cur->open_files[fd] = cur_file;
+	int fd = next_fd (cur);
+	cur->open_files[fd-2] = cur_file;
 
 	f->eax = fd;		//return int;
 }
@@ -501,6 +503,10 @@ my_close (int fd) {
   
   //GIVEN THE FD, CLOSE THE FILE
 	struct file *cur_file = get_file (fd);
+
+	struct thread *cur = thread_current ();
+	cur->open_files[fd-2] = NULL;  //IS THIS CORRECT?
+	
 	file_close (cur_file);
 }
 
@@ -513,10 +519,10 @@ get_file (int fd)
 {
   struct thread *cur = thread_current ();
 
-  if(fd < 0 || fd > (127)) {
+  if(fd < 2 || fd > (129)) {
   	return NULL;
   }
-  return cur->open_files[fd]; 
+  return cur->open_files[fd-2]; 
 }
 
 static int
@@ -526,7 +532,7 @@ next_fd (struct thread *cur) {
 	while (!found) {
 		if (cur->open_files[index] == NULL) {
 			found = 1;
-			return index;
+			return index + 2;
 		}
 		index++;
 	}
