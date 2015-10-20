@@ -10,8 +10,7 @@
 #include "devices/shutdown.h"
 #include "process.h"
 #include "filesys/filesys.h"
-
-//#include "filesys/file.c"
+#include "filesys/file.h"
 
 
 static void syscall_handler (struct intr_frame *);
@@ -32,8 +31,6 @@ static void my_close (int fd);
 static struct file *get_file (int fd);
 static int next_fd (struct thread *cur);
 
-
-
 void
 syscall_init (void) 
 {
@@ -43,75 +40,75 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
-  if (invalid_ptr (f->esp))
-  {
- 	printf("invalid pointer");
-  	my_exit (f);
-    return;
-  }
+	if (invalid_ptr (f) || invalid_ptr (f->esp))
+	{
+		printf ("invalid pointer");
+		exit_status (-1);
+		return;
+	}
       
-  int syscall_num = *((int *)f->esp);
-  //printf("### SYSCALL: %d  ", syscall_num);
+	int syscall_num = *((int *)f->esp);
+	//printf("### SYSCALL: %d  ", syscall_num);
 
 	switch (syscall_num)
-  {
-  case SYS_HALT:
-  	printf("### Calling Halt");
-		my_halt ();
-		break;
-	case SYS_EXIT:
-		printf("### Calling Exit");
-		my_exit (f);
-		break;
-	case SYS_EXEC:
-		printf("### Calling Exec");
-		my_exec (f);
-		break;
-	case SYS_WAIT:
-		printf("### Calling Wait");
-		my_wait (f);
-		break;
-	case SYS_CREATE:
-		printf("### Calling create");
-		my_create (f);
-		break;
-	case SYS_REMOVE:
-		printf("### Calling Remove");
-		my_remove (f);
-		break;
-	case SYS_OPEN:
-		printf("### Calling Open");
-		my_open (f);
-		break;
-	case SYS_FILESIZE:
-		printf("### Calling FileSize");
-		my_filesize (f);
-		break;
-	case SYS_READ:
-		printf("### Calling Read");
-		my_read (f);
-		break;
-	case SYS_WRITE:
-		//printf("### Calling Write");
-		my_write (f);
-		break;
-	case SYS_SEEK:
-		printf("### Calling Seek");
-		my_seek (f);
-		break;
-	case SYS_TELL:
-		printf("### Calling Tell");
-		my_tell (f);
-		break;
-	case SYS_CLOSE:
-		printf("### Calling Close");
-		my_close (*((int *)(4+(f->esp))));
-		break;
-	default :
-		printf ("Invalid system call! #%d\n", syscall_num);
-		thread_exit();   //Exit???  
-		break;
-    }
+	{
+		case SYS_HALT:
+			printf("### Calling Halt");
+			my_halt ();
+			break;
+		case SYS_EXIT:
+			printf("### Calling Exit");
+			my_exit (f);
+			break;
+		case SYS_EXEC:
+			printf("### Calling Exec");
+			my_exec (f);
+			break;
+		case SYS_WAIT:
+			printf("### Calling Wait");
+			my_wait (f);
+			break;
+		case SYS_CREATE:
+			printf("### Calling create");
+			my_create (f);
+			break;
+		case SYS_REMOVE:
+			printf("### Calling Remove");
+			my_remove (f);
+			break;
+		case SYS_OPEN:
+			printf("### Calling Open");
+			my_open (f);
+			break;
+		case SYS_FILESIZE:
+			printf("### Calling FileSize");
+			my_filesize (f);
+			break;
+		case SYS_READ:
+			printf("### Calling Read");
+			my_read (f);
+			break;
+		case SYS_WRITE:
+			//printf("### Calling Write");
+			my_write (f);
+			break;
+		case SYS_SEEK:
+			printf("### Calling Seek");
+			my_seek (f);
+			break;
+		case SYS_TELL:
+			printf("### Calling Tell");
+			my_tell (f);
+			break;
+		case SYS_CLOSE:
+			printf("### Calling Close");
+			my_close (*((int *)(4+(f->esp))));
+			break;
+		default :
+			printf ("Invalid system call! #%d\n", syscall_num);
+			thread_exit();   //Exit???  
+			break;
+	    }
 }
 
 /*
@@ -214,12 +211,15 @@ my_exit (struct intr_frame *f) {
 	thread_exit ();
 }
 
-/* file is same as cmd_line
+/* 
+file is same as cmd_line
 
 Runs the executable whose name is given in cmd_line, passing any given 
 arguments, and returns the new process's program id (pid). Must return pid -1,
 which otherwise should not be a valid pid, if the program cannot load or run 
-for any reason. Thus, the parent process cannot return from the exec until it
+for any reason. 
+
+Thus, the parent process cannot return from the exec until it
 knows whether the child process successfully loaded its executable. You must 
 use appropriate synchronization to ensure this.
 */
@@ -230,26 +230,18 @@ my_exec (struct intr_frame *f)  {
 	const char *filename = (char *)(4+(f->esp));
 	struct thread *cur = thread_current ();
 
-	//CHECK TO MAKE SURE THE FILE POINTER IS VALID
-	//if (invalid_ptr (file)) {
-    //Exit???
-  //  return;	
-	//}
+	//CHECK TO MAKE SURE THE FILEname POINTER IS VALID
+	if (invalid_ptr ((void *)filename)) {
+  	exit_status (-1);
+  	return;
+ 	}
   
   tid_t pid = process_execute (filename);
  
   if (pid == TID_ERROR)
-  {
     f->eax = -1;
-    return;
-  }
-
-  //GET THE CHILD PROCESS FROM ITS PID.  HOW DO WE GET THE CHILD???
-
-  //PUT NEW EXEC'ED PROCESS ON CURRENTS CHILDREN LIST
- 	//list_push_back (&cur->children_list, &child_thread->child_of);
-
-  f->eax = pid;			//return pid_t;
+  else
+  	f->eax = pid;			//return pid_t;
 } 
 
 /*
@@ -294,6 +286,7 @@ rest.
 static void 
 my_wait (struct intr_frame *f)  {
 	printf("  ### In wait\n");
+
 	pid_t pid = *((int *)(4+(f->esp)));
 
 	struct thread *cur = thread_current ();
@@ -313,9 +306,10 @@ my_wait (struct intr_frame *f)  {
 
 /*
 Creates a new file called file initially initial_size bytes in size. Returns 
-true if successful, false otherwise. Creating a new file does not open it: o
-pening the new file is a separate operation which would require a open system 
-call. */
+true if successful, false otherwise. Creating a new file does not open it: 
+opening the new file is a separate operation which would require a open system 
+call. 
+*/
 static void 
 my_create (struct intr_frame *f) {
 	printf("  ### In create\n");
@@ -323,13 +317,10 @@ my_create (struct intr_frame *f) {
 	const char *filename = (char *)(4+(f->esp));
 	unsigned initial_size = *((int *)(8+(f->esp)));
 
-	struct thread *cur = thread_current ();
-
- 	//if (invalid_ptr(cur_file))
- 	//{
-		//exit???
-    //return;
- 	//}
+ 	if (invalid_ptr((void *) filename)) {
+		exit_status (-1);
+    return;
+ 	}
 
 	f->eax = filesys_create (filename, initial_size);   //returns boolean
 }
@@ -343,13 +334,11 @@ my_remove (struct intr_frame *f) {
 	printf("  ### In remove\n");
 
 	const char *filename = (char *)(4+(f->esp));
-	struct file *file;
 
-  // if (invalid_ptr (file))
-  // {
-  // 	//exit
-  // 	return;
-  // }
+  if (invalid_ptr ((void *)filename)) {
+  	exit_status (-1);
+  	return;
+  }
 
   f->eax = filesys_remove (filename);  //returns bool
 }
@@ -378,13 +367,23 @@ my_open (struct intr_frame *f) {
 	const char *filename = (char *)(4+(f->esp));  //what is this???
 	struct thread *cur = thread_current ();
 
+	if (invalid_ptr ((void *) filename)) {
+  	exit_status (-1);
+  	return;
+  }
+
 	//open the file
 	struct file *cur_file = filesys_open (filename);
-	//get the next open file descriptor available, and put the file in it
-	int fd = next_fd (cur);
-	cur->open_files[fd-2] = cur_file;
 
-	f->eax = fd;		//return int;
+	if (cur_file != NULL) {
+		//get the next open file descriptor available, and put the file in it
+		int fd = next_fd (cur);
+		cur->open_files[fd-2] = cur_file;
+		f->eax = fd;		//return int;
+	}
+	else {
+		f->eax = -1;  //couldn't open the file, return -1
+	}
 }
 
 /*
@@ -397,8 +396,7 @@ my_filesize (struct intr_frame *f) {
 	int fd = *((int *)(4+(f->esp)));
 	struct file *cur_file = get_file (fd);
 
-	off_t size = file_length (cur_file); 
-
+	off_t size = file_length (cur_file);
 	f->eax = size;    //return value in eax
 }
 
@@ -416,10 +414,18 @@ my_read (struct intr_frame *f) {
 	void *buffer = (void *)(8+(f->esp)); 
 	unsigned length = *((int *)(12+(f->esp)));
 
+	if (fd == STDIN_FILENO) {
+		//read from keyboard
+		//input_getc();
+	}
+	else {
+		struct file *cur_file = get_file (fd);
+	}
+
 	//off_t file_read (struct file *, void *, off_t);
 	//off_t file_read_at (struct file *, void *, off_t size, off_t start);
 
-	//return int;
+	f->eax = 0;  //return int;
 }
 
 /* 
@@ -447,9 +453,8 @@ my_write (struct intr_frame *f) {
 	//printf("FFFFF fd= %d   ", fd);
 	//printf("LLLLL length= %d\n", length);
 
-	if (fd == STDOUT_FILENO)
-	{
-	  putbuf ((char *)buffer, length);
+	if (fd == STDOUT_FILENO) {
+		putbuf ((char *)buffer, length);
   }
 	//printf("THING TO PRINT: %s\n", (char*)buffer);  //WHAT DO WE PRINT?
 
@@ -520,9 +525,12 @@ get_file (int fd)
   struct thread *cur = thread_current ();
 
   if(fd < 2 || fd > (129)) {
-  	return NULL;
+  	exit_status (-1);
   }
-  return cur->open_files[fd-2]; 
+  else if (cur->open_files[fd-2] == NULL) {
+  	exit_status (-1);
+  }
+  return cur->open_files[fd-2];
 }
 
 static int
@@ -536,5 +544,6 @@ next_fd (struct thread *cur) {
 		}
 		index++;
 	}
+  exit_status (-1);
 	return -1;
 }
