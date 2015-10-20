@@ -188,11 +188,14 @@ my_exit (struct intr_frame *f) {
 	printf("  ### In exit\n");
 
 	int e_status;
-	if (invalid_ptr (4+(f->esp)))
+  //if (invalid_ptr ((int*)(f->esp)+1))
+  if (invalid_ptr ((int*)(4+f->esp)))
   	e_status = -1;
 	else 
-	e_status = *((int *)(4+(f->esp)));
+		e_status = *((int *)(4+f->esp));
+		//e_status = *((int *)(f->esp)+1);
 
+	//if user process terminates, print process' name and exit code
 	printf("%s: exit(%d)\n", thread_name (), e_status);
 
 	// close all open files
