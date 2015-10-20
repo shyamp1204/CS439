@@ -30,6 +30,7 @@ static void my_tell (struct intr_frame *f);
 static void my_close (int fd);
 static struct file *get_file (int fd);
 static int next_fd (struct thread *cur);
+static void exit_status (int e_status);
 
 void
 syscall_init (void) 
@@ -40,7 +41,7 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
-	if (invalid_ptr (f) || invalid_ptr (f->esp))
+	if ( invalid_ptr (f->esp))
 	{
 		printf ("invalid pointer");
 		exit_status (-1);
@@ -137,6 +138,45 @@ invalid_ptr (void *ptr) {
 return 0;
 }
 
+
+static void
+exit_status (int e_status){
+	struct thread *cur = thread_current ();
+
+
+	//if user process terminates, print process' name and exit code
+	printf("%s: exit(%d)\n", thread_name (), e_status);
+
+	// close all open files
+
+	// Need a lock ?
+	while (0)  //there are still open files  //next_fd(cur) == 0;
+ 	 {
+ 	 // 	printf("+++ list of FILES is not empty\n");
+
+		// //GET NEXT OPEN FILE and close it
+		// int i;
+		// for (i = 0; i <128; i++) {
+		// 	struct file *temp_file = cur->open_files[i];
+		// 	if (temp_file != NULL) {
+		// 		my_close (i);  		//close the file
+ 	 //  			//free (temp_file);  ???
+		// 	}
+		// }
+	  }
+	// Need to release the lock?
+
+	//EXIT ALL CHILDREN?  no, orphan them
+	//RELEASE ALL LOCKS WE ARE HOLDING?
+	//SEMA UP IF SOMETHING IS WAITING ON IT?
+
+	//add the status to the tid
+	cur->exit_status = e_status;
+	thread_exit ();
+}
+
+
+
 /*
 Terminates Pintos by calling shutdown_power_off() (declared in 
 devices/shutdown.h).
@@ -166,49 +206,13 @@ indicate errors.
 static void 
 my_exit (struct intr_frame *f) {
 	printf("  ### In exit\n");
-	struct thread *cur = thread_current ();
+	
+	int e_status = *((int *)(4+f->esp));
 
+	exit_status (e_status);
 
-	int e_status;
-  //if (invalid_ptr ((int*)(f->esp)+1))
-  if (invalid_ptr ((int*)(4+f->esp)))
-  	e_status = -1;
-	else 
-		e_status = *((int *)(4+f->esp));
-		//e_status = *((int *)(f->esp)+1);
-
-	//if user process terminates, print process' name and exit code
-	printf("%s: exit(%d)\n", thread_name (), e_status);
-
-	// close all open files
-
-	// Need a lock ?
-	while (0)  //there are still open files  //next_fd(cur) == 0;
-  {
-  // 	printf("+++ list of FILES is not empty\n");
-
-		// //GET NEXT OPEN FILE and close it
-		// int i;
-		// for (i = 0; i <128; i++) {
-		// 	struct file *temp_file = cur->open_files[i];
-		// 	if (temp_file != NULL) {
-		// 		my_close (i);  		//close the file
-  //  			//free (temp_file);  ???
-		// 	}
-		// }
-  }
-	// Need to release the lock?
-
-	//EXIT ALL CHILDREN?  no, orphan them
-	//RELEASE ALL LOCKS WE ARE HOLDING?
-	//SEMA UP IF SOMETHING IS WAITING ON IT?
-
-	//add the status to the tid
-	cur->exit_status = e_status;
 	//return value in eax
 	f->eax = e_status;
-
-	thread_exit ();
 }
 
 /* 
