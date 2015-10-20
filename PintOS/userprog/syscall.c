@@ -25,6 +25,8 @@ static void my_write (struct intr_frame *f);
 static void my_seek (struct intr_frame *f);
 static void my_tell (struct intr_frame *f);
 static void my_close (int fd);
+static struct file *get_file (int fd);
+
 
 
 void
@@ -197,13 +199,14 @@ my_exit (struct intr_frame *f) {
   {
   	printf("+++ list of FILES is not empty\n");
 
-    //struct file *temp_file = list_entry (list_pop_front (&t->open_files_list), struct file, file_elem);
+  	//OPEN FILES OR ALL FILES ???
+    struct file *temp_file = list_entry (list_pop_front (&t->open_files_list), struct file, file_elem);
     //my_close (fd);  		//close the file
-   	//free (file_elem);
+   	free (temp_file);
   }
 	// Need to release the lock?
 
-	//EXIT ALL CHILDREN?
+	//EXIT ALL CHILDREN?  no, orphan them
 	//RELEASE ALL LOCKS WE ARE HOLDING?
 	//SEMA UP IF SOMETHING IS WAITING ON IT?
 
@@ -250,7 +253,7 @@ my_exec (struct intr_frame *f)  {
 	//c_elem->pid = pid;
 
   //PUT NEW EXEC'ED PROCESS ON CURRENTS CHILDREN LIST
- //list_push_back (&cur->children_list, &child_elem->child_of);
+ 	//list_push_back (&cur->children_list, &child_elem->child_of);
 
   f->eax = pid;
 	//return pid_t;
@@ -326,16 +329,24 @@ static void
 my_create (struct intr_frame *f) {
 	printf("  ### In create\n");
 
-	const char *file = *((int *)(4+(f->esp)));
+	const char *file_char = *((int *)(4+(f->esp)));
 	unsigned initial_size = *((int *)(8+(f->esp)));
+	struct thread *cur = thread_current ();
 
- if (invalid_ptr(file))
- {
+	struct file *cur_file;
+
+ 	//if (invalid_ptr(cur_file))
+ 	//{
 		//exit???
-    return;
- }
+    //return;
+ 	//}
 
-	f->eax = filesys_create (file, initial_size);   //returns boolean
+	//add to the open_files_list with index file_index
+ 	//if file_index < 100 ???
+ 	list_push_back (&(cur->open_files_list), &(cur_file->file_elem));
+ 	cur-> file_index = (cur->file_index) +1;
+
+	f->eax = false; //filesys_create (cur_file, initial_size);   //returns boolean
 }
 
 /*
@@ -354,7 +365,7 @@ my_remove (struct intr_frame *f) {
   	return;
   }
 
-  f->eax = filesys_remove (file);  //returns bool
+  f->eax = false; //filesys_remove (file);  //returns bool
 }
 
 /* 
@@ -380,6 +391,11 @@ my_open (struct intr_frame *f) {
 
 	const char *file = *((int *)(4+(f->esp)));
 
+	//struct inode *file_get_inode (struct file *);
+	//struct file *file_open (struct inode *);
+	file_open (file_get_inode(file));
+
+
 	//return int;
 }
 
@@ -391,6 +407,9 @@ my_filesize (struct intr_frame *f) {
 	printf("  ### In filesize\n");
 
 	int fd = *((int *)(4+(f->esp)));
+	struct file *cur_file = get_file (fd);
+
+
 	f->eax = fd;    //return value in eax
 }
 
@@ -438,12 +457,12 @@ my_write (struct intr_frame *f) {
 
 	if (fd == STDOUT_FILENO)
 	{
-		printf("IGETHERE\n");
+		printf("I GET HERE\n");
 	  putbuf (buffer, length);
   }
 	//printf("THING TO PRINT: %s\n", (char*)buffer);  //WHAT DO WE PRINT?
 
-  f->eax = length; // FIXME:
+  f->eax = length; // FIX ME
 	//return int;  bytes actaully written
 }
 
@@ -476,10 +495,10 @@ my_tell (struct intr_frame *f) {
 	printf("  ### In tell\n");
 
 	int fd = *((int *)(4+(f->esp)));
+	get_file (fd);
 
 	// return unsigned;
 }
-
 
 /* 
 Closes file descriptor fd. Exiting or terminating a process implicitly closes 
@@ -489,7 +508,24 @@ static void
 my_close (int fd) {
 	printf("  ### In Close\n");
   
+  //GIVEN THE FD, CLOSE THE FILE
+	struct file *cur_file = get_file (fd);
+	file_close (cur_file);
+
+}
+
+/*
+Helper method: Given param file descriptor,
+function returns the appropriate file
+*/
+static struct file *
+get_file (int fd)
+{
   struct thread *cur = thread_current ();
 
-  //GIVEN THE FD, CLOSE THE FILE
+  if(fd < 0 || fd > (cur->file_index)-1) {
+  	return NULL;
+  }
+  struct list_elem file_elem = cur->open_files_list[fd];
+  return list_entry (&file_elem, struct file, file_elem);
 }
