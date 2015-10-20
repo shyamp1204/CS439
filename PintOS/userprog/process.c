@@ -92,8 +92,51 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while(1) {}
-  return -1;
+  //get struct thread of parent
+  struct thread* parent = thread_current();
+  //get child thread associated 
+  struct list_elem* child_elem;
+  //grab the child thread with child_tid
+  bool found = false;
+  struct thread *child_thread;
+
+  for(child_elem = list_begin(&parent->children_list); child_elem != list_end(&parent->children_list) && !found; child_elem = list_next(child_elem)) {
+    child_thread = list_entry (child_elem, struct thread, child_of);
+    if((child_thread->tid) == child_tid) {
+      found = true;
+    }
+  }
+  //if out of the for loop, then have found the child with child_tid (check if valid) or have reached end of parent's children_list
+  //check if have reached end of parent's children_list, so child_tid is not one of this parent's children
+  if(!found || child_elem == list_end(&parent->children_list)) {
+    //then found is false, then child_tid is not a child of parent, so return -1
+    return -1;
+  }
+
+  //check if thread is valid
+  if(child_thread != NULL) {
+    //if invalid, return -1
+     return -1;
+  }
+
+  //check if process_wait() has already been successfully called for the given TID
+  sema_down(&(child_thread->sema_child)); // we are the only thread here!
+  child_thread->called++;
+  if (child_thread->called > 1){
+    return -1;
+  }
+  sema_up(&(child_thread->sema_child));
+
+  //wait for child_thread to die *********************************** IS THIS RIGHT?
+  while(child_thread->status != THREAD_DYING) {
+    thread_yield();
+  }
+  //when dead, if terminated by an exception (by the kernel), return -1
+  if(child_thread->exit_status == NULL) {
+    return -1;
+  }
+  //else, return its exit status (child_thread->exit_status)
+  return child_thread->exit_status;
 }
 
 /* Free the current process's resources. 

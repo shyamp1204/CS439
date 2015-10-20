@@ -477,6 +477,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 
+  //sema_init(t->sema_child, 0);
+
   list_init (&(t->children_list));  
   t->file_index = 0;
 }

@@ -523,6 +523,7 @@ get_file (int fd)
   if(fd < 0 || fd > (cur->file_index)-1) {
   	return NULL;
   }
-	//struct list_elem file_elem = cur->open_files_list[fd];
+
+  //struct list_elem file_elem = cur->open_files_list[fd];
   return NULL; //list_entry (&file_elem, struct file, file_elem);
 }

@@ -111,6 +111,9 @@ struct thread
     struct list children_list;              /* List of child processes */
     struct list_elem child_of;              /* List element. */
     int exit_status;
+
+    struct semaphore* sema_child;
+    int called;
   };
 
 /* If false (default), use round-robin scheduler.
