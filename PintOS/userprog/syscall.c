@@ -30,6 +30,7 @@ static void my_seek (struct intr_frame *f);
 static void my_tell (struct intr_frame *f);
 static void my_close (int fd);
 static struct file *get_file (int fd);
+static int next_fd (struct thread *cur);
 
 
 
@@ -50,7 +51,7 @@ syscall_handler (struct intr_frame *f)
   }
       
   int syscall_num = *((int *)f->esp);
-  printf("### SYSCALL: %d  ", syscall_num);
+  //printf("### SYSCALL: %d  ", syscall_num);
 
 	switch (syscall_num)
   {
@@ -91,7 +92,7 @@ syscall_handler (struct intr_frame *f)
 		my_read (f);
 		break;
 	case SYS_WRITE:
-		printf("### Calling Write");
+		//printf("### Calling Write");
 		my_write (f);
 		break;
 	case SYS_SEEK:
@@ -112,23 +113,6 @@ syscall_handler (struct intr_frame *f)
 		break;
     }
 }
-
-/*
-enum {
-	SYS_HALT,		 Halt the operating system. 
-	SYS_EXIT,		 Terminate this process. 
-	SYS_EXEC,		 Start another process. 
-	SYS_WAIT,		 Wait for a child process to die. 
-	SYS_CREATE,		 Create a file. 
-	SYS_REMOVE,		 Delete a file. 
-	SYS_OPEN,		 Open a file. 
-	SYS_FILESIZE,		 Obtain a file's size. 
-	SYS_READ,		 Read from a file. 
-	SYS_WRITE,		 Write to a file. 
-	SYS_SEEK,		 Change position in a file. 
-	SYS_TELL,		 Report current position in a file. 
-	SYS_CLOSE,		 Close a file. 
-*/
 
 /*
 the user can pass a null pointer, a pointer to unmapped virtual memory,
@@ -155,7 +139,6 @@ invalid_ptr (void *ptr) {
 	}
 return 0;
 }
-
 
 /*
 Terminates Pintos by calling shutdown_power_off() (declared in 
@@ -202,14 +185,20 @@ my_exit (struct intr_frame *f) {
 	struct thread *cur = thread_current ();
 
 	// Need a lock ?
-	//while (open files)
-  //{
-  	//printf("+++ list of FILES is not empty\n");
+	while (0)  //there are still open files
+  {
+  	printf("+++ list of FILES is not empty\n");
 
-		//GET NEXT OPEN FILE
-    //my_close (fd);  		//close the file
-   	//free (temp_file);
-  //}
+		//GET NEXT OPEN FILE and close it
+		int i;
+		for (i = 0; i <128; i++) {
+			struct file *temp_file = cur->open_files[i];
+			if (temp_file != NULL) {
+				my_close (i);  		//close the file
+   			//free (temp_file);  ???
+			}
+		}
+  }
 	// Need to release the lock?
 
 	//EXIT ALL CHILDREN?  no, orphan them
@@ -331,9 +320,8 @@ my_create (struct intr_frame *f) {
 
 	const char *filename = (char *)(4+(f->esp));
 	unsigned initial_size = *((int *)(8+(f->esp)));
-	struct thread *cur = thread_current ();
 
-	struct file *cur_file;
+	struct thread *cur = thread_current ();
 
  	//if (invalid_ptr(cur_file))
  	//{
@@ -341,13 +329,6 @@ my_create (struct intr_frame *f) {
     //return;
  	//}
 
-	//add to the open_files with index file_index
- 	//if file_index < 128
- 	if (cur->file_index < 127) {
- 		cur->open_files[cur->file_index] = cur_file;
- 	}
-
- 	cur-> file_index = (cur->file_index) +1;
 	f->eax = filesys_create (filename, initial_size);   //returns boolean
 }
 
@@ -361,11 +342,12 @@ my_remove (struct intr_frame *f) {
 
 	const char *filename = (char *)(4+(f->esp));
 	struct file *file;
-  if (invalid_ptr (file))
-  {
-  	//exit
-  	return;
-  }
+
+  // if (invalid_ptr (file))
+  // {
+  // 	//exit
+  // 	return;
+  // }
 
   f->eax = filesys_remove (filename);  //returns bool
 }
@@ -392,14 +374,15 @@ my_open (struct intr_frame *f) {
 	printf("  ### In open\n");
 
 	const char *filename = (char *)(4+(f->esp));  //what is this???
+	struct thread *cur = thread_current ();
 
-	//struct inode *file_get_inode (struct file *);
-	//struct file *file_open (struct inode *);
-	//file_open (file_get_inode(cur_file));
-
+	//open the file
 	struct file *cur_file = filesys_open (filename);
+	//get the next open file descriptor available, and put the file in it
+	int fd = next_fd(cur);
+	cur->open_files[fd] = cur_file;
 
-	//return int;
+	f->eax = fd;		//return int;
 }
 
 /*
@@ -412,7 +395,9 @@ my_filesize (struct intr_frame *f) {
 	int fd = *((int *)(4+(f->esp)));
 	struct file *cur_file = get_file (fd);
 
-	f->eax = fd;    //return value in eax
+	off_t size = file_length (cur_file); 
+
+	f->eax = size;    //return value in eax
 }
 
 /* 
@@ -428,6 +413,9 @@ my_read (struct intr_frame *f) {
 	int fd = *((int *)(4+(f->esp)));
 	void *buffer = (void *)(8+(f->esp)); 
 	unsigned length = *((int *)(12+(f->esp)));
+
+	//off_t file_read (struct file *, void *, off_t);
+	//off_t file_read_at (struct file *, void *, off_t size, off_t start);
 
 	//return int;
 }
@@ -448,21 +436,23 @@ console, confusing both human readers and our grading scripts.
 */
 static void 
 my_write (struct intr_frame *f) {
-	printf("  ### In write\n");
+	//printf("  ### In write\n");
 
 	int fd = *((int *)(4+(f->esp)));
-	const void *buffer = (void *)(8+(f->esp));
+	void *buffer = (void *)*(int*)(8+(f->esp));
 	unsigned length = *((int *)(12+(f->esp)));
 
-	printf("FFFFF fd= %d   ", fd);
-	printf("LLLLL length= %d\n", length);
+	//printf("FFFFF fd= %d   ", fd);
+	//printf("LLLLL length= %d\n", length);
 
 	if (fd == STDOUT_FILENO)
 	{
-		printf("I GET HERE\n");
-	  //putbuf (buffer, length);
+	  putbuf ((char *)buffer, length);
   }
 	//printf("THING TO PRINT: %s\n", (char*)buffer);  //WHAT DO WE PRINT?
+
+	//off_t file_write (struct file *, const void *, off_t);
+	//off_t file_write_at (struct file *, const void *, off_t size, off_t start);
 
   f->eax = length;   //return int == bytes actaully written
 }
@@ -523,10 +513,22 @@ get_file (int fd)
 {
   struct thread *cur = thread_current ();
 
-  if(fd < 0 || fd > (cur->file_index)-1) {
+  if(fd < 0 || fd > (127)) {
   	return NULL;
   }
+  return cur->open_files[fd]; 
+}
 
-  //struct list_elem file_elem = cur->open_files_list[fd];
-  return NULL; //list_entry (&file_elem, struct file, file_elem);
+static int
+next_fd (struct thread *cur) {
+	int found = 0;
+	int index = 0;
+	while (!found) {
+		if (cur->open_files[index] == NULL) {
+			found = 1;
+			return index;
+		}
+		index++;
+	}
+	return -1;
 }

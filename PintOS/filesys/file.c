@@ -11,7 +11,6 @@ struct file
     struct inode *inode;        /* File's inode. */
     off_t pos;                  /* Current position. */
     bool deny_write;            /* Has file_deny_write() been called? */
-    struct list_elem file_elem;              /* List element. */
   };
 
 /* Opens a file for the given INODE, of which it takes ownership,

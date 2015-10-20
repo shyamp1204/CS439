@@ -487,7 +487,6 @@ init_thread (struct thread *t, const char *name, int priority)
   t->sema_child = NULL;
 
   list_init (&(t->children_list));  
-  t->file_index = 0;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

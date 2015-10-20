@@ -101,7 +101,6 @@ process_wait (tid_t child_tid UNUSED)
   struct thread *child_thread;
   struct semaphore *temp_child_sema;
 
-
   for(child_elem = list_begin(&parent->children_list); child_elem != list_end(&parent->children_list) && !found; child_elem = list_next(child_elem)) {
     child_thread = list_entry (child_elem, struct thread, child_of);
     if((child_thread->tid) == child_tid) {
@@ -109,6 +108,7 @@ process_wait (tid_t child_tid UNUSED)
       break;
     }
   }
+  
   //if out of the for loop, then have found the child with child_tid (check if valid) or have reached end of parent's children_list
   //check if thread is valid
   if(child_thread == NULL) {

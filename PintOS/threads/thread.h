@@ -106,7 +106,6 @@ struct thread
 
     /* used for keeping track of who the parenty of the thread is*/
     struct file *open_files[128];            /* List of open files. */
-    int file_index;
     
     struct list children_list;              /* List of child processes */
     struct list_elem child_of;              /* List element. */
