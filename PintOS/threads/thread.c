@@ -478,7 +478,6 @@ init_thread (struct thread *t, const char *name, int priority)
   list_push_back (&all_list, &t->allelem);
 
   list_init (&(t->children_list));  
-  list_init (&(t->open_files_list));
   t->file_index = 0;
 }
 

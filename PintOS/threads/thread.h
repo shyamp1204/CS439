@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 
+
 /* States in a thread's life cycle. */
 enum thread_status
   {
@@ -104,9 +105,9 @@ struct thread
     unsigned magic;                     /* Detects stack overflow. */
 
     /* used for keeping track of who the parenty of the thread is*/
-    struct list open_files_list;            /* List of open files. */
-    //struct list_elem file_elem;              /* List element. */
+    struct file *open_files[128];            /* List of open files. */
     int file_index;
+    
     struct list children_list;              /* List of child processes */
     struct list_elem child_of;              /* List element. */
     int exit_status;

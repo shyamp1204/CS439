@@ -8,6 +8,10 @@
 #include "threads/vaddr.h"
 #include <lib/kernel/list.h>
 #include "devices/shutdown.h"
+#include "process.h"
+#include "filesys/filesys.h"
+
+//#include "filesys/file.c"
 
 
 static void syscall_handler (struct intr_frame *);
@@ -192,18 +196,17 @@ my_exit (struct intr_frame *f) {
 	printf("%s: exit(%d)\n", thread_name (), e_status);
 
 	// close all open files
-	struct thread *t = thread_current ();
+	struct thread *cur = thread_current ();
 
 	// Need a lock ?
-	while (!list_empty (&t->open_files_list))
-  {
-  	printf("+++ list of FILES is not empty\n");
+	//while (open files)
+  //{
+  	//printf("+++ list of FILES is not empty\n");
 
-  	//OPEN FILES OR ALL FILES ???
-    struct file *temp_file = list_entry (list_pop_front (&t->open_files_list), struct file, file_elem);
+		//GET NEXT OPEN FILE
     //my_close (fd);  		//close the file
-   	free (temp_file);
-  }
+   	//free (temp_file);
+  //}
 	// Need to release the lock?
 
 	//EXIT ALL CHILDREN?  no, orphan them
@@ -211,7 +214,7 @@ my_exit (struct intr_frame *f) {
 	//SEMA UP IF SOMETHING IS WAITING ON IT?
 
 	//add the status to the tid
-	t->exit_status = e_status;
+	cur->exit_status = e_status;
 	//return value in eax
 	f->eax = e_status;
 	thread_exit ();
@@ -230,14 +233,16 @@ static void
 my_exec (struct intr_frame *f)  {
 	printf("  ### In exec\n");
 
-	const char *file = *((int *)(4+(f->esp)));
+	const char *filename = (char *)(4+(f->esp));
+	struct thread *cur = thread_current ();
 
 	//CHECK TO MAKE SURE THE FILE POINTER IS VALID
-	if (invalid_ptr (file)) {
+	//if (invalid_ptr (file)) {
     //Exit???
-    return;	
-	}
-  tid_t pid = process_execute (file);
+  //  return;	
+	//}
+  
+  tid_t pid = process_execute (filename);
  
   if (pid == TID_ERROR)
   {
@@ -245,18 +250,12 @@ my_exec (struct intr_frame *f)  {
     return;
   }
 
-  struct thread *cur = thread_current ();
-  //GET THE CHILD PROCESS FROM ITS PID
-
-  //struct child_elem *child_elem = (struct child_elem *) malloc (sizeof(struct child_elem));
-  //ASSERT (c_elem);
-	//c_elem->pid = pid;
+  //GET THE CHILD PROCESS FROM ITS PID.  HOW DO WE GET THE CHILD???
 
   //PUT NEW EXEC'ED PROCESS ON CURRENTS CHILDREN LIST
- 	//list_push_back (&cur->children_list, &child_elem->child_of);
+ 	//list_push_back (&cur->children_list, &child_thread->child_of);
 
-  f->eax = pid;
-	//return pid_t;
+  f->eax = pid;			//return pid_t;
 } 
 
 /*
@@ -311,13 +310,11 @@ my_wait (struct intr_frame *f)  {
   for (temp_thread = list_begin (&cur->children_list); temp_thread != list_end (&cur->children_list);temp_thread = list_next (temp_thread)) {
   	struct thread *t = list_entry (temp_thread, struct thread, child_of);
   	if (((int)(t->tid))  == ((int) pid)) {
-  		f->eax = process_wait (pid); //IS THIS VALUE CORRECT???  ARE WE ALLOWED TO CALL PROCESS WAIT?
+  		f->eax = process_wait (pid);
 	  	return;
   	}
   }
-  f->eax = -1;
-
-	//return int;
+  f->eax = -1;		//return int;
 }
 
 /*
@@ -329,7 +326,7 @@ static void
 my_create (struct intr_frame *f) {
 	printf("  ### In create\n");
 
-	const char *file_char = *((int *)(4+(f->esp)));
+	const char *filename = (char *)(4+(f->esp));
 	unsigned initial_size = *((int *)(8+(f->esp)));
 	struct thread *cur = thread_current ();
 
@@ -341,12 +338,14 @@ my_create (struct intr_frame *f) {
     //return;
  	//}
 
-	//add to the open_files_list with index file_index
- 	//if file_index < 100 ???
- 	list_push_back (&(cur->open_files_list), &(cur_file->file_elem));
- 	cur-> file_index = (cur->file_index) +1;
+	//add to the open_files with index file_index
+ 	//if file_index < 128
+ 	if (cur->file_index < 127) {
+ 		cur->open_files[cur->file_index] = cur_file;
+ 	}
 
-	f->eax = false; //filesys_create (cur_file, initial_size);   //returns boolean
+ 	cur-> file_index = (cur->file_index) +1;
+	f->eax = filesys_create (filename, initial_size);   //returns boolean
 }
 
 /*
@@ -357,15 +356,15 @@ static void
 my_remove (struct intr_frame *f) {
 	printf("  ### In remove\n");
 
-	const char *file = *((int *)(4+(f->esp)));
-
+	const char *filename = (char *)(4+(f->esp));
+	struct file *file;
   if (invalid_ptr (file))
   {
   	//exit
   	return;
   }
 
-  f->eax = false; //filesys_remove (file);  //returns bool
+  f->eax = filesys_remove (filename);  //returns bool
 }
 
 /* 
@@ -389,12 +388,13 @@ static void
 my_open (struct intr_frame *f) {
 	printf("  ### In open\n");
 
-	const char *file = *((int *)(4+(f->esp)));
+	const char *filename = (char *)(4+(f->esp));  //what is this???
 
 	//struct inode *file_get_inode (struct file *);
 	//struct file *file_open (struct inode *);
-	file_open (file_get_inode(file));
+	//file_open (file_get_inode(cur_file));
 
+	struct file *cur_file = filesys_open (filename);
 
 	//return int;
 }
@@ -408,7 +408,6 @@ my_filesize (struct intr_frame *f) {
 
 	int fd = *((int *)(4+(f->esp)));
 	struct file *cur_file = get_file (fd);
-
 
 	f->eax = fd;    //return value in eax
 }
@@ -424,7 +423,7 @@ my_read (struct intr_frame *f) {
 	printf("  ### In read\n");
 
 	int fd = *((int *)(4+(f->esp)));
-	void *buffer = *((int *)(8+(f->esp))); 
+	void *buffer = (void *)(8+(f->esp)); 
 	unsigned length = *((int *)(12+(f->esp)));
 
 	//return int;
@@ -449,7 +448,7 @@ my_write (struct intr_frame *f) {
 	printf("  ### In write\n");
 
 	int fd = *((int *)(4+(f->esp)));
-	const void *buffer = *((int *)(8+(f->esp)));
+	const void *buffer = (void *)(8+(f->esp));
 	unsigned length = *((int *)(12+(f->esp)));
 
 	printf("FFFFF fd= %d   ", fd);
@@ -458,12 +457,11 @@ my_write (struct intr_frame *f) {
 	if (fd == STDOUT_FILENO)
 	{
 		printf("I GET HERE\n");
-	  putbuf (buffer, length);
+	  //putbuf (buffer, length);
   }
 	//printf("THING TO PRINT: %s\n", (char*)buffer);  //WHAT DO WE PRINT?
 
-  f->eax = length; // FIX ME
-	//return int;  bytes actaully written
+  f->eax = length;   //return int == bytes actaully written
 }
 
 /*
@@ -511,7 +509,6 @@ my_close (int fd) {
   //GIVEN THE FD, CLOSE THE FILE
 	struct file *cur_file = get_file (fd);
 	file_close (cur_file);
-
 }
 
 /*
@@ -526,6 +523,6 @@ get_file (int fd)
   if(fd < 0 || fd > (cur->file_index)-1) {
   	return NULL;
   }
-  struct list_elem file_elem = cur->open_files_list[fd];
-  return list_entry (&file_elem, struct file, file_elem);
+	//struct list_elem file_elem = cur->open_files_list[fd];
+  return NULL; //list_entry (&file_elem, struct file, file_elem);
 }
