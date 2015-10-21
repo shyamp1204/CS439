@@ -83,77 +83,20 @@ start_process (void *file_name_)
 
 /* Waits for thread TID to die and returns its exit status.  If
    it was terminated by the kernel (i.e. killed due to an
-   exception), returns -1.  If TID is invalid or if it was not a
+   exception), returns -1.  
+
+   If TID is invalid or if it was not a
    child of the calling process, or if process_wait() has already
    been successfully called for the given TID, returns -1
    immediately, without waiting.
-
-   This function will be implemented in problem 2-2.  For now, it
-   does nothing. */
+ */
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  //get struct thread of parent
-  struct thread* parent = thread_current();
-  //get child thread associated 
-  struct list_elem* child_elem;
-  //grab the child thread with child_tid
-  bool found = false;
-  struct thread *child_thread;
-  struct semaphore *temp_child_sema;
+  while(1) {
 
-  for(child_elem = list_begin(&parent->children_list); child_elem != list_end(&parent->children_list) && !found; child_elem = list_next(child_elem)) {
-    child_thread = list_entry (child_elem, struct thread, child_of);
-    if((child_thread->tid) == child_tid) {
-      found = true;
-      break;
-    }
   }
-
-  //if out of the for loop, then have found the child with child_tid (check if valid) or have reached end of parent's children_list
-  //check if thread is valid
-  if(child_thread == NULL) {
-    //if invalid, return -1
-     return -1;
-  }
-  //check if have reached end of parent's children_list, so child_tid is not one of this parent's children
-  if(!found || child_elem == list_end(&parent->children_list)) {
-  //if(child_elem == list_end(&parent->children_list)) {
-    //then found is false, then child_tid is not a child of parent, so return -1
-    return -1;
-  }
-  //check if process_wait() has already been successfully called for the given TID
-  if(child_thread->sema_child != NULL && child_thread->tid == child_tid) {
-    //then parent already waiting for child thread
-    return -1;
-  }
-
-  if(child_thread != NULL && child_thread->tid != child_tid) {
-    //then child thread is not a child of the parent thread
-    return -1;
-  }
-
-  //initialize local semaphore and set child thread's sema equal to this--now not NULL anymore!
-  sema_init(temp_child_sema, 0);
-  child_thread->sema_child = temp_child_sema;
-  int exit_stat;
-
-  //wait for child_thread to die
-  if(child_thread->status != THREAD_DYING) {
-    sema_down(temp_child_sema); // we are the only thread here!
-    child_thread->called++;
-    if (child_thread->called > 1){
-      return -1;
-    }
-    sema_up(&(child_thread->sema_child));
-    exit_stat = child_thread->exit_status;
-  }
-  //when dead, if terminated by an exception (by the kernel), return -1
-  if(exit_stat == NULL) {
-    return -1;
-  }
-  //else, return its exit status (child_thread->exit_status)
-  return exit_stat;
+  return 0;
 }
 
 /* Free the current process's resources. 
@@ -194,9 +137,9 @@ process_exit (void)
       pagedir_destroy (pd);
     }
     //check if thread is running with semaphore; if so, sema_up
-    if(cur->sema_child != NULL) {
-      sema_up(cur->sema_child);
-    }
+    // if(cur->sema_child != NULL) {
+    //   sema_up(cur->sema_child);
+    // }
 }
 
 /* Sets up the CPU for running user code in the current

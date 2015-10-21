@@ -12,6 +12,7 @@
 #include "filesys/filesys.h"
 #include "filesys/file.h"
 #include "devices/input.h"
+#include "threads/synch.h"
 
 static void syscall_handler (struct intr_frame *);
 static int invalid_ptr (void *ptr);
@@ -31,19 +32,21 @@ static void my_close (int fd);
 static struct file *get_file (int fd);
 static int next_fd (struct thread *cur);
 static void exit_status (int e_status);
+struct lock filesys_lock;
 
 void
 syscall_init (void) 
 {
 	intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+	lock_init (&filesys_lock);
 }
 
 static void
 syscall_handler (struct intr_frame *f) 
 {
-	if ( invalid_ptr (f->esp))
+	if (invalid_ptr (f->esp))
 	{
-		printf ("invalid pointer");
+		printf ("@@@@ invalid pointer");
 		exit_status (-1);
 		return;
 	}
@@ -58,7 +61,7 @@ syscall_handler (struct intr_frame *f)
 			my_halt ();
 			break;
 		case SYS_EXIT:
-			printf("### Calling Exit\n");
+			//printf("### Calling Exit\n");
 			my_exit (f);
 			break;
 		case SYS_EXEC:
@@ -143,8 +146,6 @@ exit_status (int e_status){
 	printf("%s: exit(%d)\n", thread_name (), e_status);
 
 	// close all open files
-
-	// Need a lock ?
 	int numof_file;
 	for (numof_file = 2; numof_file < 129; numof_file++) {
 		//GET NEXT OPEN FILE and close it
@@ -156,7 +157,6 @@ exit_status (int e_status){
 			//free (temp_file);
 		}
 	}
-	// Need to release the lock?
 
 	//EXIT ALL CHILDREN?  no, orphan them
 	//RELEASE ALL LOCKS WE ARE HOLDING?
@@ -224,9 +224,11 @@ my_exec (struct intr_frame *f)  {
   	exit_status (-1);
   	return;
  	}
-  
+
+  lock_acquire (&filesys_lock);
   //adds child to curent threads child list
   tid_t pid = process_execute (filename);
+  lock_release (&filesys_lock);
  
  	(pid == TID_ERROR) ? (f->eax = -1) : (f->eax = pid);		//return pid_t;
 } 
@@ -305,7 +307,9 @@ my_create (struct intr_frame *f) {
     return;
  	}
 
+ 	lock_acquire (&filesys_lock);
 	f->eax = filesys_create (filename, initial_size);   //returns boolean
+	lock_release (&filesys_lock);
 }
 
 /*
@@ -321,7 +325,9 @@ my_remove (struct intr_frame *f) {
   	return;
   }
 
+	lock_acquire (&filesys_lock);
   f->eax = filesys_remove (filename);  //returns bool
+  lock_release (&filesys_lock);
 }
 
 /* 
@@ -351,8 +357,10 @@ my_open (struct intr_frame *f) {
   	return;
   }
 
+	lock_acquire (&filesys_lock);
 	//open the file
 	struct file *cur_file = filesys_open (filename);
+	lock_release (&filesys_lock);
 
 	if (cur_file != NULL) {
 		//get the next open file descriptor available, and put the file in it
@@ -373,7 +381,10 @@ my_filesize (struct intr_frame *f) {
 	int fd = *((int *)(4+(f->esp)));
 	struct file *cur_file = get_file (fd);
 
+	lock_acquire (&filesys_lock);
 	off_t size = file_length (cur_file);
+	lock_release (&filesys_lock);
+
 	f->eax = size;    //return value in eax
 }
 
@@ -390,11 +401,13 @@ my_read (struct intr_frame *f) {
 	int length = *((int *)(12+(f->esp)));			//unsigned?
 
 	if (fd == STDIN_FILENO) {
+		lock_acquire (&filesys_lock);
 		char *buffer = (char *) buffer;
 		int i;
 		for (i = 0; i < length; i++) {
 			buffer[i] = input_getc();		//read each char from keyboard
 		}
+		lock_release (&filesys_lock);
 		f->eax = length;			//return bytes read
 	}
 	else {
@@ -405,7 +418,9 @@ my_read (struct intr_frame *f) {
 	  	f->eax = -1;
 	  }
 	  else {
+	  	lock_acquire (&filesys_lock);
 	  	f->eax = file_read (cur_file, buffer, length);  //return bytes read
+	  	lock_release (&filesys_lock);
 	  }
 	} 
 }
@@ -440,7 +455,9 @@ my_write (struct intr_frame *f) {
 	//printf("THING TO PRINT: %s\n", (char*)buffer);  //WHAT DO WE PRINT?
 
 	if (fd == STDOUT_FILENO) {
+		lock_acquire (&filesys_lock);
 		putbuf ((char *)buffer, length);
+		lock_release (&filesys_lock);
 		f->eax = length;		//return bytes written to console
   }
   else {
@@ -450,8 +467,10 @@ my_write (struct intr_frame *f) {
 	  	f->eax = -1;			//return -1 if could not write
 	  }
 	  else {
+	  	lock_acquire (&filesys_lock);
 	  	struct file *cur_file = get_file (fd);
 	  	f->eax = file_write (cur_file, buffer, length);  //return bytes written
+	  	lock_release (&filesys_lock);
 	  }
 	}
 }
@@ -473,6 +492,7 @@ my_seek (struct intr_frame *f) {
 	int fd = *((int *)(4+(f->esp))); 
 	int position = *((int *)(4+(f->esp)));  //unsigned
 
+	lock_acquire (&filesys_lock);
 	struct file *cur_file = get_file(fd);
 	off_t size = file_length (cur_file);
 	if (position < 0) 
@@ -481,6 +501,7 @@ my_seek (struct intr_frame *f) {
 		position = size;
 
 	file_seek (cur_file, position);
+	lock_release (&filesys_lock);
 }
 
 /*
@@ -490,7 +511,6 @@ expressed in bytes from the beginning of the file.
 static void 
 my_tell (struct intr_frame *f) {
 	int fd = *((int *)(4+(f->esp)));
-	get_file (fd);
 	struct thread *cur = thread_current ();
 
   if (fd < 2 || fd > 129 || cur->open_files[fd-2] == NULL) {
@@ -498,7 +518,9 @@ my_tell (struct intr_frame *f) {
   }
   else {
 		struct file *cur_file = get_file(fd);
+		lock_acquire (&filesys_lock);
 		f->eax = file_tell (cur_file);				// return position (unsigned)
+		lock_release (&filesys_lock);
 	}
 }
 
@@ -514,7 +536,9 @@ my_close (int fd) {
 	struct thread *cur = thread_current ();
 	cur->open_files[fd-2] = NULL;  //IS THIS CORRECT?
 	
+	lock_acquire (&filesys_lock);
 	file_close (cur_file);
+	lock_release (&filesys_lock);
 }
 
 /*

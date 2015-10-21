@@ -296,7 +296,7 @@ thread_exit (void)
 {
   ASSERT (!intr_context ());
 
-  struct thread* cur = thread_current();
+  // struct thread* cur = thread_current();
   //when thread exits, sema_up to let other threads know
   // if(cur->sema_child != NULL) {
   //   sema_up(cur->sema_child);
@@ -484,7 +484,7 @@ init_thread (struct thread *t, const char *name, int priority)
   list_push_back (&all_list, &t->allelem);
 
   //sema_init(t->sema_child, 1);
-  t->sema_child = NULL;
+  //t->sema_child = NULL;
 
   list_init (&(t->children_list));  
 }

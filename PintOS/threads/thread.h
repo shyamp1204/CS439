@@ -112,7 +112,6 @@ struct thread
     int exit_status;
 
     struct semaphore* sema_child;
-    int called;
   };
 
 /* If false (default), use round-robin scheduler.
