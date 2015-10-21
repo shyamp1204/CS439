@@ -46,7 +46,7 @@ syscall_handler (struct intr_frame *f)
 {
 	if (invalid_ptr (f->esp))
 	{
-		printf ("@@@@ invalid pointer");
+		// printf ("@@@@ invalid pointer");
 		exit_status (-1);
 		return;
 	}
@@ -57,7 +57,7 @@ syscall_handler (struct intr_frame *f)
 	switch (syscall_num)
 	{
 		case SYS_HALT:
-			printf("### Calling Halt\n");
+			// printf("### Calling Halt\n");
 			my_halt ();
 			break;
 		case SYS_EXIT:
@@ -65,31 +65,31 @@ syscall_handler (struct intr_frame *f)
 			my_exit (f);
 			break;
 		case SYS_EXEC:
-			printf("### Calling Exec\n");
+			// printf("### Calling Exec\n");
 			my_exec (f);
 			break;
 		case SYS_WAIT:
-			printf("### Calling Wait\n");
+			// printf("### Calling Wait\n");
 			my_wait (f);
 			break;
 		case SYS_CREATE:
-			printf("### Calling create\n");
+			// printf("### Calling create\n");
 			my_create (f);
 			break;
 		case SYS_REMOVE:
-			printf("### Calling Remove\n");
+			// printf("### Calling Remove\n");
 			my_remove (f);
 			break;
 		case SYS_OPEN:
-			printf("### Calling Open\n");
+			// printf("### Calling Open\n");
 			my_open (f);
 			break;
 		case SYS_FILESIZE:
-			printf("### Calling FileSize\n");
+			// printf("### Calling FileSize\n");
 			my_filesize (f);
 			break;
 		case SYS_READ:
-			printf("### Calling Read\n");
+			// printf("### Calling Read\n");
 			my_read (f);
 			break;
 		case SYS_WRITE:
@@ -97,19 +97,19 @@ syscall_handler (struct intr_frame *f)
 			my_write (f);
 			break;
 		case SYS_SEEK:
-			printf("### Calling Seek\n");
+			// printf("### Calling Seek\n");
 			my_seek (f);
 			break;
 		case SYS_TELL:
-			printf("### Calling Tell\n");
+			// printf("### Calling Tell\n");
 			my_tell (f);
 			break;
 		case SYS_CLOSE:
-			printf("### Calling Close\n");
+			// printf("### Calling Close\n");
 			my_close (*((int *)(4+(f->esp))));
 			break;
 		default :
-			printf ("Invalid system call! #%d\n", syscall_num);
+			// printf ("Invalid system call! #%d\n", syscall_num);
 			exit_status (-1);  
 			break;
 	    }
@@ -164,7 +164,7 @@ exit_status (int e_status){
 	//SEMA UP IF SOMETHING IS WAITING ON IT?
 
 	//add the status to the tid
-	cur->exit_status = e_status;
+	cur->my_info->exit_status = e_status;
 	thread_exit ();
 }
 
@@ -274,22 +274,11 @@ rest.
  */
 static void 
 my_wait (struct intr_frame *f)  {
-	pid_t pid = *((int *)(4+(f->esp)));
 
-	struct thread *cur = thread_current ();
-
-  struct list_elem *temp_thread;
-
-  // Need to lock
-  for (temp_thread = list_begin (&cur->children_list); temp_thread != list_end (&cur->children_list);temp_thread = list_next (temp_thread)) {
-  	struct thread *t = list_entry (temp_thread, struct thread, child_of);
-  	if (((int)(t->tid))  == ((int) pid)) {
-  		f->eax = process_wait (pid);
-	  	return;
-  	}
-  }
-  f->eax = -1;		//return int;
+  pid_t pid = *((int *)(4+(f->esp)));
+  f->eax = process_wait (pid);
 }
+
 
 /*
 Creates a new file called file initially initial_size bytes in size. Returns 
@@ -449,10 +438,6 @@ my_write (struct intr_frame *f) {
   	exit_status (-1);
   	return;
   }
-
-	//printf("FFFFF fd= %d   ", fd);
-	//printf("LLLLL length= %d\n", length);
-	//printf("THING TO PRINT: %s\n", (char*)buffer);  //WHAT DO WE PRINT?
 
 	if (fd == STDOUT_FILENO) {
 		lock_acquire (&filesys_lock);

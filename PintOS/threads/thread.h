@@ -77,6 +77,17 @@ typedef int tid_t;
    value, triggering the assertion.  (So don't add elements below 
    THREAD_MAGIC.)
 */
+
+
+struct child_info
+  {
+    tid_t tid;                          /* Thread identifier. */
+    int exit_status;
+    struct semaphore* sema_dead;
+    struct list_elem elem;              /* List element. */
+  };
+
+
 /* The `elem' member has a dual purpose.  It can be an element in
    the run queue (thread.c), or it can be an element in a
    semaphore wait list (synch.c).  It can be used these two ways
@@ -106,12 +117,11 @@ struct thread
 
     /* used for keeping track of who the parenty of the thread is*/
     struct file *open_files[128];            /* List of open files. */
-    
-    struct list children_list;              /* List of child processes */
-    struct list_elem child_of;              /* List element. */
-    int exit_status;
 
-    struct semaphore* sema_child;
+    // used for wait and exit
+    struct list children_list;              /* List of child processes */
+    struct child_info* my_info;
+
   };
 
 /* If false (default), use round-robin scheduler.

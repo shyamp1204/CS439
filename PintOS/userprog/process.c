@@ -17,6 +17,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/synch.h"
 
 
 static thread_func start_process NO_RETURN;
@@ -42,8 +43,12 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  char *token, *save_ptr;
+  // create a "token" for each string seperated by a space
+  token = strtok_r (file_name, " ", &save_ptr);
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -83,21 +88,54 @@ start_process (void *file_name_)
 
 /* Waits for thread TID to die and returns its exit status.  If
    it was terminated by the kernel (i.e. killed due to an
-   exception), returns -1.  
-
-   If TID is invalid or if it was not a
+   exception), returns -1.  If TID is invalid or if it was not a
    child of the calling process, or if process_wait() has already
    been successfully called for the given TID, returns -1
    immediately, without waiting.
- */
+
+   This function will be implemented in problem 2-2.  For now, it
+   does nothing. */
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while(1) {
+  //get struct thread of parent
+  struct thread* parent = thread_current();
+  //get child thread associated 
+  struct list_elem* child_elem;
+  // child info block in the heap
+  struct child_info* child_info_block;
+  //detect if tid is in child list
+  bool found = false;
 
+  // Need to lock
+  for (child_elem = list_begin (&parent->children_list); 
+            child_elem != list_end (&parent->children_list) && !found;
+            child_elem = list_next (child_elem)) {
+    child_info_block = list_entry (child_elem, struct child_info, elem);
+    if (((int)(child_info_block->tid))  == ((int) child_tid)) {
+      found = true;
+    }
   }
-  return 0;
+
+  //if out of the for loop, then have found the child with child_tid (check if 
+  // valid) or have reached end of parent's children_list
+
+  //check if have reached end of parent's children_list, 
+  //so child_tid is not one of this parent's children
+  if(!found) {
+    return -1;
+  }
+                                                                        
+  //wait for child to die
+  sema_down(&(child_info_block->sema_dead));
+
+
+  //remove from list so it cant be called twice
+  list_remove (&(child_info_block->elem));
+
+  return child_info_block->exit_status;
 }
+
 
 /* Free the current process's resources. 
 
@@ -120,6 +158,9 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
 
+
+
+  sema_up(&(cur->my_info->sema_dead));
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -136,10 +177,6 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
-    //check if thread is running with semaphore; if so, sema_up
-    // if(cur->sema_child != NULL) {
-    //   sema_up(cur->sema_child);
-    // }
 }
 
 /* Sets up the CPU for running user code in the current
@@ -586,7 +623,7 @@ setup_stack (void **esp, char *cmd_line)
         palloc_free_page (kpage);
     } 
   //CALL HEX DUMP TO SEE IF THE STACK IS SET UP CORRECTLY.  FOR TESTING ONLY
-  hex_dump(*esp, *esp, PHYS_BASE-*esp, 1);
+  // hex_dump(*esp, *esp, PHYS_BASE-*esp, 1);
 
   return success;
 }

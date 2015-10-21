@@ -11,6 +11,8 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "malloc.h"
+#include "lib/kernel/list.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -182,6 +184,8 @@ thread_create (const char *name, int priority,
   if (t == NULL)
     return TID_ERROR;
 
+ 
+
   /* Initialize thread. */
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
@@ -208,8 +212,18 @@ thread_create (const char *name, int priority,
 
   intr_set_level (old_level);
 
+
+
   struct thread *cur = thread_current ();
-  list_push_back (&(cur->children_list), &(t->child_of));
+  // allocate t_info struct onto the heap so that it is not deleted when t dies
+  
+  t->my_info = (struct child_info*)malloc(40);
+  // // initialize the semaphore that the thread is running
+  sema_init(&(t->my_info->sema_dead),0);
+  t->my_info->tid = tid;
+  t->my_info->exit_status= -1;
+  // put the child_info struct of t on the parents children list
+  list_push_back (&(cur->children_list), &(t->my_info->elem));
 
   /* Add to run queue. */
   thread_unblock (t);
@@ -296,7 +310,7 @@ thread_exit (void)
 {
   ASSERT (!intr_context ());
 
-  // struct thread* cur = thread_current();
+  struct thread* cur = thread_current();
   //when thread exits, sema_up to let other threads know
   // if(cur->sema_child != NULL) {
   //   sema_up(cur->sema_child);
@@ -310,8 +324,8 @@ thread_exit (void)
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
   intr_disable ();
-  list_remove (&thread_current()->allelem);
-  thread_current ()->status = THREAD_DYING;
+  list_remove (&cur->allelem);
+  cur->status = THREAD_DYING;
   schedule ();
   NOT_REACHED ();
 }
@@ -482,10 +496,6 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
-
-  //sema_init(t->sema_child, 1);
-  //t->sema_child = NULL;
-
   list_init (&(t->children_list));  
 }
 

@@ -93,6 +93,7 @@ malloc (size_t size)
   struct block *b;
   struct arena *a;
 
+
   /* A null pointer satisfies a request for 0 bytes. */
   if (size == 0)
     return NULL;
@@ -120,7 +121,6 @@ malloc (size_t size)
     }
 
   lock_acquire (&d->lock);
-
   /* If the free list is empty, create a new arena. */
   if (list_empty (&d->free_list))
     {
@@ -144,7 +144,6 @@ malloc (size_t size)
           list_push_back (&d->free_list, &b->free_elem);
         }
     }
-
   /* Get a block from free list and return it. */
   b = list_entry (list_pop_front (&d->free_list), struct block, free_elem);
   a = block_to_arena (b);
