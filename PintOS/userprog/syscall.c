@@ -198,6 +198,12 @@ indicate errors.
 static void 
 my_exit (struct intr_frame *f) {	
 	int e_status = *((int *)(4+f->esp));
+
+	if (e_status < -1) {
+  		exit_status (-1);
+  		return;
+ 	}
+
 	exit_status (e_status);
 
 	f->eax = e_status;		//return value in eax
@@ -288,14 +294,18 @@ call.
 */
 static void 
 my_create (struct intr_frame *f) {
-	const char *filename = (char *)(4+(f->esp));
+	const void *filename = (void *)(4+(f->esp));
 	unsigned initial_size = *((int *)(8+(f->esp)));
 
- 	if (invalid_ptr((void *) filename)) {
+	 //printf("\n $$$$$ filename: %s\n", (char*)filename);
+
+ 	if (invalid_ptr((void *) filename) || invalid_ptr((void *) *(int*)filename) || *(char *)filename == NULL) {  //|| *filename == ""
+ 		//printf("checking the filename2\n");
 		exit_status (-1);
     return;
  	}
 
+ 	//printf("i am here2\n");
  	lock_acquire (&filesys_lock);
 	f->eax = filesys_create (filename, initial_size);   //returns boolean
 	lock_release (&filesys_lock);
@@ -342,14 +352,16 @@ my_open (struct intr_frame *f) {
 	struct thread *cur = thread_current ();
 
 	if (invalid_ptr ((void *) filename)) {
-  	exit_status (-1);
-  	return;
-  }
+  		exit_status (-1);
+  		return;
+  	}
 
 	lock_acquire (&filesys_lock);
 	//open the file
 	struct file *cur_file = filesys_open (filename);
 	lock_release (&filesys_lock);
+
+
 
 	if (cur_file != NULL) {
 		//get the next open file descriptor available, and put the file in it
