@@ -18,6 +18,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -140,11 +141,11 @@ process_wait (tid_t child_tid UNUSED)
   //wait for child_thread to die
   if(child_thread->status != THREAD_DYING) {
     sema_down(temp_child_sema); // we are the only thread here!
-    // child_thread->called++;
-    // if (child_thread->called > 1){
-    //   return -1;
-    // }
-    // sema_up(&(child_thread->sema_child));
+    child_thread->called++;
+    if (child_thread->called > 1){
+      return -1;
+    }
+    sema_up(&(child_thread->sema_child));
     exit_stat = child_thread->exit_status;
   }
   //when dead, if terminated by an exception (by the kernel), return -1

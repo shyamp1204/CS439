@@ -11,7 +11,7 @@
 #include "process.h"
 #include "filesys/filesys.h"
 #include "filesys/file.h"
-
+#include "devices/input.h"
 
 static void syscall_handler (struct intr_frame *);
 static int invalid_ptr (void *ptr);
@@ -54,39 +54,39 @@ syscall_handler (struct intr_frame *f)
 	switch (syscall_num)
 	{
 		case SYS_HALT:
-			printf("### Calling Halt");
+			printf("### Calling Halt\n");
 			my_halt ();
 			break;
 		case SYS_EXIT:
-			printf("### Calling Exit");
+			printf("### Calling Exit\n");
 			my_exit (f);
 			break;
 		case SYS_EXEC:
-			printf("### Calling Exec");
+			printf("### Calling Exec\n");
 			my_exec (f);
 			break;
 		case SYS_WAIT:
-			printf("### Calling Wait");
+			printf("### Calling Wait\n");
 			my_wait (f);
 			break;
 		case SYS_CREATE:
-			printf("### Calling create");
+			printf("### Calling create\n");
 			my_create (f);
 			break;
 		case SYS_REMOVE:
-			printf("### Calling Remove");
+			printf("### Calling Remove\n");
 			my_remove (f);
 			break;
 		case SYS_OPEN:
-			printf("### Calling Open");
+			printf("### Calling Open\n");
 			my_open (f);
 			break;
 		case SYS_FILESIZE:
-			printf("### Calling FileSize");
+			printf("### Calling FileSize\n");
 			my_filesize (f);
 			break;
 		case SYS_READ:
-			printf("### Calling Read");
+			printf("### Calling Read\n");
 			my_read (f);
 			break;
 		case SYS_WRITE:
@@ -94,20 +94,20 @@ syscall_handler (struct intr_frame *f)
 			my_write (f);
 			break;
 		case SYS_SEEK:
-			printf("### Calling Seek");
+			printf("### Calling Seek\n");
 			my_seek (f);
 			break;
 		case SYS_TELL:
-			printf("### Calling Tell");
+			printf("### Calling Tell\n");
 			my_tell (f);
 			break;
 		case SYS_CLOSE:
-			printf("### Calling Close");
+			printf("### Calling Close\n");
 			my_close (*((int *)(4+(f->esp))));
 			break;
 		default :
 			printf ("Invalid system call! #%d\n", syscall_num);
-			thread_exit();   //Exit???  
+			exit_status (-1);  
 			break;
 	    }
 }
@@ -126,23 +126,18 @@ FUNCTION TO HANDLE INVALID MEMORY ADDRESS POINTERS FROM USER CALLS
 */
 static int 
 invalid_ptr (void *ptr) {
-	if (ptr == NULL) {
+	if (ptr == NULL || !is_user_vaddr (ptr) || pagedir_get_page (thread_current ()->pagedir, ptr) == NULL) {
 		return 1;
 	}
-	if (!is_user_vaddr (ptr)) {
-		return 1;
-	}
-	else if (pagedir_get_page (thread_current ()->pagedir, ptr) == NULL) {
-		return 1;
-	}
-return 0;
+	return 0;
 }
 
-
+/* 
+Exits from the thread, printing exit information.
+*/
 static void
 exit_status (int e_status){
 	struct thread *cur = thread_current ();
-
 
 	//if user process terminates, print process' name and exit code
 	printf("%s: exit(%d)\n", thread_name (), e_status);
@@ -150,24 +145,22 @@ exit_status (int e_status){
 	// close all open files
 
 	// Need a lock ?
-	while (0)  //there are still open files  //next_fd(cur) == 0;
- 	 {
- 	 // 	printf("+++ list of FILES is not empty\n");
+	int numof_file;
+	for (numof_file = 2; numof_file < 129; numof_file++) {
+		//GET NEXT OPEN FILE and close it
 
-		// //GET NEXT OPEN FILE and close it
-		// int i;
-		// for (i = 0; i <128; i++) {
-		// 	struct file *temp_file = cur->open_files[i];
-		// 	if (temp_file != NULL) {
-		// 		my_close (i);  		//close the file
- 	 //  			//free (temp_file);  ???
-		// 	}
-		// }
-	  }
+		struct file *temp_file = cur->open_files[numof_file];
+		if (temp_file != NULL) {
+			my_close (numof_file);  		//close the file
+			cur->open_files[numof_file] = NULL;
+			//free (temp_file);
+		}
+	}
 	// Need to release the lock?
 
 	//EXIT ALL CHILDREN?  no, orphan them
 	//RELEASE ALL LOCKS WE ARE HOLDING?
+	//FREE PAGE IN MEMORY
 	//SEMA UP IF SOMETHING IS WAITING ON IT?
 
 	//add the status to the tid
@@ -185,7 +178,6 @@ deadlock situations, etc.
 */
 static void 
 my_halt (void) {
-	printf("  ### In Halt\n");
 	shutdown_power_off();
 }
 
@@ -204,15 +196,11 @@ be returned. Conventionally, a status of 0 indicates success and nonzero values
 indicate errors.
 */
 static void 
-my_exit (struct intr_frame *f) {
-	printf("  ### In exit\n");
-	
+my_exit (struct intr_frame *f) {	
 	int e_status = *((int *)(4+f->esp));
-
 	exit_status (e_status);
 
-	//return value in eax
-	f->eax = e_status;
+	f->eax = e_status;		//return value in eax
 }
 
 /* 
@@ -229,10 +217,7 @@ use appropriate synchronization to ensure this.
 */
 static void 
 my_exec (struct intr_frame *f)  {
-	printf("  ### In exec\n");
-
 	const char *filename = (char *)(4+(f->esp));
-	struct thread *cur = thread_current ();
 
 	//CHECK TO MAKE SURE THE FILEname POINTER IS VALID
 	if (invalid_ptr ((void *)filename)) {
@@ -240,12 +225,10 @@ my_exec (struct intr_frame *f)  {
   	return;
  	}
   
+  //adds child to curent threads child list
   tid_t pid = process_execute (filename);
  
-  if (pid == TID_ERROR)
-    f->eax = -1;
-  else
-  	f->eax = pid;			//return pid_t;
+ 	(pid == TID_ERROR) ? (f->eax = -1) : (f->eax = pid);		//return pid_t;
 } 
 
 /*
@@ -289,8 +272,6 @@ rest.
  */
 static void 
 my_wait (struct intr_frame *f)  {
-	printf("  ### In wait\n");
-
 	pid_t pid = *((int *)(4+(f->esp)));
 
 	struct thread *cur = thread_current ();
@@ -316,8 +297,6 @@ call.
 */
 static void 
 my_create (struct intr_frame *f) {
-	printf("  ### In create\n");
-
 	const char *filename = (char *)(4+(f->esp));
 	unsigned initial_size = *((int *)(8+(f->esp)));
 
@@ -335,8 +314,6 @@ A file may be removed regardless of whether it is open or closed, and
 removing an open file does not close it. */
 static void 
 my_remove (struct intr_frame *f) {
-	printf("  ### In remove\n");
-
 	const char *filename = (char *)(4+(f->esp));
 
   if (invalid_ptr ((void *)filename)) {
@@ -366,8 +343,6 @@ close and they do not share a file position.
 */
 static void 
 my_open (struct intr_frame *f) {
-	printf("  ### In open\n");
-
 	const char *filename = (char *)(4+(f->esp));  //what is this???
 	struct thread *cur = thread_current ();
 
@@ -395,8 +370,6 @@ Returns the size, in bytes, of the file open as fd.
 */
 static void 
 my_filesize (struct intr_frame *f) {
-	printf("  ### In filesize\n");
-
 	int fd = *((int *)(4+(f->esp)));
 	struct file *cur_file = get_file (fd);
 
@@ -412,24 +385,29 @@ input_getc().
 */
 static void 
 my_read (struct intr_frame *f) {
-	printf("  ### In read\n");
-
 	int fd = *((int *)(4+(f->esp)));
 	void *buffer = (void *)(8+(f->esp)); 
-	unsigned length = *((int *)(12+(f->esp)));
+	int length = *((int *)(12+(f->esp)));			//unsigned?
 
 	if (fd == STDIN_FILENO) {
-		//read from keyboard
-		//input_getc();
+		char *buffer = (char *) buffer;
+		int i;
+		for (i = 0; i < length; i++) {
+			buffer[i] = input_getc();		//read each char from keyboard
+		}
+		f->eax = length;			//return bytes read
 	}
 	else {
+		struct thread *cur = thread_current ();
 		struct file *cur_file = get_file (fd);
-	}
 
-	//off_t file_read (struct file *, void *, off_t);
-	//off_t file_read_at (struct file *, void *, off_t size, off_t start);
-
-	f->eax = 0;  //return int;
+	  if(fd < 2 || fd > 129 || cur->open_files[fd-2] == NULL) {
+	  	f->eax = -1;
+	  }
+	  else {
+	  	f->eax = file_read (cur_file, buffer, length);  //return bytes read
+	  }
+	} 
 }
 
 /* 
@@ -448,24 +426,34 @@ console, confusing both human readers and our grading scripts.
 */
 static void 
 my_write (struct intr_frame *f) {
-	//printf("  ### In write\n");
-
 	int fd = *((int *)(4+(f->esp)));
 	void *buffer = (void *)*(int*)(8+(f->esp));
 	unsigned length = *((int *)(12+(f->esp)));
 
+	if (invalid_ptr (buffer)) {
+  	exit_status (-1);
+  	return;
+  }
+
 	//printf("FFFFF fd= %d   ", fd);
 	//printf("LLLLL length= %d\n", length);
+	//printf("THING TO PRINT: %s\n", (char*)buffer);  //WHAT DO WE PRINT?
 
 	if (fd == STDOUT_FILENO) {
 		putbuf ((char *)buffer, length);
+		f->eax = length;		//return bytes written to console
   }
-	//printf("THING TO PRINT: %s\n", (char*)buffer);  //WHAT DO WE PRINT?
+  else {
+		struct thread *cur = thread_current ();
 
-	//off_t file_write (struct file *, const void *, off_t);
-	//off_t file_write_at (struct file *, const void *, off_t size, off_t start);
-
-  f->eax = length;   //return int == bytes actaully written
+	  if(fd < 2 || fd > 129 || cur->open_files[fd-2] == NULL) {
+	  	f->eax = -1;			//return -1 if could not write
+	  }
+	  else {
+	  	struct file *cur_file = get_file (fd);
+	  	f->eax = file_write (cur_file, buffer, length);  //return bytes written
+	  }
+	}
 }
 
 /*
@@ -482,10 +470,17 @@ special effort in system call implementation.
 */
 static void 
 my_seek (struct intr_frame *f) {
-	printf("  ### In seek\n");
-
 	int fd = *((int *)(4+(f->esp))); 
-	unsigned position = *((int *)(4+(f->esp)));
+	int position = *((int *)(4+(f->esp)));  //unsigned
+
+	struct file *cur_file = get_file(fd);
+	off_t size = file_length (cur_file);
+	if (position < 0) 
+		return;
+	else if (position > size)
+		position = size;
+
+	file_seek (cur_file, position);
 }
 
 /*
@@ -494,12 +489,17 @@ expressed in bytes from the beginning of the file.
 */
 static void 
 my_tell (struct intr_frame *f) {
-	printf("  ### In tell\n");
-
 	int fd = *((int *)(4+(f->esp)));
 	get_file (fd);
+	struct thread *cur = thread_current ();
 
-	// return unsigned;
+  if (fd < 2 || fd > 129 || cur->open_files[fd-2] == NULL) {
+  	f->eax = -1;			//return -1 if could not read
+  }
+  else {
+		struct file *cur_file = get_file(fd);
+		f->eax = file_tell (cur_file);				// return position (unsigned)
+	}
 }
 
 /* 
@@ -507,9 +507,7 @@ Closes file descriptor fd. Exiting or terminating a process implicitly closes
 all its open file descriptors, as if by calling this function for each one.
 */
 static void 
-my_close (int fd) {
-	printf("  ### In Close\n");
-  
+my_close (int fd) {  
   //GIVEN THE FD, CLOSE THE FILE
 	struct file *cur_file = get_file (fd);
 
@@ -528,10 +526,7 @@ get_file (int fd)
 {
   struct thread *cur = thread_current ();
 
-  if(fd < 2 || fd > (129)) {
-  	exit_status (-1);
-  }
-  else if (cur->open_files[fd-2] == NULL) {
+  if(fd < 2 || fd > (129) || cur->open_files[fd-2] == NULL) {
   	exit_status (-1);
   }
   return cur->open_files[fd-2];
