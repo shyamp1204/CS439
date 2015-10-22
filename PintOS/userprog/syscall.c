@@ -47,7 +47,6 @@ syscall_handler (struct intr_frame *f)
 {
 	if (invalid_ptr (f->esp))
 	{
-		// printf ("@@@@ invalid pointer");
 		exit_status (-1);
 		return;
 	}
@@ -58,54 +57,42 @@ syscall_handler (struct intr_frame *f)
 	switch (syscall_num)
 	{
 		case SYS_HALT:
-			// printf("### Calling Halt\n");
 			my_halt ();
 			break;
 		case SYS_EXIT:
-			//printf("### Calling Exit\n");
 			my_exit (f);
 			break;
 		case SYS_EXEC:
-			// printf("### Calling Exec\n");
 			my_exec (f);
 			break;
 		case SYS_WAIT:
-			// printf("### Calling Wait\n");
 			my_wait (f);
 			break;
 		case SYS_CREATE:
 			my_create (f);
 			break;
 		case SYS_REMOVE:
-			// printf("### Calling Remove\n");
 			my_remove (f);
 			break;
 		case SYS_OPEN:
-			// printf("### Calling Open\n");
 			my_open (f);
 			break;
 		case SYS_FILESIZE:
-			// printf("### Calling FileSize\n");
 			my_filesize (f);
 			break;
 		case SYS_READ:
-			// printf("### Calling Read\n");
 			my_read (f);
 			break;
 		case SYS_WRITE:
-			//printf("### Calling Write");
 			my_write (f);
 			break;
 		case SYS_SEEK:
-			// printf("### Calling Seek\n");
 			my_seek (f);
 			break;
 		case SYS_TELL:
-			// printf("### Calling Tell\n");
 			my_tell (f);
 			break;
 		case SYS_CLOSE:
-			// printf("### Calling Close\n");
 			my_close (*((int *)(4+(f->esp))));
 			break;
 		default :
@@ -153,7 +140,6 @@ exit_status (int e_status){
 		struct file *temp_file = cur->open_files[numof_file];
 		if (temp_file != NULL) {
 			my_close (numof_file);  		//close the file
-			cur->open_files[numof_file] = NULL;
 			//free (temp_file);
 		}
 	}
@@ -167,8 +153,6 @@ exit_status (int e_status){
 	cur->my_info->exit_status = e_status;
 	thread_exit ();
 }
-
-
 
 /*
 Terminates Pintos by calling shutdown_power_off() (declared in 
@@ -223,9 +207,7 @@ use appropriate synchronization to ensure this.
 */
 static void 
 my_exec (struct intr_frame *f)  {
-//	const char *filename = (char *)(4+(f->esp));
 	const char *filename = (char *)*(int*)(4+(f->esp));
-
 
 	//CHECK TO MAKE SURE THE FILEname POINTER IS VALID
 	if (invalid_ptr ((void *)filename)) {
@@ -282,11 +264,9 @@ rest.
  */
 static void 
 my_wait (struct intr_frame *f)  {
-
   pid_t pid = *((int *)(4+(f->esp)));
   f->eax = process_wait (pid);
 }
-
 
 /*
 Creates a new file called file initially initial_size bytes in size. Returns 
@@ -298,8 +278,6 @@ static void
 my_create (struct intr_frame *f) {
 	const char *filename = (char *)*(int*)(4+(f->esp));
 	unsigned initial_size = *((int *)(8+(f->esp)));
-
-	//printf("filename %s\n", filename);
 
  	if (invalid_ptr((void *) filename) || *filename == NULL || strlen (filename) <= 0) {  
 		exit_status (-1);
@@ -317,7 +295,6 @@ A file may be removed regardless of whether it is open or closed, and
 removing an open file does not close it. */
 static void 
 my_remove (struct intr_frame *f) {
-//	const char *filename = (char *)(4+(f->esp));
 	const char *filename = (char *)*(int*)(4+(f->esp));
 
   if (invalid_ptr ((void *)filename)) {
@@ -349,7 +326,6 @@ close and they do not share a file position.
 */
 static void 
 my_open (struct intr_frame *f) {
-//	const char *filename = (char *)(4+(f->esp));  //what is this???
 	const char *filename = (char *)*(int*)(4+(f->esp));
 	struct thread *cur = thread_current ();
 
@@ -362,8 +338,6 @@ my_open (struct intr_frame *f) {
 	//open the file
 	struct file *cur_file = filesys_open (filename);
 	lock_release (&filesys_lock);
-
-
 
 	if (cur_file != NULL) {
 		//get the next open file descriptor available, and put the file in it
@@ -400,8 +374,13 @@ input_getc().
 static void 
 my_read (struct intr_frame *f) {
 	int fd = *((int *)(4+(f->esp)));
-	void *buffer = (void *)(8+(f->esp)); 
+	void *buffer = (void *)*(int*)(8+(f->esp)); 
 	int length = *((int *)(12+(f->esp)));			//unsigned?
+
+	if (invalid_ptr (buffer)) {
+	 	exit_status (-1);
+	 	return;
+	 }
 
 	if (fd == STDIN_FILENO) {
 		lock_acquire (&filesys_lock);
@@ -489,7 +468,7 @@ special effort in system call implementation.
 static void 
 my_seek (struct intr_frame *f) {
 	int fd = *((int *)(4+(f->esp))); 
-	int position = *((int *)(4+(f->esp)));  //unsigned
+	int position = *((int *)(8+(f->esp)));  //unsigned
 
 	lock_acquire (&filesys_lock);
 	struct file *cur_file = get_file(fd);
