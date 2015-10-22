@@ -43,9 +43,16 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  char *token, *save_ptr;
+  char *arg_one = palloc_get_page(0);
+  if (arg_one == NULL) {
+     //palloc_free_page(arg)
+     return TID_ERROR;
+  }
+  strlcpy (arg_one, file_name, PGSIZE);
+
+  char *save_ptr;
   // create a "token" for each string seperated by a space
-  token = strtok_r (file_name, " ", &save_ptr);
+  char* token = strtok_r (arg_one, " ", &save_ptr);
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
