@@ -21,7 +21,7 @@ static void my_halt (void);
 static void my_exit (struct intr_frame *f);
 static void my_exec (struct intr_frame *f); //file is same as cmd_line
 static void my_wait (struct intr_frame *f);
-static void my_create (struct intr_frame *f, char *filen);
+static void my_create (struct intr_frame *f);
 static void my_remove (struct intr_frame *f);
 static void my_open (struct intr_frame *f);
 static void my_filesize (struct intr_frame *f);
@@ -45,7 +45,6 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
-	char* arg1;
 	if (invalid_ptr (f->esp))
 	{
 		// printf ("@@@@ invalid pointer");
@@ -75,8 +74,7 @@ syscall_handler (struct intr_frame *f)
 			my_wait (f);
 			break;
 		case SYS_CREATE:
-			arg1 = ((char *)(f->esp)+1);
-			my_create (f, arg1);
+			my_create (f);
 			break;
 		case SYS_REMOVE:
 			// printf("### Calling Remove\n");
@@ -295,18 +293,17 @@ opening the new file is a separate operation which would require a open system
 call. 
 */
 static void 
-my_create (struct intr_frame *f, char *filen) {
-	const char *filename = filen;
+my_create (struct intr_frame *f) {
+	const char *filename = (char *)*(int*)(4+(f->esp));
 	unsigned initial_size = *((int *)(8+(f->esp)));
 
+	//printf("filename %s\n", filename);
 
- 	if (invalid_ptr((void *) filename) || invalid_ptr((void *) *(int*)filename) || *filename == NULL || strlen (filename) <= 0) {  
- 		// printf("checking the filename2\n");
+ 	if (invalid_ptr((void *) filename) || *filename == NULL || strlen (filename) <= 0) {  
 		exit_status (-1);
     return;
  	}
 
- 	//printf("i am here2\n");
  	lock_acquire (&filesys_lock);
 	f->eax = filesys_create (filename, initial_size);   //returns boolean
 	lock_release (&filesys_lock);
