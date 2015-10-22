@@ -100,8 +100,29 @@ Katherine, 30 minutes
 Wes, 30 minutes
 Katherine, 30 minutes
 
-10/20 1pm - pm Alex, Katherine, and Wes, x hours
+10/20 1pm - 5pm Alex, Katherine, and Wes, 4 hours
 Alex, 30 minutes
 Katherine, 30 minutes
 Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
 
+10/20 7pm - 12am Alex, Katherine, and Wes, 5 hours
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+
+10/21 7pm - 11pm Alex, Katherine, and Wes, 4 hours
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
