@@ -223,7 +223,9 @@ use appropriate synchronization to ensure this.
 */
 static void 
 my_exec (struct intr_frame *f)  {
-	const char *filename = (char *)(4+(f->esp));
+//	const char *filename = (char *)(4+(f->esp));
+	const char *filename = (char *)*(int*)(4+(f->esp));
+
 
 	//CHECK TO MAKE SURE THE FILEname POINTER IS VALID
 	if (invalid_ptr ((void *)filename)) {
@@ -315,7 +317,8 @@ A file may be removed regardless of whether it is open or closed, and
 removing an open file does not close it. */
 static void 
 my_remove (struct intr_frame *f) {
-	const char *filename = (char *)(4+(f->esp));
+//	const char *filename = (char *)(4+(f->esp));
+	const char *filename = (char *)*(int*)(4+(f->esp));
 
   if (invalid_ptr ((void *)filename)) {
   	exit_status (-1);
@@ -346,7 +349,8 @@ close and they do not share a file position.
 */
 static void 
 my_open (struct intr_frame *f) {
-	const char *filename = (char *)(4+(f->esp));  //what is this???
+//	const char *filename = (char *)(4+(f->esp));  //what is this???
+	const char *filename = (char *)*(int*)(4+(f->esp));
 	struct thread *cur = thread_current ();
 
 	if (invalid_ptr ((void *) filename)) {
