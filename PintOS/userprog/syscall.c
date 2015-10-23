@@ -154,6 +154,12 @@ exit_status (int e_status){
 	thread_exit ();
 }
 
+//function for outside files to call exit_status
+void
+exit_status_ext (int e_status) {
+	exit_status(e_status);
+}
+
 /*
 Terminates Pintos by calling shutdown_power_off() (declared in 
 devices/shutdown.h).

@@ -4,6 +4,8 @@
 #include "userprog/gdt.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/vaddr.h"
+#include "userprog/syscall.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -149,6 +151,18 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
+  //if(!is_user_vaddr (fault_addr) || pagedir_get_page (thread_current ()->pagedir, fault_addr) == NULL) {
+  if(user && !is_user_vaddr(fault_addr)) {
+    exit_status_ext(-1);
+  }
+
+  // if(user || not_present) {
+  //   exit_status_ext(-1);
+  // }
+  if(user) {
+    exit_status_ext(-1);
+  }
+
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
      which fault_addr refers. */
@@ -162,4 +176,3 @@ page_fault (struct intr_frame *f)
 
   kill (f);
 }
-
