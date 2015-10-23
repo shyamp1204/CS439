@@ -1,4 +1,3 @@
-pass tests/userprog/open-empty
 pass tests/userprog/args-none
 pass tests/userprog/args-single
 pass tests/userprog/args-multiple
@@ -47,7 +46,7 @@ pass tests/userprog/exec-multiple
 pass tests/userprog/exec-missing
 pass tests/userprog/exec-bad-ptr
 pass tests/userprog/wait-simple
-FAIL tests/userprog/wait-twice
+pass tests/userprog/wait-twice
 pass tests/userprog/wait-killed
 pass tests/userprog/wait-bad-pid
 pass tests/userprog/multi-recurse
@@ -75,4 +74,4 @@ pass tests/filesys/base/sm-seq-random
 FAIL tests/filesys/base/syn-read
 pass tests/filesys/base/syn-remove
 FAIL tests/filesys/base/syn-write
-13 of 76 tests failed.
+12 of 76 tests failed.

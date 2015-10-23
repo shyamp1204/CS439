@@ -145,7 +145,7 @@ process_wait (tid_t child_tid UNUSED)
     return -1;
   }
                                                                         
-  //wait for child to die
+  //only sema down if if child was found in the child list, otherwise return -1
   if (child_info_block != TID_ERROR)
     sema_down(&(child_info_block->sema_dead));
 
