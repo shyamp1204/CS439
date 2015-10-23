@@ -39,8 +39,6 @@ static struct thread *initial_thread;
 /* Lock used by allocate_tid(). */
 static struct lock tid_lock;
 
-struct thread* thread_from_tid (tid_t child_tid);
-
 /* Stack frame for kernel_thread(). */
 struct kernel_thread_frame 
   {
@@ -608,21 +606,6 @@ allocate_tid (void)
   lock_release (&tid_lock);
 
   return tid;
-}
-
-struct thread *
-thread_from_tid (tid_t child_tid) {
-  struct list_elem* child_elem;
-  //for (child_elem = list_begin (&parent->children_list); child_elem != list_end (&parent->children_list) && !found; child_elem = list_next (child_elem)) {
-  for (child_elem = list_begin (&all_list); child_elem != list_end (&all_list); child_elem = list_next (child_elem)) {
-    //struct thread *child_thread = list_entry (child_elem, struct thread, elem);
-    struct thread *child_thread = list_entry (child_elem, struct thread, allelem);
-
-    if (child_thread->tid == child_tid) {
-      return child_thread;
-    }
-  }
-  return NULL;
 }
 
 

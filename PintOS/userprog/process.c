@@ -69,9 +69,6 @@ process_execute (const char *file_name)
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
 
-  struct thread* child_thread = thread_from_tid (tid);
-  child_thread->exec_file = cur_file;
-
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -86,7 +83,6 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
-
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
@@ -94,20 +90,10 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
 
-  if (success)
-  {
-    struct file * cur_file = filesys_open (file_name);
-    struct thread* cur_thread = thread_current();
-
-    cur_thread->exec_file = cur_file;
-    if (cur_file != NULL)
-      file_deny_write (cur_file);
-  } 
-  else {
-    /* If load failed, quit. */
-    palloc_free_page (file_name);
+  /* If load failed, quit. */
+  palloc_free_page (file_name);
+  if (!success) 
     thread_exit ();
-  }
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -186,10 +172,9 @@ void
 process_exit (void)
 {
   struct thread *cur = thread_current ();
+  file_close (cur->exec_file);
   uint32_t *pd;
 
-  // if(&(cur->my_info->sema_dead) != NULL)
-  //   sema_up(&(cur->my_info->sema_dead));
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -331,8 +316,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done; 
   }
 
-  file_deny_write(file);
-
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
       || memcmp (ehdr.e_ident, "\177ELF\1\1\1", 7)
@@ -421,10 +404,9 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-
-    // struct thread *t = ;
-    thread_current ()->exec_file = file;
+  if (file != NULL) 
     file_deny_write(file);
+  thread_current ()->exec_file = file;
 
   return success;
 }
