@@ -312,10 +312,12 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   file = filesys_open (my_filename);
   if (file == NULL) 
-    {
-      printf ("load: %s: open failed\n", my_filename);
-      goto done; 
-    }
+  {
+    printf ("load: %s: open failed\n", my_filename);
+    goto done; 
+  }
+
+  file_deny_write(file);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -405,7 +407,12 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  if (success) {
+    file_deny_write(file);
+  } 
+  else {
+    file_close (file);
+  }
   return success;
 }
 
