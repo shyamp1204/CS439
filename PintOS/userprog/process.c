@@ -127,11 +127,12 @@ process_wait (tid_t child_tid UNUSED)
   bool found = false;
 
   // Need to lock
-  for (child_elem = list_begin (&parent->children_list); child_elem != list_end (&parent->children_list); child_elem = list_next (child_elem)) {
+  for (child_elem = list_begin (&parent->children_list); child_elem != list_end (&parent->children_list) && !found; child_elem = list_next (child_elem)) {
     child_info_block = list_entry (child_elem, struct child_info, elem);
     if (((int)(child_info_block->tid))  == ((int) child_tid)) {
       found = true;
-      break;
+      //remove from list so it cant be called twice
+      list_remove (&(child_info_block->elem));
     }
   }
 
@@ -145,11 +146,8 @@ process_wait (tid_t child_tid UNUSED)
   }
                                                                         
   //wait for child to die
-  sema_down(&(child_info_block->sema_dead));
-
-
-  //remove from list so it cant be called twice
-  //list_remove (&(child_info_block->elem));
+  if (child_info_block != TID_ERROR)
+    sema_down(&(child_info_block->sema_dead));
 
   return child_info_block->exit_status;
 }
