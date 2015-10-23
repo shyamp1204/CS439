@@ -39,13 +39,15 @@ process_execute (const char *file_name)
   Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
 
-  if (fn_copy == NULL)
+  if (fn_copy == NULL) {
+    palloc_free_page(fn_copy);
     return TID_ERROR;
+  }
   strlcpy (fn_copy, file_name, PGSIZE);
 
   char *arg_one = palloc_get_page(0);
   if (arg_one == NULL) {
-     //palloc_free_page(arg)
+     palloc_free_page(fn_copy);
      return TID_ERROR;
   }
   strlcpy (arg_one, file_name, PGSIZE);
@@ -115,12 +117,11 @@ process_wait (tid_t child_tid UNUSED)
   bool found = false;
 
   // Need to lock
-  for (child_elem = list_begin (&parent->children_list); 
-            child_elem != list_end (&parent->children_list) && !found;
-            child_elem = list_next (child_elem)) {
+  for (child_elem = list_begin (&parent->children_list); child_elem != list_end (&parent->children_list); child_elem = list_next (child_elem)) {
     child_info_block = list_entry (child_elem, struct child_info, elem);
     if (((int)(child_info_block->tid))  == ((int) child_tid)) {
       found = true;
+      break;
     }
   }
 
@@ -138,7 +139,7 @@ process_wait (tid_t child_tid UNUSED)
 
 
   //remove from list so it cant be called twice
-  list_remove (&(child_info_block->elem));
+  //list_remove (&(child_info_block->elem));
 
   return child_info_block->exit_status;
 }
@@ -165,9 +166,8 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
 
-
-
-  sema_up(&(cur->my_info->sema_dead));
+  if(&(cur->my_info->sema_dead) != NULL)
+    sema_up(&(cur->my_info->sema_dead));
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
