@@ -121,7 +121,7 @@ struct thread
     // used for wait and exit
     struct list children_list;              /* List of child processes */
     struct child_info* my_info;
-
+    struct file* exec_file;
   };
 
 /* If false (default), use round-robin scheduler.

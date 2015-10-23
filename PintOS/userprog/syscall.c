@@ -443,12 +443,27 @@ my_write (struct intr_frame *f) {
 		struct thread *cur = thread_current ();
 
 	  if(fd < 2 || fd > 129 || cur->open_files[fd-2] == NULL) {
+	  	exit_status (-1);
 	  	f->eax = -1;			//return -1 if could not write
 	  }
 	  else {
 	  	lock_acquire (&filesys_lock);
 	  	struct file *cur_file = get_file (fd);
-	  	f->eax = file_write (cur_file, buffer, length);  //return bytes written
+
+	  	//printf(";;;; current threads exec %x\n", cur->exec_file);
+	  	//printf(";;;; file to write%x\n", cur_file);
+
+
+	  	if (cur->exec_file != cur_file) {
+	  		//rintf("### allow write to file\n");
+	  		//file_allow_write (cur_file);
+	  		f->eax = file_write (cur_file, buffer, length);  //return bytes written
+	  	}
+	  	else {
+	  		//printf("????? DDDDDeny write to file\n");
+
+	  		file_deny_write(cur_file);
+	  	}
 	  	lock_release (&filesys_lock);
 	  }
 	}

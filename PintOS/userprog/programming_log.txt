@@ -126,3 +126,13 @@ Alex, 30 minutes
 Alex, 30 minutes
 Katherine, 30 minutes
 Wes, 30 minutes
+
+10/22 7pm - 2am Alex, Katherine, and Wes, 7 hours
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+
+10/23 12pm - pm Alex, Katherine, and Wes, x hours
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes

@@ -68,6 +68,10 @@ process_execute (const char *file_name)
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
+
+  struct thread* child_thread = thread_from_tid (tid);
+  child_thread->exec_file = cur_file;
+
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -90,10 +94,20 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
 
-  /* If load failed, quit. */
-  palloc_free_page (file_name);
-  if (!success) 
+  if (success)
+  {
+    struct file * cur_file = filesys_open (file_name);
+    struct thread* cur_thread = thread_current();
+
+    cur_thread->exec_file = cur_file;
+    if (cur_file != NULL)
+      file_deny_write (cur_file);
+  } 
+  else {
+    /* If load failed, quit. */
+    palloc_free_page (file_name);
     thread_exit ();
+  }
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -407,12 +421,11 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  if (success) {
+
+    // struct thread *t = ;
+    thread_current ()->exec_file = file;
     file_deny_write(file);
-  } 
-  else {
-    file_close (file);
-  }
+
   return success;
 }
 

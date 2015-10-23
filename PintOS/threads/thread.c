@@ -39,6 +39,8 @@ static struct thread *initial_thread;
 /* Lock used by allocate_tid(). */
 static struct lock tid_lock;
 
+struct thread* thread_from_tid (tid_t child_tid);
+
 /* Stack frame for kernel_thread(). */
 struct kernel_thread_frame 
   {
@@ -184,8 +186,6 @@ thread_create (const char *name, int priority,
   if (t == NULL)
     return TID_ERROR;
 
- 
-
   /* Initialize thread. */
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
@@ -211,8 +211,6 @@ thread_create (const char *name, int priority,
   sf->ebp = 0;
 
   intr_set_level (old_level);
-
-
 
   struct thread *cur = thread_current ();
   // allocate t_info struct onto the heap so that it is not deleted when t dies
@@ -611,6 +609,22 @@ allocate_tid (void)
 
   return tid;
 }
+
+struct thread *
+thread_from_tid (tid_t child_tid) {
+  struct list_elem* child_elem;
+  //for (child_elem = list_begin (&parent->children_list); child_elem != list_end (&parent->children_list) && !found; child_elem = list_next (child_elem)) {
+  for (child_elem = list_begin (&all_list); child_elem != list_end (&all_list); child_elem = list_next (child_elem)) {
+    //struct thread *child_thread = list_entry (child_elem, struct thread, elem);
+    struct thread *child_thread = list_entry (child_elem, struct thread, allelem);
+
+    if (child_thread->tid == child_tid) {
+      return child_thread;
+    }
+  }
+  return NULL;
+}
+
 
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
