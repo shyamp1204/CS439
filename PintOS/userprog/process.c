@@ -56,6 +56,16 @@ process_execute (const char *file_name)
   // create a "token" for each string seperated by a space
   char* token = strtok_r (arg_one, " ", &save_ptr);
 
+  // attempt to open this file (token) and check if it's valid file or not
+  //open the file
+  struct file *cur_file = filesys_open (token);
+  if(cur_file == NULL) {
+    //INVALID FILE, so free all pages and return error
+    palloc_free_page(fn_copy);
+    palloc_free_page(arg_one);
+    return TID_ERROR;
+  }
+
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
@@ -166,8 +176,8 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
 
-  if(&(cur->my_info->sema_dead) != NULL)
-    sema_up(&(cur->my_info->sema_dead));
+  // if(&(cur->my_info->sema_dead) != NULL)
+  //   sema_up(&(cur->my_info->sema_dead));
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;

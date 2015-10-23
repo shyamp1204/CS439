@@ -217,10 +217,11 @@ my_exec (struct intr_frame *f)  {
 
   lock_acquire (&filesys_lock);
   //adds child to curent threads child list
-  tid_t pid = process_execute (filename);
+  tid_t pid = process_execute ((char*)filename);
   lock_release (&filesys_lock);
  
  	(pid == TID_ERROR) ? (f->eax = -1) : (f->eax = pid);		//return pid_t;
+  //f->eax = pid;
 } 
 
 /*

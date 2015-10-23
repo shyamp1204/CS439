@@ -217,7 +217,7 @@ thread_create (const char *name, int priority,
   struct thread *cur = thread_current ();
   // allocate t_info struct onto the heap so that it is not deleted when t dies
   
-  t->my_info = (struct child_info*)malloc(40);
+  t->my_info = (struct child_info*)malloc(PGSIZE);
   // // initialize the semaphore that the thread is running
   sema_init(&(t->my_info->sema_dead),0);
   t->my_info->tid = tid;
@@ -312,13 +312,16 @@ thread_exit (void)
 
   struct thread* cur = thread_current();
   //when thread exits, sema_up to let other threads know
-  // if(cur->sema_child != NULL) {
-  //   sema_up(cur->sema_child);
-  // }
+   if(&(cur->my_info->sema_dead) != NULL)
+    sema_up(&(cur->my_info->sema_dead));
 
 #ifdef USERPROG
   process_exit ();
 #endif
+
+  // if(cur->sema_child != NULL) {
+  //   sema_up(cur->sema_child);
+  // }
 
   /* Remove thread from all threads list, set our status to dying,
      and schedule another process.  That process will destroy us
@@ -496,7 +499,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
-  list_init (&(t->children_list));
+  list_init (&t->children_list);
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
