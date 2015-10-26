@@ -82,8 +82,8 @@ typedef int tid_t;
 struct child_info
   {
     tid_t tid;                          /* Thread identifier. */
-    int exit_status;
-    struct semaphore* sema_dead;
+    int exit_status;                    /* value to hold childs exit status*/
+    struct semaphore* sema_dead;        /* Semaphore used to know when the child thread dies/exits*/
     struct list_elem elem;              /* List element. */
   };
 
@@ -115,13 +115,10 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 
-    /* used for keeping track of who the parenty of the thread is*/
     struct file *open_files[128];            /* List of open files. */
-
-    // used for wait and exit
     struct list children_list;              /* List of child processes */
-    struct child_info* my_info;
-    struct file* exec_file;
+    struct child_info* my_info;             /* struct to store the child info even after it dies*/
+    struct file* exec_file;                 /* the current file this thread is executing*/
   };
 
 /* If false (default), use round-robin scheduler.

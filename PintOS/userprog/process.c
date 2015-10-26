@@ -39,15 +39,13 @@ process_execute (const char *file_name)
   Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
 
-  if (fn_copy == NULL) {
-    palloc_free_page(fn_copy);
+  if (fn_copy == NULL)
     return TID_ERROR;
-  }
   strlcpy (fn_copy, file_name, PGSIZE);
 
   char *arg_one = palloc_get_page(0);
   if (arg_one == NULL) {
-     palloc_free_page(fn_copy);
+     //palloc_free_page(arg)
      return TID_ERROR;
   }
   strlcpy (arg_one, file_name, PGSIZE);
@@ -56,19 +54,8 @@ process_execute (const char *file_name)
   // create a "token" for each string seperated by a space
   char* token = strtok_r (arg_one, " ", &save_ptr);
 
-  // attempt to open this file (token) and check if it's valid file or not
-  //open the file
-  struct file *cur_file = filesys_open (token);
-  if(cur_file == NULL) {
-    //INVALID FILE, so free all pages and return error
-    palloc_free_page(fn_copy);
-    palloc_free_page(arg_one);
-    return TID_ERROR;
-  }
-
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
-
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -82,6 +69,7 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
+
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -131,8 +119,6 @@ process_wait (tid_t child_tid UNUSED)
     child_info_block = list_entry (child_elem, struct child_info, elem);
     if (((int)(child_info_block->tid))  == ((int) child_tid)) {
       found = true;
-      //remove from list so it cant be called twice
-      list_remove (&(child_info_block->elem));
     }
   }
 
@@ -145,9 +131,12 @@ process_wait (tid_t child_tid UNUSED)
     return -1;
   }
                                                                         
-  //only sema down if if child was found in the child list, otherwise return -1
-  if (child_info_block != TID_ERROR)
-    sema_down(&(child_info_block->sema_dead));
+  //wait for child to die
+  sema_down(&(child_info_block->sema_dead));
+
+
+  //remove from list so it cant be called twice
+  list_remove (&(child_info_block->elem));
 
   return child_info_block->exit_status;
 }
@@ -172,9 +161,11 @@ void
 process_exit (void)
 {
   struct thread *cur = thread_current ();
-  file_close (cur->exec_file);
   uint32_t *pd;
 
+
+
+  sema_up(&(cur->my_info->sema_dead));
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -311,10 +302,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   file = filesys_open (my_filename);
   if (file == NULL) 
-  {
-    printf ("load: %s: open failed\n", my_filename);
-    goto done; 
-  }
+    {
+      printf ("load: %s: open failed\n", my_filename);
+      goto done; 
+    }
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -404,10 +395,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  if (file != NULL) 
-    file_deny_write(file);
-  thread_current ()->exec_file = file;
-
+  file_close (file);
   return success;
 }
 
@@ -553,7 +541,7 @@ setup_stack (void **esp, char *cmd_line)
   //Create a new thread to execute the command. 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
-    {
+  {
       //WES DRIVING HERE
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success) {
@@ -640,7 +628,7 @@ setup_stack (void **esp, char *cmd_line)
         palloc_free_page (kpage);
     } 
   //CALL HEX DUMP TO SEE IF THE STACK IS SET UP CORRECTLY.  FOR TESTING ONLY
-  // hex_dump(*esp, *esp, PHYS_BASE-*esp, 1);
+  hex_dump(*esp, *esp, PHYS_BASE-*esp, 1);
 
   return success;
 }

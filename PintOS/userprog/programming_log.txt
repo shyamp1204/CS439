@@ -148,10 +148,8 @@ Wes, 30 minutes
 Alex, 30 minutes
 Katherine, 30 minutes
 Wes, 30 minutes
-Katherine, 30 minutes
-Wes, 30 minutes
 
-10/23 12pm - pm Alex, Katherine, and Wes, x hours
+10/23 12pm - 5pm Alex, Katherine, and Wes, 5 hours
 Alex, 30 minutes
 Katherine, 30 minutes
 Wes, 30 minutes
@@ -161,3 +159,4 @@ Wes, 30 minutes
 Alex, 30 minutes
 Katherine, 30 minutes
 Wes, 30 minutes
+Alex, 30 minutes
