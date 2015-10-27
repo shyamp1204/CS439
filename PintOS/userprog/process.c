@@ -60,7 +60,7 @@ process_execute (const char *file_name)
   //struct thread* child_thread = get_thread_from_tid(tid);
   //child_thread->parent = thread_current();
 
-  //sema_down(&(child_thread->parent->sema_exec));
+  //sema_down(&(child_thread->sema_exec));
   //sema_down(&(thread_current()->sema_exec));
 
   if (tid == TID_ERROR)
@@ -91,7 +91,7 @@ start_process (void *file_name_)
     thread_exit ();
 
   // The process has started succesffully now
-  //sema_up(&(thread_current()->sema_exec));
+  //sema_up(&(thread_current()->parent->sema_exec));
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
