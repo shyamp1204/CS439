@@ -56,6 +56,13 @@ process_execute (const char *file_name)
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
+
+  //struct thread* child_thread = get_thread_from_tid(tid);
+  //child_thread->parent = thread_current();
+
+  //sema_down(&(child_thread->parent->sema_exec));
+  //sema_down(&(thread_current()->sema_exec));
+
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -83,6 +90,9 @@ start_process (void *file_name_)
   if (!success) 
     thread_exit ();
 
+  // The process has started succesffully now
+  //sema_up(&(thread_current()->sema_exec));
+
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
@@ -108,16 +118,19 @@ process_wait (tid_t child_tid UNUSED)
   //get struct thread of parent
   struct thread* parent = thread_current();
   //get child thread associated 
-  struct list_elem* child_elem;
+  struct list_elem* child_element;
+
+  struct thread* child_thread;
+  //struct semaphore* sema_temp;
   // child info block in the heap
   struct child_info* child_info_block;
   //detect if tid is in child list
   bool found = false;
 
   // Need to lock
-  for (child_elem = list_begin (&parent->children_list); child_elem != list_end (&parent->children_list) && !found; child_elem = list_next (child_elem)) {
-    child_info_block = list_entry (child_elem, struct child_info, elem);
-    if (((int)(child_info_block->tid))  == ((int) child_tid)) {
+  for (child_element = list_begin (&parent->children_list); !found && child_element != list_end (&parent->children_list); child_element = list_next (child_element)) {
+    child_thread = list_entry (child_element, struct thread, child_elem);
+    if (((int)(child_thread->tid))  == ((int) child_tid)) {
       found = true;
     }
   }
@@ -130,14 +143,26 @@ process_wait (tid_t child_tid UNUSED)
   if(!found) {
     return -1;
   }
-                                                                        
-  //wait for child to die
-  sema_down(&(child_info_block->sema_dead));
+  else
+  {
+    // sema_temp = (struct semaphore*) malloc(sizeof(struct semaphore));
+    // sema_init(sema_temp, 0);
+    //child_thread->sema_dead = sema_temp;
+
+    //child_info_block = (struct child_info*) malloc(sizeof(struct child_info));
+
+    child_thread->my_info = child_info_block;
+    //in exit status in syscall.c, child_thread's my_info 
+    //list_remove (&(child_thread->child_elem));
+
+    //wait for child to die
+    sema_down(&(child_thread->sema_dead));
+    list_remove (&(child_thread->child_elem));
+  }
 
 
   //remove from list so it cant be called twice
-  list_remove (&(child_info_block->elem));
-
+  // list_remove(&child_thread->child_elem);
   return child_info_block->exit_status;
 }
 
@@ -163,9 +188,12 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
 
+  //exit status in child_info has been set, so grab it!
+  if(cur->sema_dead != NULL)
+    sema_up(&(cur->sema_dead));
+    //list_remove(&child_thread->child_elem);
+  //}
 
-
-  sema_up(&(cur->my_info->sema_dead));
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -628,7 +656,7 @@ setup_stack (void **esp, char *cmd_line)
         palloc_free_page (kpage);
     } 
   //CALL HEX DUMP TO SEE IF THE STACK IS SET UP CORRECTLY.  FOR TESTING ONLY
-  hex_dump(*esp, *esp, PHYS_BASE-*esp, 1);
+  //hex_dump(*esp, *esp, PHYS_BASE-*esp, 1);
 
   return success;
 }

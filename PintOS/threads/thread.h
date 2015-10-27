@@ -83,8 +83,6 @@ struct child_info
   {
     tid_t tid;                          /* Thread identifier. */
     int exit_status;                    /* value to hold childs exit status*/
-    struct semaphore* sema_dead;        /* Semaphore used to know when the child thread dies/exits*/
-    struct list_elem elem;              /* List element. */
   };
 
 
@@ -115,8 +113,15 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 
-    struct file *open_files[128];            /* List of open files. */
+    struct file *open_files[128];           /* List of open files. */
     struct list children_list;              /* List of child processes */
+
+    struct semaphore* sema_dead;            /* Semaphore used to know when the child thread dies/exits*/
+    struct list_elem child_elem;            /* List element. */
+
+    struct thread* parent;
+    struct semaphore* sema_exec;
+
     struct child_info* my_info;             /* struct to store the child info even after it dies*/
     struct file* exec_file;                 /* the current file this thread is executing*/
   };
