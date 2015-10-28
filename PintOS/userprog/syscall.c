@@ -50,10 +50,11 @@ syscall_handler (struct intr_frame *f)
 		exit_status (-1);
 		return;
 	}
-      
-	int syscall_num = *((int *)f->esp);
-	//printf("### SYSCALL: %d  ", syscall_num);
 
+	// get the syscall type from the stack      
+	int syscall_num = *((int *)f->esp);
+
+	// Based on the enumerated_type of the arg call the respective syscall func
 	switch (syscall_num)
 	{
 		case SYS_HALT:
@@ -96,7 +97,6 @@ syscall_handler (struct intr_frame *f)
 			my_close (*((int *)(4+(f->esp))));
 			break;
 		default :
-			// printf ("Invalid system call! #%d\n", syscall_num);
 			exit_status (-1);  
 			break;
 	    }
@@ -113,10 +113,13 @@ If you encounter an invalid user pointer afterward, you must still be sure
 to release the lock or free the page of memory.
 
 FUNCTION TO HANDLE INVALID MEMORY ADDRESS POINTERS FROM USER CALLS
+Wes, Alex and KK driving
 */
 static int 
 invalid_ptr (void *ptr) {
-	if (ptr == NULL || !is_user_vaddr (ptr) || pagedir_get_page (thread_current ()->pagedir, ptr) == NULL) {
+	if (ptr == NULL || !is_user_vaddr (ptr) 
+		|| pagedir_get_page (thread_current ()->pagedir, ptr) == NULL) 
+	{
 		return 1;
 	}
 	return 0;
@@ -124,6 +127,7 @@ invalid_ptr (void *ptr) {
 
 /* 
 Exits from the thread, printing exit information.
+Alex, Wes And Katherine Drove
 */
 static void
 exit_status (int e_status){
@@ -144,17 +148,13 @@ exit_status (int e_status){
 		}
 	}
 
-	//EXIT ALL CHILDREN?  no, orphan them
-	//RELEASE ALL LOCKS WE ARE HOLDING?
-	//FREE PAGE IN MEMORY
-	//SEMA UP IF SOMETHING IS WAITING ON IT?
-
 	//add the status to the tid
 	cur->my_info->exit_status = e_status;
 	thread_exit ();
 }
 
 //function for outside files to call exit_status
+// Alex Drove
 void
 exit_status_ext (int e_status) {
 	exit_status(e_status);
@@ -165,6 +165,7 @@ Terminates Pintos by calling shutdown_power_off() (declared in
 devices/shutdown.h).
 This should be seldom used, because you lose some information about possible 
 deadlock situations, etc. 
+Alex and Wes Drove
 */
 static void 
 my_halt (void) {
@@ -184,6 +185,7 @@ Terminates the current user program, returning status to the kernel. If
 the process's parent waits for it (see below), this is the status that will 
 be returned. Conventionally, a status of 0 indicates success and nonzero values
 indicate errors.
+Alex Drove
 */
 static void 
 my_exit (struct intr_frame *f) {	
@@ -210,6 +212,7 @@ for any reason.
 Thus, the parent process cannot return from the exec until it
 knows whether the child process successfully loaded its executable. You must 
 use appropriate synchronization to ensure this.
+Alex and Katherine Drove
 */
 static void 
 my_exec (struct intr_frame *f)  {
@@ -224,6 +227,11 @@ my_exec (struct intr_frame *f)  {
   lock_acquire (&filesys_lock);
   //adds child to curent threads child list
   tid_t pid = process_execute ((char*)filename);
+  if(pid != TID_ERROR)
+  	// printf("in myexec about to wat for %s's child\n",thread_current()->name);
+  	sema_down(&(thread_current()->exec_sema));
+
+  	
   lock_release (&filesys_lock);
  
  	(pid == TID_ERROR) ? (f->eax = -1) : (f->eax = pid);		//return pid_t;
@@ -268,6 +276,7 @@ then implement the wait system call in terms of process_wait().
 
 Implementing this system call requires considerably more work than any of the 
 rest.
+Alex Drove
  */
 static void 
 my_wait (struct intr_frame *f)  {
@@ -280,13 +289,16 @@ Creates a new file called file initially initial_size bytes in size. Returns
 true if successful, false otherwise. Creating a new file does not open it: 
 opening the new file is a separate operation which would require a open system 
 call. 
+Alex and Wes Drove
 */
 static void 
 my_create (struct intr_frame *f) {
 	const char *filename = (char *)*(int*)(4+(f->esp));
 	unsigned initial_size = *((int *)(8+(f->esp)));
 
- 	if (invalid_ptr((void *) filename) || *filename == NULL || strlen (filename) <= 0) {  
+ 	if (invalid_ptr((void *) filename) || *filename == NULL 
+ 			|| strlen (filename) <= 0)
+ 	{  
 		exit_status (-1);
     return;
  	}
@@ -299,7 +311,8 @@ my_create (struct intr_frame *f) {
 /*
 Deletes the file called file. Returns true if successful, false otherwise. 
 A file may be removed regardless of whether it is open or closed, and 
-removing an open file does not close it. */
+removing an open file does not close it.
+Alex and Katherine Drove */
 static void 
 my_remove (struct intr_frame *f) {
 	const char *filename = (char *)*(int*)(4+(f->esp));
@@ -330,7 +343,7 @@ When a single file is opened more than once, whether by a single process or
 different processes, each open returns a new file descriptor. Different file 
 descriptors for a single file are closed independently in separate calls to 
 close and they do not share a file position.
-*/
+Alexc Drove*/
 static void 
 my_open (struct intr_frame *f) {
 	const char *filename = (char *)*(int*)(4+(f->esp));
@@ -359,7 +372,7 @@ my_open (struct intr_frame *f) {
 
 /*
 Returns the size, in bytes, of the file open as fd.
-*/
+Alex Drove*/
 static void 
 my_filesize (struct intr_frame *f) {
 	int fd = *((int *)(4+(f->esp)));
@@ -377,7 +390,7 @@ Reads size bytes from the file open as fd into buffer. Returns the number of
 bytes actually read (0 at end of file), or -1 if the file could not be read
 (due to a condition other than end of file). fd 0 reads from the keyboard using
 input_getc().
-*/
+Alex and Katherine Drove*/
 static void 
 my_read (struct intr_frame *f) {
 	int fd = *((int *)(4+(f->esp)));
@@ -427,7 +440,7 @@ of buffer in one call to putbuf(), at least as long as size is not bigger than a
 few hundred bytes. (It is reasonable to break up larger buffers.) Otherwise, 
 lines of text output by different processes may end up interleaved on the 
 console, confusing both human readers and our grading scripts.
-*/
+Alex and Wes Drove*/
 static void 
 my_write (struct intr_frame *f) {
 	int fd = *((int *)(4+(f->esp)));
@@ -456,9 +469,8 @@ my_write (struct intr_frame *f) {
 	  	lock_acquire (&filesys_lock);
 	  	struct file *cur_file = get_file (fd);
 
-	  	if (cur->exec_file != cur_file) {
+	  	if (cur->exec_file != cur_file)
 				f->eax = file_write (cur_file, buffer, length);  //return bytes written
-	  	}
 	  	lock_release (&filesys_lock);
 	  }
 	}
@@ -475,7 +487,7 @@ unwritten gap with zeros. (However, in Pintos, files will have a fixed length
 until project 4 is complete, so writes past end of file will return an error.) 
 These semantics are implemented in the file system and do not require any 
 special effort in system call implementation.
-*/
+Alex Drove*/
 static void 
 my_seek (struct intr_frame *f) {
 	int fd = *((int *)(4+(f->esp))); 
@@ -496,7 +508,7 @@ my_seek (struct intr_frame *f) {
 /*
 Returns the position of the next byte to be read or written in open file fd,
 expressed in bytes from the beginning of the file. 
-*/
+Alex Drove*/
 static void 
 my_tell (struct intr_frame *f) {
 	int fd = *((int *)(4+(f->esp)));
@@ -516,7 +528,7 @@ my_tell (struct intr_frame *f) {
 /* 
 Closes file descriptor fd. Exiting or terminating a process implicitly closes 
 all its open file descriptors, as if by calling this function for each one.
-*/
+Alex Drove*/
 static void 
 my_close (int fd) {  
   //GIVEN THE FD, CLOSE THE FILE
@@ -533,7 +545,7 @@ my_close (int fd) {
 /*
 Helper method: Given param file descriptor,
 function returns the appropriate file
-*/
+Alex Drove*/
 static struct file *
 get_file (int fd)
 {
@@ -545,6 +557,7 @@ get_file (int fd)
   return cur->open_files[fd-2];
 }
 
+//Return the next file discriptor from a threads open thread list
 static int
 next_fd (struct thread *cur) {
 	int found = 0;

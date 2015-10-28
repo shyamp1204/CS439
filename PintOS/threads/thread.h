@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "synch.h"
 
 
 /* States in a thread's life cycle. */
@@ -78,11 +79,14 @@ typedef int tid_t;
    THREAD_MAGIC.)
 */
 
-
+/* struct to store the child info even after it dies lets both child and parent 
+interact with the struct and it is on heap not childs stack*/
 struct child_info
   {
     tid_t tid;                          /* Thread identifier. */
-    int exit_status;                    /* value to hold childs exit status*/
+    int exit_status;                    /* The exit status of the thread */
+    struct semaphore sema_dead;        /* Used to signal thread has died */
+    struct list_elem elem;              /* List element. */
   };
 
 
@@ -104,6 +108,10 @@ struct thread
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
+    
+    struct thread* my_parent;
+    struct semaphore exec_sema;
+    bool bad_thread;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -113,17 +121,14 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 
-    struct file *open_files[128];           /* List of open files. */
+    /* used for keeping track of who the parenty of the thread is*/
     struct list children_list;              /* List of child processes */
-
-    struct semaphore* sema_dead;            /* Semaphore used to know when the child thread dies/exits*/
-    struct list_elem child_elem;            /* List element. */
-
-    struct thread* parent;
-    struct semaphore* sema_exec;
-
-    struct child_info* my_info;             /* struct to store the child info even after it dies*/
-    struct file* exec_file;                 /* the current file this thread is executing*/
+    struct child_info* my_info;             /* struct to store the child info 
+                                              even after it dies*/
+    struct file* exec_file;                 /* the current file this thread is 
+                                              executing*/
+    struct file *open_files[128];           /* List of open files. */
+    
   };
 
 /* If false (default), use round-robin scheduler.

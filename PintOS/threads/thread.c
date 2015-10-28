@@ -101,6 +101,8 @@ thread_init (void)
   initial_thread->status = THREAD_RUNNING;
   
   initial_thread->tid = allocate_tid ();
+  sema_init(&(initial_thread->exec_sema),0);
+
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -165,7 +167,7 @@ thread_print_stats (void)
    The code provided sets the new thread's `priority' member to
    PRIORITY, but no actual priority scheduling is implemented.
    Priority scheduling is the goal of Problem 1-3.
-   Wes Drove */
+   Wes Katherine and Alex Drove */
 tid_t
 thread_create (const char *name, int priority,
                thread_func *function, void *aux) 
@@ -210,19 +212,21 @@ thread_create (const char *name, int priority,
 
   intr_set_level (old_level);
 
+
+  sema_init(&(t->exec_sema),0);
+
   struct thread *cur = thread_current ();
-  // allocate t_info struct onto the heap so that it is not deleted when t dies
-  
+  t->my_parent = cur;
+
+  // allocate t_info struct onto the heap so that it is not deleted when it dies
   t->my_info = (struct child_info*)malloc(PGSIZE);
   // // initialize the semaphore that the thread is running
-  // sema_init(&t->sema_dead, 0);
-  // sema_init(&t->sema_exec, 0);
+  sema_init(&(t->my_info->sema_dead),0);
   t->my_info->tid = tid;
   t->my_info->exit_status= -1;
-
-  //t->parent = thread_current ();
   // put the child_info struct of t on the parents children list
-  list_push_back (&cur->children_list, &(t->child_elem));
+  list_push_back (&cur->children_list, &(t->my_info->elem));
+
 
   /* Add to run queue. */
   thread_unblock (t);
@@ -303,26 +307,24 @@ thread_tid (void)
 }
 
 /* Deschedules the current thread and destroys it.  Never
-   returns to the caller. */
+   returns to the caller. 
+   Alex, Katherine and Wes drove*/
 void
 thread_exit (void) 
 {
   ASSERT (!intr_context ());
 
   struct thread* cur = thread_current();
-  //when thread exits, sema_up to let other threads know
-   // if(&(cur->my_info->sema_dead) != NULL)
-   //  sema_up(&(cur->my_info->sema_dead));
+  
+  //when thread exits, sema_up to let parent thread know it has died
+  if(&(cur->my_info->sema_dead) != NULL)
+    sema_up(&(cur->my_info->sema_dead));
 
 #ifdef USERPROG
   process_exit ();
 #endif
 
-  // if(cur->sema_dead != NULL) {
-  //   sema_up(cur->sema_dead);
-  // }
-
-  /* Remove thread from all threads list, set our status to dying,
+  /* Remove thread from all threads list, set our status to dcrying,
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
   intr_disable ();
@@ -499,10 +501,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
   list_init (&t->children_list);
-  // t->parent = thread_current ();
-  sema_init(&t->sema_dead,0);
-  sema_init(&t->sema_exec, 0);
-  //t->sema_dead = NULL;
+
+
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -613,26 +613,6 @@ allocate_tid (void)
   lock_release (&tid_lock);
 
   return tid;
-}
-
-struct thread*
-get_thread_from_tid (tid_t tid) {
-  //get struct thread of parent
-  struct thread* parent_thread = thread_current();
-  //get child thread associated 
-  struct list_elem* child_element;
-
-  struct thread* child_thread;
-  //struct semaphore* sema_temp;
-
-  for (child_element = list_begin (&all_list); child_element != list_end (&all_list); child_element = list_next (child_element)) {
-    child_thread = list_entry (child_element, struct thread, elem);
-    if ((child_thread->tid)  == tid) {
-      child_thread->parent = parent_thread;
-      return child_thread;
-    }
-  }
-  return NULL;
 }
 
 

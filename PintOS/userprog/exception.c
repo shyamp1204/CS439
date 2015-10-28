@@ -136,7 +136,8 @@ page_fault (struct intr_frame *f)
      that caused the fault (that's f->eip).
      See [IA32-v2a] "MOV--Move to/from Control Registers" and
      [IA32-v3a] 5.15 "Interrupt 14--Page Fault Exception
-     (#PF)". */
+     (#PF)".
+     Katherine Drove */
   asm ("movl %%cr2, %0" : "=r" (fault_addr));
 
   /* Turn interrupts back on (they were only off so that we could
@@ -151,17 +152,14 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
-  //if(!is_user_vaddr (fault_addr) || pagedir_get_page (thread_current ()->pagedir, fault_addr) == NULL) {
-  if(user && !is_user_vaddr(fault_addr)) {
+  // check if user address is valid
+  if(user || !is_user_vaddr(fault_addr)) {
     exit_status_ext(-1);
   }
 
-  // if(user || not_present) {
+  // if(user) {
   //   exit_status_ext(-1);
   // }
-  if(user) {
-    exit_status_ext(-1);
-  }
 
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
