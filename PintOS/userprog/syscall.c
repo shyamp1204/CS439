@@ -99,7 +99,7 @@ syscall_handler (struct intr_frame *f)
 		default :
 			exit_status (-1);  
 			break;
-	    }
+	}
 }
 
 /*
@@ -116,12 +116,10 @@ FUNCTION TO HANDLE INVALID MEMORY ADDRESS POINTERS FROM USER CALLS
 Wes, Alex and KK driving
 */
 static int 
-invalid_ptr (void *ptr) {
-	if (ptr == NULL || !is_user_vaddr (ptr) 
-		|| pagedir_get_page (thread_current ()->pagedir, ptr) == NULL) 
-	{
+invalid_ptr (void *ptr) 
+{
+	if (ptr == NULL || !is_user_vaddr (ptr) || pagedir_get_page (thread_current ()->pagedir, ptr) == NULL) 
 		return 1;
-	}
 	return 0;
 }
 
@@ -130,7 +128,8 @@ Exits from the thread, printing exit information.
 Alex, Wes And Katherine Drove
 */
 static void
-exit_status (int e_status){
+exit_status (int e_status)
+{
 	struct thread *cur = thread_current ();
 
 	//if user process terminates, print process' name and exit code
@@ -138,26 +137,18 @@ exit_status (int e_status){
 
 	// close all open files
 	int numof_file;
-	for (numof_file = 2; numof_file < 129; numof_file++) {
+	for (numof_file = 2; numof_file < 129; numof_file++) 
+	{
 		//GET NEXT OPEN FILE and close it
-
 		struct file *temp_file = cur->open_files[numof_file];
 		if (temp_file != NULL) {
 			my_close (numof_file);  		//close the file
-			//free (temp_file);
 		}
 	}
 
 	//add the status to the tid
 	cur->my_info->exit_status = e_status;
 	thread_exit ();
-}
-
-//function for outside files to call exit_status
-// Alex Drove
-void
-exit_status_ext (int e_status) {
-	exit_status(e_status);
 }
 
 /*
@@ -168,7 +159,8 @@ deadlock situations, etc.
 Alex and Wes Drove
 */
 static void 
-my_halt (void) {
+my_halt (void) 
+{
 	shutdown_power_off();
 }
 
@@ -188,7 +180,8 @@ indicate errors.
 Alex Drove
 */
 static void 
-my_exit (struct intr_frame *f) {	
+my_exit (struct intr_frame *f) 
+{	
 	int e_status = *((int *)(4+f->esp));
 
 	if (e_status < -1) {
@@ -215,11 +208,13 @@ use appropriate synchronization to ensure this.
 Alex and Katherine Drove
 */
 static void 
-my_exec (struct intr_frame *f)  {
+my_exec (struct intr_frame *f)  
+{
 	const char *filename = (char *)*(int*)(4+(f->esp));
 
 	//CHECK TO MAKE SURE THE FILEname POINTER IS VALID
-	if (invalid_ptr ((void *)filename)) {
+	if (invalid_ptr ((void *)filename)) 
+	{
   	exit_status (-1);
   	return;
  	}
@@ -227,15 +222,12 @@ my_exec (struct intr_frame *f)  {
   lock_acquire (&filesys_lock);
   //adds child to curent threads child list
   tid_t pid = process_execute ((char*)filename);
-  if(pid != TID_ERROR)
-  	// printf("in myexec about to wat for %s's child\n",thread_current()->name);
-  	sema_down(&(thread_current()->exec_sema));
 
-  	
+  if(pid != TID_ERROR) 
+  	sema_down (&(thread_current()->exec_sema));
+
   lock_release (&filesys_lock);
- 
  	(pid == TID_ERROR) ? (f->eax = -1) : (f->eax = pid);		//return pid_t;
-  //f->eax = pid;
 } 
 
 /*
@@ -277,9 +269,10 @@ then implement the wait system call in terms of process_wait().
 Implementing this system call requires considerably more work than any of the 
 rest.
 Alex Drove
- */
+*/
 static void 
-my_wait (struct intr_frame *f)  {
+my_wait (struct intr_frame *f)  
+{
   pid_t pid = *((int *)(4+(f->esp)));
   f->eax = process_wait (pid);
 }
@@ -292,12 +285,12 @@ call.
 Alex and Wes Drove
 */
 static void 
-my_create (struct intr_frame *f) {
+my_create (struct intr_frame *f) 
+{
 	const char *filename = (char *)*(int*)(4+(f->esp));
 	unsigned initial_size = *((int *)(8+(f->esp)));
 
- 	if (invalid_ptr((void *) filename) || *filename == NULL 
- 			|| strlen (filename) <= 0)
+ 	if (invalid_ptr((void *) filename) || *filename == NULL || strlen (filename) <= 0)
  	{  
 		exit_status (-1);
     return;
@@ -312,12 +305,15 @@ my_create (struct intr_frame *f) {
 Deletes the file called file. Returns true if successful, false otherwise. 
 A file may be removed regardless of whether it is open or closed, and 
 removing an open file does not close it.
-Alex and Katherine Drove */
+Alex and Katherine Drove 
+*/
 static void 
-my_remove (struct intr_frame *f) {
+my_remove (struct intr_frame *f) 
+{
 	const char *filename = (char *)*(int*)(4+(f->esp));
 
-  if (invalid_ptr ((void *)filename)) {
+  if (invalid_ptr ((void *)filename)) 
+  {
   	exit_status (-1);
   	return;
   }
@@ -343,29 +339,33 @@ When a single file is opened more than once, whether by a single process or
 different processes, each open returns a new file descriptor. Different file 
 descriptors for a single file are closed independently in separate calls to 
 close and they do not share a file position.
-Alexc Drove*/
+Alexc Drove
+*/
 static void 
-my_open (struct intr_frame *f) {
+my_open (struct intr_frame *f) 
+{
 	const char *filename = (char *)*(int*)(4+(f->esp));
 	struct thread *cur = thread_current ();
 
-	if (invalid_ptr ((void *) filename)) {
+	if (invalid_ptr ((void *) filename)) 
+	{
   		exit_status (-1);
   		return;
-  	}
+  }
 
 	lock_acquire (&filesys_lock);
-	//open the file
 	struct file *cur_file = filesys_open (filename);
 	lock_release (&filesys_lock);
 
-	if (cur_file != NULL) {
+	if (cur_file != NULL) 
+	{
 		//get the next open file descriptor available, and put the file in it
 		int fd = next_fd (cur);
 		cur->open_files[fd-2] = cur_file;
 		f->eax = fd;		//return int;
 	}
-	else {
+	else 
+	{
 		f->eax = -1;  //couldn't open the file, return -1
 	}
 }
@@ -382,7 +382,7 @@ my_filesize (struct intr_frame *f) {
 	off_t size = file_length (cur_file);
 	lock_release (&filesys_lock);
 
-	f->eax = size;    //return value in eax
+	f->eax = size;		//size = length of the file
 }
 
 /* 
@@ -395,31 +395,37 @@ static void
 my_read (struct intr_frame *f) {
 	int fd = *((int *)(4+(f->esp)));
 	void *buffer = (void *)*(int*)(8+(f->esp)); 
-	int length = *((int *)(12+(f->esp)));			//unsigned?
+	int length = *((int *)(12+(f->esp)));
 
-	if (invalid_ptr (buffer)) {
+	if (invalid_ptr (buffer)) 
+	{
 	 	exit_status (-1);
 	 	return;
 	 }
 
-	if (fd == STDIN_FILENO) {
+	if (fd == STDIN_FILENO) 
+	{
 		lock_acquire (&filesys_lock);
 		char *buffer = (char *) buffer;
 		int i;
-		for (i = 0; i < length; i++) {
+		for (i = 0; i < length; i++) 
+		{
 			buffer[i] = input_getc();		//read each char from keyboard
 		}
 		lock_release (&filesys_lock);
 		f->eax = length;			//return bytes read
 	}
-	else {
+	else 
+	{
 		struct thread *cur = thread_current ();
 		struct file *cur_file = get_file (fd);
 
-	  if(fd < 2 || fd > 129 || cur->open_files[fd-2] == NULL) {
+	  if(fd < 2 || fd > 129 || cur->open_files[fd-2] == NULL) 
+	  {
 	  	f->eax = -1;
 	  }
-	  else {
+	  else 
+	  {
 	  	lock_acquire (&filesys_lock);
 	  	f->eax = file_read (cur_file, buffer, length);  //return bytes read
 	  	lock_release (&filesys_lock);
@@ -442,30 +448,36 @@ lines of text output by different processes may end up interleaved on the
 console, confusing both human readers and our grading scripts.
 Alex and Wes Drove*/
 static void 
-my_write (struct intr_frame *f) {
+my_write (struct intr_frame *f) 
+{
 	int fd = *((int *)(4+(f->esp)));
 	void *buffer = (void *)*(int*)(8+(f->esp));
 	unsigned length = *((int *)(12+(f->esp)));
 
-	if (invalid_ptr (buffer)) {
+	if (invalid_ptr (buffer)) 
+	{
   	exit_status (-1);
   	return;
   }
 
-	if (fd == STDOUT_FILENO) {
+	if (fd == STDOUT_FILENO) 
+	{
 		lock_acquire (&filesys_lock);
 		putbuf ((char *)buffer, length);
 		lock_release (&filesys_lock);
 		f->eax = length;		//return bytes written to console
   }
-  else {
+  else 
+  {
 		struct thread *cur = thread_current ();
 
-	  if(fd < 2 || fd > 129 || cur->open_files[fd-2] == NULL) {
+	  if(fd < 2 || fd > 129 || cur->open_files[fd-2] == NULL) 
+	  {
 	  	exit_status (-1);
 	  	f->eax = -1;			//return -1 if could not write
 	  }
-	  else {
+	  else 
+	  {
 	  	lock_acquire (&filesys_lock);
 	  	struct file *cur_file = get_file (fd);
 
@@ -489,7 +501,8 @@ These semantics are implemented in the file system and do not require any
 special effort in system call implementation.
 Alex Drove*/
 static void 
-my_seek (struct intr_frame *f) {
+my_seek (struct intr_frame *f) 
+{
 	int fd = *((int *)(4+(f->esp))); 
 	int position = *((int *)(8+(f->esp)));  //unsigned
 
@@ -510,17 +523,20 @@ Returns the position of the next byte to be read or written in open file fd,
 expressed in bytes from the beginning of the file. 
 Alex Drove*/
 static void 
-my_tell (struct intr_frame *f) {
+my_tell (struct intr_frame *f) 
+{
 	int fd = *((int *)(4+(f->esp)));
 	struct thread *cur = thread_current ();
 
-  if (fd < 2 || fd > 129 || cur->open_files[fd-2] == NULL) {
+  if (fd < 2 || fd > 129 || cur->open_files[fd-2] == NULL)
+  {
   	f->eax = -1;			//return -1 if could not read
   }
-  else {
+  else 
+  {
 		struct file *cur_file = get_file(fd);
 		lock_acquire (&filesys_lock);
-		f->eax = file_tell (cur_file);				// return position (unsigned)
+		f->eax = file_tell (cur_file);		// return position (unsigned)
 		lock_release (&filesys_lock);
 	}
 }
@@ -530,12 +546,13 @@ Closes file descriptor fd. Exiting or terminating a process implicitly closes
 all its open file descriptors, as if by calling this function for each one.
 Alex Drove*/
 static void 
-my_close (int fd) {  
+my_close (int fd) 
+{  
   //GIVEN THE FD, CLOSE THE FILE
 	struct file *cur_file = get_file (fd);
 
 	struct thread *cur = thread_current ();
-	cur->open_files[fd-2] = NULL;  //IS THIS CORRECT?
+	cur->open_files[fd-2] = NULL;
 	
 	lock_acquire (&filesys_lock);
 	file_close (cur_file);
@@ -551,7 +568,8 @@ get_file (int fd)
 {
   struct thread *cur = thread_current ();
 
-  if(fd < 2 || fd > (129) || cur->open_files[fd-2] == NULL) {
+  if(fd < 2 || fd > (129) || cur->open_files[fd-2] == NULL) 
+  {
   	exit_status (-1);
   }
   return cur->open_files[fd-2];
@@ -559,11 +577,14 @@ get_file (int fd)
 
 //Return the next file discriptor from a threads open thread list
 static int
-next_fd (struct thread *cur) {
+next_fd (struct thread *cur) 
+{
 	int found = 0;
 	int index = 0;
-	while (!found) {
-		if (cur->open_files[index] == NULL) {
+	while (!found) 
+	{
+		if (cur->open_files[index] == NULL) 
+		{
 			found = 1;
 			return index + 2;
 		}
@@ -571,4 +592,10 @@ next_fd (struct thread *cur) {
 	}
   exit_status (-1);
 	return -1;
+}
+
+//function for outside files to call exit_status
+void
+exit_status_ext (int e_status) {
+	exit_status(e_status);
 }

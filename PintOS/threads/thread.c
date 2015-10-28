@@ -101,8 +101,7 @@ thread_init (void)
   initial_thread->status = THREAD_RUNNING;
   
   initial_thread->tid = allocate_tid ();
-  sema_init(&(initial_thread->exec_sema),0);
-
+  sema_init (&(initial_thread->exec_sema),0);  //for the main thread
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -209,24 +208,18 @@ thread_create (const char *name, int priority,
   sf = alloc_frame (t, sizeof *sf);
   sf->eip = switch_entry;
   sf->ebp = 0;
-
   intr_set_level (old_level);
-
-
-  sema_init(&(t->exec_sema),0);
 
   struct thread *cur = thread_current ();
   t->my_parent = cur;
-
   // allocate t_info struct onto the heap so that it is not deleted when it dies
   t->my_info = (struct child_info*)malloc(PGSIZE);
-  // // initialize the semaphore that the thread is running
-  sema_init(&(t->my_info->sema_dead),0);
+  sema_init (&(t->my_info->sema_dead),0);
+  sema_init (&(t->exec_sema),0);
   t->my_info->tid = tid;
   t->my_info->exit_status= -1;
   // put the child_info struct of t on the parents children list
   list_push_back (&cur->children_list, &(t->my_info->elem));
-
 
   /* Add to run queue. */
   thread_unblock (t);
@@ -315,10 +308,6 @@ thread_exit (void)
   ASSERT (!intr_context ());
 
   struct thread* cur = thread_current();
-  
-  //when thread exits, sema_up to let parent thread know it has died
-  if(&(cur->my_info->sema_dead) != NULL)
-    sema_up(&(cur->my_info->sema_dead));
 
 #ifdef USERPROG
   process_exit ();

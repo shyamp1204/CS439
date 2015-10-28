@@ -19,7 +19,6 @@
 #include "threads/vaddr.h"
 #include "threads/synch.h"
 
-
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -69,12 +68,8 @@ process_execute (const char *file_name)
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
 
-
-  // printf("name:%s %s   sema:%d  \n",cur->name,NULL, cur->exec_sema.value);
-
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
- 
   return tid;
 }
 
@@ -99,9 +94,8 @@ start_process (void *file_name_)
   if (!success) 
     thread_exit ();
 
-
   //thread is alive and running
-  sema_up(&(thread_current()->my_parent->exec_sema));
+  sema_up (&(thread_current()->my_parent->exec_sema));
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -113,28 +107,25 @@ start_process (void *file_name_)
   NOT_REACHED ();
 }
 
-/* Waits for thread TID to die and returns its exit status.  If
-   it was terminated by the kernel (i.e. killed due to an
-   exception), returns -1.  If TID is invalid or if it was not a
-   child of the calling process, or if process_wait() has already
-   been successfully called for the given TID, returns -1
-   immediately, without waiting.
+/*
+ Waits for thread TID to die and returns its exit status.  If
+ it was terminated by the kernel (i.e. killed due to an
+ exception), returns -1.  If TID is invalid or if it was not a
+ child of the calling process, or if process_wait() has already
+ been successfully called for the given TID, returns -1
+ immediately, without waiting.
 
-   This function will be implemented in problem 2-2.  For now, it
-   does nothing. */
+ This function will be implemented in problem 2-2.  For now, it
+ does nothing. 
+*/
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  //get struct thread of parent
   struct thread* parent = thread_current();
-  //get child thread associated 
   struct list_elem* child_elem;
-  // child info block in the heap
   struct child_info* child_info_block;
-  //detect if tid is in child list
   bool found = false;
 
-  // Need to lock
   for (child_elem = list_begin (&parent->children_list);
       child_elem != list_end (&parent->children_list) && !found;
       child_elem = list_next (child_elem)) 
@@ -144,23 +135,14 @@ process_wait (tid_t child_tid UNUSED)
       found = true;
       //remove from list so it cant be called twice
       list_remove (&(child_info_block->elem));
+      sema_down(&(child_info_block->sema_dead));
     }
   }
 
-  //if out of the for loop, then have found the child with child_tid (check if 
-  // valid) or have reached end of parent's children_list
-
-  //check if have reached end of parent's children_list, 
-  //so child_tid is not one of this parent's children
-  if(!found) {
+  if(!found)
     return -1;
-  }
-                                                                        
-  //only sema down if if child was found in the child list, otherwise return -1
-  if (child_info_block != TID_ERROR)
-    sema_down(&(child_info_block->sema_dead));
-
-  return child_info_block->exit_status;
+  else                                                                      
+    return child_info_block->exit_status;
 }
 
 
@@ -177,12 +159,16 @@ when a process fails to load.
 Aside from this, don't print any other messages that Pintos as provided doesn't 
 already print. You may find extra messages useful during debugging, but they
 will confuse the grading scripts and thus lower your score.
-
 */
 void
 process_exit (void)
 {
   struct thread *cur = thread_current ();
+
+  //when thread exits, sema_up to let parent thread know it has died
+  if(&(cur->my_info->sema_dead) != NULL)
+    sema_up(&(cur->my_info->sema_dead));
+
   file_close (cur->exec_file);
   uint32_t *pd;
 
@@ -416,8 +402,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
  done:
   /* We arrive here whether the load is successful or not. */
   if (file != NULL) 
-    //because the executable file loaded deny the ability to write to it
-    file_deny_write(file);
+    file_deny_write(file);    //the executable file loaded deny the ability to write to it
   thread_current ()->exec_file = file;
 
   return success;

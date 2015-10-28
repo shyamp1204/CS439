@@ -89,7 +89,6 @@ struct child_info
     struct list_elem elem;              /* List element. */
   };
 
-
 /* The `elem' member has a dual purpose.  It can be an element in
    the run queue (thread.c), or it can be an element in a
    semaphore wait list (synch.c).  It can be used these two ways
@@ -121,14 +120,10 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 
-    /* used for keeping track of who the parenty of the thread is*/
     struct list children_list;              /* List of child processes */
-    struct child_info* my_info;             /* struct to store the child info 
-                                              even after it dies*/
-    struct file* exec_file;                 /* the current file this thread is 
-                                              executing*/
+    struct child_info* my_info;   /* struct to store the child info even after it dies*/
+    struct file* exec_file;       /* the current file this thread is executing*/
     struct file *open_files[128];           /* List of open files. */
-    
   };
 
 /* If false (default), use round-robin scheduler.
