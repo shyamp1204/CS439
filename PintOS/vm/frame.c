@@ -59,8 +59,8 @@ get_frame (enum palloc_flags flags)
 		myframe->page = addr;
 		myframe->thread = thread_current ();
 
-		list_push_back (&fifo_list, &myframe->fifo_elem);
-		hash_insert (&hash_frames, &myframe->hash);
+		list_push_back (&fifo_list, &(myframe->fifo_elem));
+		hash_insert (&hash_frames, &(myframe->hash));
 	}
 	return addr;
 }
@@ -70,15 +70,18 @@ choose a frame to evict (using replacement algorithm),
 then clear it from the page directory of its "owner" thread.
 
 WHERE DO WE PUT THE EVICTED PAGE?  IN SWAP OR JUST FORGET ABOUT IT?
-*/
+Alex KK and Wes Drove*/
 void*
 evict_frame (void)
 {
 	struct list_elem *temp_elem = list_pop_front (&fifo_list);
 	//list entry to get the frame struct from the list_elem
 	struct frame *f = list_entry (temp_elem, struct frame, fifo_elem);
-
-	//with the frame struct, remove the frame from the hash function
+	// remove the frame from the hash map
+	struct hash_elem *e = hash_delete (&hash_frames, &(myframe->hash));
+	ASSERT(e != NULL)
+	//now put in swap
+	// panic ??
 }
 
 //remove given frame (addr points to this frame) from the frame table and free its resources
@@ -86,6 +89,7 @@ void
 free_frame (void* frame_addr)
 {
 	//remove (set to empty) the frame from our data structure
+
 	palloc_free_page (frame_addr); 
 }
 
@@ -129,7 +133,10 @@ http://burtleburtle.net/bob/hash/integer.html
 */
 static unsigned 
 hash_func (const struct hash_elem *e, void *aux){
-	uint32_t a = e;
+	
+	struct frame *f = list_entry (e, struct frame, hash);
+	uint32_t a = f->page;
+
   a = (a ^ 61) ^ (a >> 16);
   a = a + (a << 3);
   a = a ^ (a >> 4);
