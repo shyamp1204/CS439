@@ -18,6 +18,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "threads/synch.h"
+#include "vm/frame.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -36,17 +37,17 @@ process_execute (const char *file_name)
 
   /* Make a copy of FILE_NAME.
   Otherwise there's a race between the caller and load(). */
-  fn_copy = palloc_get_page (0);
+  fn_copy = get_frame (0);
 
   if (fn_copy == NULL) {
-    palloc_free_page(fn_copy);
+    free_frame (fn_copy);
     return TID_ERROR;
   }
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  char *arg_one = palloc_get_page(0);
+  char *arg_one = get_frame (0);
   if (arg_one == NULL) {
-     palloc_free_page(fn_copy);
+     free_frame(fn_copy);
      return TID_ERROR;
   }
   strlcpy (arg_one, file_name, PGSIZE);
@@ -60,8 +61,8 @@ process_execute (const char *file_name)
   struct file *cur_file = filesys_open (token);
   if(cur_file == NULL) {
     //INVALID FILE, so free all pages and return error
-    palloc_free_page(fn_copy);
-    palloc_free_page(arg_one);
+    free_frame(fn_copy);
+    free_frame(arg_one);
     return TID_ERROR;
   }
 
@@ -69,7 +70,7 @@ process_execute (const char *file_name)
   tid = thread_create (token, PRI_DEFAULT, start_process, fn_copy);
 
   if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
+    free_frame (fn_copy); 
   return tid;
 }
 
@@ -90,7 +91,7 @@ start_process (void *file_name_)
   success = load (file_name, &if_.eip, &if_.esp);
 
   /* If load failed, quit. */
-  palloc_free_page (file_name);
+  free_frame (file_name);
   if (!success) 
     thread_exit ();
 
@@ -300,7 +301,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   //Alex driving here
   char *my_filename, *save_ptr;
   char *fn_copy;
-  fn_copy = palloc_get_page (0);
+  fn_copy = get_frame (0);
 
   //copy the string and get the first "token" which should be the filename
   strlcpy (fn_copy, file_name, PGSIZE);
@@ -388,7 +389,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Set up stack. */
   //get a char * copy of the command line and pass it to setup_stack
   char *cmdline_copy;
-  cmdline_copy = palloc_get_page (0);
+  cmdline_copy = get_frame (0);
   strlcpy (cmdline_copy, file_name, PGSIZE);
   
   if (!setup_stack (esp, cmdline_copy))
@@ -489,14 +490,14 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
       /* Get a page of memory. */
-      uint8_t *kpage = palloc_get_page (PAL_USER);
+      uint8_t *kpage = get_frame (PAL_USER);
       if (kpage == NULL)
         return false;
 
       /* Load this page. */
       if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
         {
-          palloc_free_page (kpage);
+          free_frame (kpage);
           return false; 
         }
       memset (kpage + page_read_bytes, 0, page_zero_bytes);
@@ -504,7 +505,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       /* Add the page to the process's address space. */
       if (!install_page (upage, kpage, writable)) 
         {
-          palloc_free_page (kpage);
+          free_frame (kpage);
           return false; 
         }
 
@@ -528,7 +529,7 @@ setup_stack (void **esp, char *cmd_line)
 
   //ALEX DRIVING HERE
   //pointer to array to store each of the arguments from cmd_line
-  char **args = palloc_get_page (0);
+  char **args = get_frame (0);
 
   int32_t counter = 0;
   char *token, *save_ptr;
@@ -545,7 +546,7 @@ setup_stack (void **esp, char *cmd_line)
   }
 
   //Create a new thread to execute the command. 
-  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  kpage = get_frame (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
       //WES DRIVING HERE
@@ -631,7 +632,7 @@ setup_stack (void **esp, char *cmd_line)
         *esp = myEsp;
       }
       else
-        palloc_free_page (kpage);
+        free_frame (kpage);
     } 
   //CALL HEX DUMP TO SEE IF THE STACK IS SET UP CORRECTLY.  FOR TESTING ONLY
   // hex_dump(*esp, *esp, PHYS_BASE-*esp, 1);
@@ -646,7 +647,7 @@ setup_stack (void **esp, char *cmd_line)
    otherwise, it is read-only.
    UPAGE must not already be mapped.
    KPAGE should probably be a page obtained from the user pool
-   with palloc_get_page().
+   with palloc_get_frame().
    Returns true on success, false if UPAGE is already mapped or
    if memory allocation fails. */
 static bool

@@ -16,10 +16,10 @@ void
 frame_init();
 
 static unsigned
-hash_func(const struct hash_elem *e, void *aux);
+hash_func (struct hash_elem *e, void *aux);
 
 static bool
-less_func(const struct hash_elem *a, const struct hash_elem *b, void *aux);
+less_func (struct hash_elem *a, struct hash_elem *b, void *aux);
 
 //get a free frame by calling palloc_get_page and allocate a frame; if no frame available, evict a frame and use that
 void*

@@ -11,21 +11,16 @@
 #include "lib/kernel/list.h"
 #include "lib/kernel/hash.h"
 
-static unsigned hash_func(const struct hash_elem *e, void *aux);
-static bool less_func(const struct hash_elem *a, const struct hash_elem *b, void *aux);
-
 static struct hash hash_frames;	// hash table of frames
 static struct lock frame_lock;	// lock for frame table
 static struct list fifo_list;		//list to keep track of FIFO order
 
 
 //initialize the frame table
-//NEED TO CALL THIS FROM BEGINING OF PINTOS LAUNCH
 void
 frame_init()
 {
 	lock_init (&frame_lock);
-	hash_init (&hash_frames, hash_func, less_func, NULL);
 	list_init (&fifo_list);
 }
 
@@ -60,7 +55,6 @@ get_frame (enum palloc_flags flags)
 		myframe->thread = thread_current ();
 
 		list_push_back (&fifo_list, &(myframe->fifo_elem));
-		hash_insert (&hash_frames, &(myframe->hash));
 	}
 	return addr;
 }
@@ -77,10 +71,8 @@ evict_frame (void)
 	struct list_elem *temp_elem = list_pop_front (&fifo_list);
 	//list entry to get the frame struct from the list_elem
 	struct frame *f = list_entry (temp_elem, struct frame, fifo_elem);
-	// remove the frame from the hash map
-	struct hash_elem *e = hash_delete (&hash_frames, &(myframe->hash));
-	ASSERT(e != NULL)
-	//now put in swap
+	//now put in swap or free
+	palloc_free_page (f->page);
 	// panic ??
 }
 
@@ -88,8 +80,20 @@ evict_frame (void)
 void
 free_frame (void* frame_addr)
 {
-	//remove (set to empty) the frame from our data structure
+	bool found = false;
+	struct list_elem* temp_elem;
+	struct frame *f;
 
+	//remove (set to empty) the frame from our data structures
+	//Loop over the fifo list and remove the elem from the list
+	for (temp_elem = list_begin (&fifo_list); temp_elem != list_end (&fifo_list) && !found; temp_elem = list_next (temp_elem)) 
+  {
+    f = list_entry (temp_elem, struct frame, fifo_elem);
+    if (f->page == frame_addr) {
+      found = true;
+      list_remove (temp_elem);
+    }
+  }
 	palloc_free_page (frame_addr); 
 }
 
@@ -108,22 +112,12 @@ frame_unmap (void* frame_addr)
 
 }
 
-
-// // hash_hash_func function -- hash function for the hash table
-// static unsigned
-// hash_func (const struct hash_elem *e, void *aux)
-// {
-// 	const struct frame *f = hash_entry(e, struct frame, hash);
-// 	return hash_int((unsigned) f->page);
-// }
-
-
 //hash_less_func function -- comparison function for the hash function
 static bool
-less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux)
+less_func (struct hash_elem *a, struct hash_elem *b, void *aux)
 {
-	const struct frame *frame_one = hash_entry(a, struct frame, hash);
-	const struct frame *frame_two = hash_entry(b, struct frame, hash);
+	const struct frame *frame_one = hash_entry (a, struct frame, hash);
+	const struct frame *frame_two = hash_entry (b, struct frame, hash);
 	return frame_one->page < frame_two->page;
 }
 
@@ -132,10 +126,10 @@ Hash function used from online resources
 http://burtleburtle.net/bob/hash/integer.html
 */
 static unsigned 
-hash_func (const struct hash_elem *e, void *aux){
-	
-	struct frame *f = list_entry (e, struct frame, hash);
-	uint32_t a = f->page;
+hash_func (struct hash_elem *e, void *aux)
+{
+	struct frame *f = hash_entry (e, struct frame, hash);
+	uint32_t a = (uint32_t)f->page;
 
   a = (a ^ 61) ^ (a >> 16);
   a = a + (a << 3);
