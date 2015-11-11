@@ -108,3 +108,9 @@ pass tests/filesys/base/syn-read
 pass tests/filesys/base/syn-remove
 pass tests/filesys/base/syn-write
 26 of 109 tests failed.
+
+
+NEED TO:
+-update page_fault() in execption.c
+-call create_sup_page() on each page being created
+-make sure supplemental page table is correct

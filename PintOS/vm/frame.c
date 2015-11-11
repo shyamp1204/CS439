@@ -15,7 +15,6 @@ static struct hash hash_frames;	// hash table of frames
 static struct lock frame_lock;	// lock for frame table
 static struct list fifo_list;		//list to keep track of FIFO order
 
-
 //initialize the frame table
 void
 frame_init()
