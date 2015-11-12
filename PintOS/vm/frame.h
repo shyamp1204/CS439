@@ -7,19 +7,11 @@ struct frame
 {
 	void* page;  								//POINTER TO THE PAGE MAPPED TO THIS FRAME
 	struct thread* thread;			//THREAD THAT OWNS THIS FRAME
-	struct hash_elem hash;		 //HASH ELEMENT FOR IMPLEMENTING HASH TABLE to store this frame in the frame table
 	struct list_elem fifo_elem;
-	// bool pinned;  						//TRUE IS THE FRAME IS "PINNED" -- may not need this!
 };
 
 void
 frame_init();
-
-static unsigned
-hash_func (struct hash_elem *e, void *aux);
-
-static bool
-less_func (struct hash_elem *a, struct hash_elem *b, void *aux);
 
 //get a free frame by calling palloc_get_page and allocate a frame; if no frame available, evict a frame and use that
 void*
@@ -33,10 +25,7 @@ free_frame(void*);		//page_vaddr, uint32_t* pagedir
 void*
 evict_frame (void);
 
-//maps the given frame to a page from the user pool
-void
-frame_map(void* , void* , bool);
-
-//unmaps the given frame
-void
-frame_unmap(void*);
+/*
+static bool
+less_func (struct hash_elem *a, struct hash_elem *b, void *aux);
+*/

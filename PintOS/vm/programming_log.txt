@@ -1,0 +1,91 @@
+10/29, 8:00pm - 1:00am Alex Katherine and Wes, 5 hours
+Driver Order and Time Length:
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+
+10/30, 7:00pm - 12:00am Alex Katherine and Wes, 5 hours
+Driver Order and Time Length:
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+
+11/5, 7:00pm - 1:00am Alex Katherine and Wes, 6 hours
+Driver Order and Time Length:
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+
+11/6, 7:00pm - 1:00am Alex Katherine and Wes, 5 hours
+Driver Order and Time Length:
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+
+11/9, 8:00pm - 1:00am Alex and Wes, 5 hours
+Driver Order and Time Length:
+Alex, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Wes, 30 minutes
+
+11/10, 7:00pm - 1:00am Alex and Wes, 6 hours
+Driver Order and Time Length:
+Alex, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Wes, 30 minutes
+
+11/11, 9:00pm - 1:00am Alex Katherine and Wes, 4 hours
+Driver Order and Time Length:
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+

@@ -96,20 +96,8 @@ free_frame (void* frame_addr)
 	palloc_free_page (frame_addr); 
 }
 
-//maps the given frame to a page from the user pool
-void
-frame_map (void* frame_addr, void* page_addr, bool writable)
-{
-
-}
-
-
-//unmaps the given frame
-void
-frame_unmap (void* frame_addr)
-{
-
-}
+/*
+NOT CURRENTLY USING
 
 //hash_less_func function -- comparison function for the hash function
 static bool
@@ -119,21 +107,4 @@ less_func (struct hash_elem *a, struct hash_elem *b, void *aux)
 	const struct frame *frame_two = hash_entry (b, struct frame, hash);
 	return frame_one->page < frame_two->page;
 }
-
-/*
-Hash function used from online resources
-http://burtleburtle.net/bob/hash/integer.html
 */
-static unsigned 
-hash_func (struct hash_elem *e, void *aux)
-{
-	struct frame *f = hash_entry (e, struct frame, hash);
-	uint32_t a = (uint32_t)f->page;
-
-  a = (a ^ 61) ^ (a >> 16);
-  a = a + (a << 3);
-  a = a ^ (a >> 4);
-  a = a * 0x27d4eb2d;
-  a = a ^ (a >> 15);
-  return a;
-}
