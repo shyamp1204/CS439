@@ -157,9 +157,23 @@ page_fault (struct intr_frame *f)
     exit_status_ext(-1);
   }
 
-  // if(user) {
-  //   exit_status_ext(-1);
-  // }
+  //get virtual address of faulting page
+  void* upage = pg_round_down(fault_addr);
+  struct thread* cur = thread_current();
+  struct page p;
+
+  //get the supplemental page table for this upage
+
+  //find out where the faulting page is -- file system, swap slot, or all-zero page?
+
+  //use supplemental page table to locate the data that goes in the page
+
+  /*check supplemental page table -- if this indicates that:
+      1) the user process should not expect any data at the address it was trying to access;
+      2) if the page lies within kernel virtual memory; or
+      3) if the access is an attempt to write to a read-only page
+      --> if any of these, then ACCESS IS INVALID! so terminate the process and free its resources
+  */
 
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
