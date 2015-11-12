@@ -11,7 +11,7 @@ struct frame
 };
 
 void
-frame_init();
+frame_init(void);
 
 //get a free frame by calling palloc_get_page and allocate a frame; if no frame available, evict a frame and use that
 void*

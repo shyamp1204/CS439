@@ -97,7 +97,6 @@ thread_init (void)
   list_init (&ready_list);
   list_init (&all_list);
   frame_init();
-  spage_init();
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -494,7 +493,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
   list_init (&t->children_list);
-
+  list_init (&t->sup_page_table_list);
 
 }
 

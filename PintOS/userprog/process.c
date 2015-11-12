@@ -19,6 +19,7 @@
 #include "threads/vaddr.h"
 #include "threads/synch.h"
 #include "vm/frame.h"
+#include "vm/page.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -28,7 +29,8 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
    before process_execute() returns.  Returns the new process's
    thread id, or TID_ERROR if the thread cannot be created. 
 
-   Alex driving here  */
+   Alex driving here  
+*/
 tid_t
 process_execute (const char *file_name) 
 {
@@ -169,6 +171,8 @@ process_exit (void)
   //when thread exits, sema_up to let parent thread know it has died
   if(&(cur->my_info->sema_dead) != NULL)
     sema_up(&(cur->my_info->sema_dead));
+
+  //destroy_sup_page_table ();    //should we free the resources????
 
   file_close (cur->exec_file);
   uint32_t *pd;
@@ -491,8 +495,10 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
       /* Get a page of memory. */
       uint8_t *kpage = get_frame (PAL_USER);
+
       if (kpage == NULL)
         return false;
+      create_sup_page (file, ofs, kpage, page_read_bytes, page_zero_bytes, writable);
 
       /* Load this page. */
       if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)

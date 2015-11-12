@@ -10,17 +10,22 @@ Struct that holds information about a page in the supplementary page table.
 struct sup_page
   {
     struct list_elem spage_elem;
-    void *v_addr;
     bool page_in_swap;
+    int swap_index;
+
+    void *v_addr;
     struct file *file;
     off_t offset;
-    int swap_index;
+    uint32_t read_bytes;
+    uint32_t zero_bytes;
+    bool writable;
   };
 
-void spage_init();
-struct sup_page* create_sup_page (struct file*, off_t offset, void *addr);
-bool add_sup_page (struct sup_page *page);
+void spage_init(void);
+struct sup_page* create_sup_page (struct file *f, off_t ofs, uint8_t *upage, uint32_t r_bytes, uint32_t z_bytes, bool write);
+void add_sup_page (struct sup_page *page);
 struct sup_page* get_sup_page (void *addr);
 void delete_sup_page (struct sup_page *page);
+void destroy_sup_page_table ();
 
 #endif /* vm/page.h */

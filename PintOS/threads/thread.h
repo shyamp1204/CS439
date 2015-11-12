@@ -124,6 +124,8 @@ struct thread
     struct child_info* my_info;   /* struct to store the child info even after it dies*/
     struct file* exec_file;       /* the current file this thread is executing*/
     struct file *open_files[128];           /* List of open files. */
+
+    struct list sup_page_table_list;      /*threads supplmental page table */
   };
 
 /* If false (default), use round-robin scheduler.

@@ -11,13 +11,13 @@
 #include "lib/kernel/list.h"
 #include "lib/kernel/hash.h"
 
-static struct hash hash_frames;	// hash table of frames
+//static struct hash hash_frames;	// hash table of frames
 static struct lock frame_lock;	// lock for frame table
 static struct list fifo_list;		//list to keep track of FIFO order
 
 //initialize the frame table
 void
-frame_init()
+frame_init(void)
 {
 	lock_init (&frame_lock);
 	list_init (&fifo_list);
@@ -73,6 +73,7 @@ evict_frame (void)
 	//now put in swap or free
 	palloc_free_page (f->page);
 	// panic ??
+	return NULL;
 }
 
 //remove given frame (addr points to this frame) from the frame table and free its resources
