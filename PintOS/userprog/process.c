@@ -493,6 +493,16 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
+  /* if page_read_bytes == PGSIZE, the page should be demand paged from underlying
+  file on its first access;
+  if page_zero_bytes == PGSIZE, the page does not need to be read from disk at all
+  because it is all 0's -- handle such pages by creating a new page consisting
+  of all 0s at the first page fault;
+  otherwise, neither page_read_bytes NOR page_zero_bytes == PGSIZE; so,
+  an initial part of the page is to be read from the underlying file and the 
+  remainder is zeroed!
+  */
+
       /* Get a page of memory. */
       uint8_t *kpage = get_frame (PAL_USER);
 

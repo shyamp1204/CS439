@@ -171,8 +171,14 @@ page_fault (struct intr_frame *f)
   struct sup_page *spage = get_sup_page (upage);
   struct thread* cur = thread_current();
 
+  // check if the page lies within kernel virtual memory
+  if (upage >= PHYS_BASE)
+  {
+    exit_status_ext(-1);
+  }
+
   // check if the access is an attempt to write to a read-only page
-  if (upage != NULL && write && !upage->writable)
+  if (spage != NULL && write && !spage->writable)
   {
     exit_status_ext(-1);
   }
@@ -212,24 +218,27 @@ page_fault (struct intr_frame *f)
           case IN_DISK:  //WOULD BE NULL SINCE THE FRAME IS IN DISK
             /* page data is in the file system (DISK) */
             frame = get_frame (PAL_USER);
-
+            struct file* file = spage->file;
             /* The file-system lock will only be acquired if current
                thread does not hold it. This prevents issues when coming
                from a read system call. */
-
             filesys_lock_aquire ();
 
-            // file_seek (spage->file, spage->offset);
-            // if (file_read (spage->file, frame, spage->read_bytes) != (int) spage->read_bytes)
-            // free_frame (frame);
+            // reposition the current point in the file to offset to read at
+            file_seek (spage->file, spage->offset);
+            // read file into frame, and check if it equals spage read_bytes
+            if (file_read (spage->file, frame, spage->read_bytes)
+              != (int) spage->read_bytes)
+              free_frame (frame);
 
             filesys_lock_release ();
 
-            //memset (frame + spage->read_bytes, 0, spage->zero_bytes);
+            //ZERO_BYTES bytes at UPAGE + READ_BYTES must be zeroed
+            memset (frame + spage->read_bytes, 0, spage->zero_bytes);
 
-            /* Add the frame with its new data to the spage directory of
-               the current thread */
-            
+            // point the pte for faulting va to this physical page
+            if(!pagedir_set_page(cur->pagedir, spage->v_addr, frame, spage->writable))
+              free_frame (frame);
             spage->page_location = IN_MEMORY;
             break;
           case ALL_ZERO:
