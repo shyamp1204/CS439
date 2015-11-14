@@ -24,7 +24,7 @@ struct sup_page* create_sup_page (struct file *f, off_t ofs, uint8_t *addr, uint
   s_page->read_bytes = r_bytes;
   s_page->zero_bytes = z_bytes;
   s_page->writable = write;
-  s_page->frame_location = 0;
+  s_page->page_location = IN_MEMORY;
 
   add_sup_page (s_page); 
   return s_page;

@@ -159,37 +159,57 @@ page_fault (struct intr_frame *f)
     exit_status_ext(-1);
   }
 
-  //get virtual address of faulting page
-  void* upage = pg_round_down(fault_addr);
-  struct thread* cur = thread_current();
-
-  //get the supplemental page table for this upage
-
-  //find out where the faulting page is -- file system, swap slot, or all-zero page?
-
-  //use supplemental page table to locate the data that goes in the page
-
   /*check supplemental page table -- if this indicates that:
-      1) the user process should not expect any data at the address it was trying to access;
-      2) if the page lies within kernel virtual memory; or
-      3) if the access is an attempt to write to a read-only page
-      --> if any of these, then ACCESS IS INVALID! so terminate the process and free its resources
+    1) the user process should not expect any data at the address it was trying to access;
+    2) if the page lies within kernel virtual memory; or
+    3) if the access is an attempt to write to a read-only page
+    --> if any of these, then ACCESS IS INVALID! so terminate the process and free its resources
   */
 
-  if (0)  //not_present
+  //get the VA of faulting page and supplemental page table for this page
+  void* upage = pg_round_down (fault_addr);
+  struct sup_page *spage = get_sup_page (upage);
+  struct thread* cur = thread_current();
+
+  // check if the access is an attempt to write to a read-only page
+  if (upage != NULL && write && !upage->writable)
   {
-    //get the supplemental page table for this upage
-    void* upage = pg_round_down (fault_addr);
-    struct sup_page *spage = get_sup_page (upage);
+    exit_status_ext(-1);
+  }
+
+  if (not_present)  //if (not_present)
+  {
+    //find out where the faulting page is -- file system, swap slot, or all-zero page?
+    //use supplemental page table to locate the data that goes in the page
 
     if (spage != NULL && is_user_vaddr (fault_addr))
     {
       uint8_t *frame = NULL;
 
       //find out where the faulting page is -- file system, swap slot, or all-zero page?
-      switch (spage->frame_location)
+      switch (spage->page_location)
       {
-          case 2:  //WOULD BE NULL SINCE THE FRAME IS IN DISK
+          case IN_SWAP:
+            /* spage data is in a swap slot */
+            frame = get_frame (PAL_USER);
+
+            filesys_lock_aquire ();
+            // if (!spagedir_set_spage (cur->spagedir, spage->user_addr, frame, spage->swap_writable))
+            //   free_frame (frame);
+
+            filesys_lock_release ();
+
+            /* Load the data into the frame from the swap slot */
+
+
+            /* If the spage was just a swap spage then we can delete it
+               since its only purpose was to reference a frame with swap
+               swap data. If it was file data in swap, then mark it as a
+               loaded file */
+
+              spage->page_location = IN_MEMORY;
+            break;
+          case IN_DISK:  //WOULD BE NULL SINCE THE FRAME IS IN DISK
             /* page data is in the file system (DISK) */
             frame = get_frame (PAL_USER);
 
@@ -210,28 +230,12 @@ page_fault (struct intr_frame *f)
             /* Add the frame with its new data to the spage directory of
                the current thread */
             
-            spage->frame_location = 0;
+            spage->page_location = IN_MEMORY;
             break;
-
-          case 1:
-            /* spage data is in a swap slot */
+          case ALL_ZERO:
             frame = get_frame (PAL_USER);
-
-            filesys_lock_aquire ();
-            // if (!spagedir_set_spage (cur->spagedir, spage->user_addr, frame, spage->swap_writable))
-            //   free_frame (frame);
-
-            filesys_lock_release ();
-
-            /* Load the data into the frame from the swap slot */
-
-
-            /* If the spage was just a swap spage then we can delete it
-               since its only purpose was to reference a frame with swap
-               swap data. If it was file data in swap, then mark it as a
-               loaded file */
-
-              spage->frame_location = 0;
+            spage->page_location = IN_MEMORY;
+            //do we have to do anything else?!
             break;
       }
       return;

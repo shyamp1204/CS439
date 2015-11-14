@@ -8,7 +8,8 @@ enum location
   {
     IN_MEMORY,     /* Page is located in memory = 0 */
     IN_SWAP,       /* Page is located in a swap slot = 1 */
-    IN_DISK        /* Page is located on disk = 2 */
+    IN_DISK,       /* Page is located on disk = 2 */
+    ALL_ZERO        /* Page is an all-zero page = 3 */
   };
 
 /* 
@@ -26,7 +27,7 @@ struct sup_page
     uint32_t read_bytes;
     uint32_t zero_bytes;
     bool writable;
-    enum location frame_location;   //0=memory, 1=swap, 2=disk
+    enum location page_location;   //0=memory, 1=swap, 2=disk
   };
 
 // void spage_init(void);
