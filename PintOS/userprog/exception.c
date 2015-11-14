@@ -6,6 +6,8 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "userprog/syscall.h"
+#include "vm/page.h"
+#include "vm/frame.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -160,7 +162,6 @@ page_fault (struct intr_frame *f)
   //get virtual address of faulting page
   void* upage = pg_round_down(fault_addr);
   struct thread* cur = thread_current();
-  struct page p;
 
   //get the supplemental page table for this upage
 
@@ -174,6 +175,68 @@ page_fault (struct intr_frame *f)
       3) if the access is an attempt to write to a read-only page
       --> if any of these, then ACCESS IS INVALID! so terminate the process and free its resources
   */
+
+  if (0)  //not_present
+  {
+    //get the supplemental page table for this upage
+    void* upage = pg_round_down (fault_addr);
+    struct sup_page *spage = get_sup_page (upage);
+
+    if (spage != NULL && is_user_vaddr (fault_addr))
+    {
+      uint8_t *frame = NULL;
+
+      //find out where the faulting page is -- file system, swap slot, or all-zero page?
+      switch (spage->frame_location)
+      {
+          case 2:  //WOULD BE NULL SINCE THE FRAME IS IN DISK
+            /* page data is in the file system (DISK) */
+            frame = get_frame (PAL_USER);
+
+            /* The file-system lock will only be acquired if current
+               thread does not hold it. This prevents issues when coming
+               from a read system call. */
+
+            filesys_lock_aquire ();
+
+            // file_seek (spage->file, spage->offset);
+            // if (file_read (spage->file, frame, spage->read_bytes) != (int) spage->read_bytes)
+            // free_frame (frame);
+
+            filesys_lock_release ();
+
+            //memset (frame + spage->read_bytes, 0, spage->zero_bytes);
+
+            /* Add the frame with its new data to the spage directory of
+               the current thread */
+            
+            spage->frame_location = 0;
+            break;
+
+          case 1:
+            /* spage data is in a swap slot */
+            frame = get_frame (PAL_USER);
+
+            filesys_lock_aquire ();
+            // if (!spagedir_set_spage (cur->spagedir, spage->user_addr, frame, spage->swap_writable))
+            //   free_frame (frame);
+
+            filesys_lock_release ();
+
+            /* Load the data into the frame from the swap slot */
+
+
+            /* If the spage was just a swap spage then we can delete it
+               since its only purpose was to reference a frame with swap
+               swap data. If it was file data in swap, then mark it as a
+               loaded file */
+
+              spage->frame_location = 0;
+            break;
+      }
+      return;
+    }
+  }  //end if(not_present)
 
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to

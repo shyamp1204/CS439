@@ -219,14 +219,14 @@ my_exec (struct intr_frame *f)
   	return;
  	}
 
-  lock_acquire (&filesys_lock);
+  filesys_lock_aquire ();
   //adds child to curent threads child list
   tid_t pid = process_execute ((char*)filename);
 
   if(pid != TID_ERROR) 
   	sema_down (&(thread_current()->exec_sema));
 
-  lock_release (&filesys_lock);
+  filesys_lock_release ();
  	(pid == TID_ERROR) ? (f->eax = -1) : (f->eax = pid);		//return pid_t;
 } 
 
@@ -296,9 +296,9 @@ my_create (struct intr_frame *f)
     return;
  	}
 
- 	lock_acquire (&filesys_lock);
+ 	filesys_lock_aquire ();
 	f->eax = filesys_create (filename, initial_size);   //returns boolean
-	lock_release (&filesys_lock);
+	filesys_lock_release ();
 }
 
 /*
@@ -318,9 +318,9 @@ my_remove (struct intr_frame *f)
   	return;
   }
 
-	lock_acquire (&filesys_lock);
+	filesys_lock_aquire ();
   f->eax = filesys_remove (filename);  //returns bool
-  lock_release (&filesys_lock);
+  filesys_lock_release ();
 }
 
 /* 
@@ -353,9 +353,9 @@ my_open (struct intr_frame *f)
   		return;
   }
 
-	lock_acquire (&filesys_lock);
+	filesys_lock_aquire ();
 	struct file *cur_file = filesys_open (filename);
-	lock_release (&filesys_lock);
+	filesys_lock_release ();
 
 	if (cur_file != NULL) 
 	{
@@ -378,9 +378,9 @@ my_filesize (struct intr_frame *f) {
 	int fd = *((int *)(4+(f->esp)));
 	struct file *cur_file = get_file (fd);
 
-	lock_acquire (&filesys_lock);
+	filesys_lock_aquire ();
 	off_t size = file_length (cur_file);
-	lock_release (&filesys_lock);
+	filesys_lock_release ();
 
 	f->eax = size;		//size = length of the file
 }
@@ -405,14 +405,14 @@ my_read (struct intr_frame *f) {
 
 	if (fd == STDIN_FILENO) 
 	{
-		lock_acquire (&filesys_lock);
+		filesys_lock_aquire ();
 		char *buffer = (char *) buffer;
 		int i;
 		for (i = 0; i < length; i++) 
 		{
 			buffer[i] = input_getc();		//read each char from keyboard
 		}
-		lock_release (&filesys_lock);
+		filesys_lock_release ();
 		f->eax = length;			//return bytes read
 	}
 	else 
@@ -426,9 +426,9 @@ my_read (struct intr_frame *f) {
 	  }
 	  else 
 	  {
-	  	lock_acquire (&filesys_lock);
+	  	filesys_lock_aquire ();
 	  	f->eax = file_read (cur_file, buffer, length);  //return bytes read
-	  	lock_release (&filesys_lock);
+	  	filesys_lock_release ();
 	  }
 	} 
 }
@@ -462,9 +462,9 @@ my_write (struct intr_frame *f)
 
 	if (fd == STDOUT_FILENO) 
 	{
-		lock_acquire (&filesys_lock);
+		filesys_lock_aquire ();
 		putbuf ((char *)buffer, length);
-		lock_release (&filesys_lock);
+		filesys_lock_release ();
 		f->eax = length;		//return bytes written to console
   }
   else 
@@ -478,12 +478,12 @@ my_write (struct intr_frame *f)
 	  }
 	  else 
 	  {
-	  	lock_acquire (&filesys_lock);
+	  	filesys_lock_aquire ();
 	  	struct file *cur_file = get_file (fd);
 
 	  	if (cur->exec_file != cur_file)
 				f->eax = file_write (cur_file, buffer, length);  //return bytes written
-	  	lock_release (&filesys_lock);
+	  	filesys_lock_release ();
 	  }
 	}
 }
@@ -506,7 +506,7 @@ my_seek (struct intr_frame *f)
 	int fd = *((int *)(4+(f->esp))); 
 	int position = *((int *)(8+(f->esp)));  //unsigned
 
-	lock_acquire (&filesys_lock);
+	filesys_lock_aquire ();
 	struct file *cur_file = get_file(fd);
 	off_t size = file_length (cur_file);
 	if (position < 0) 
@@ -515,7 +515,7 @@ my_seek (struct intr_frame *f)
 		position = size;
 
 	file_seek (cur_file, position);
-	lock_release (&filesys_lock);
+	filesys_lock_release ();
 }
 
 /*
@@ -535,9 +535,9 @@ my_tell (struct intr_frame *f)
   else 
   {
 		struct file *cur_file = get_file(fd);
-		lock_acquire (&filesys_lock);
+		filesys_lock_aquire ();
 		f->eax = file_tell (cur_file);		// return position (unsigned)
-		lock_release (&filesys_lock);
+		filesys_lock_release ();
 	}
 }
 
@@ -554,9 +554,9 @@ my_close (int fd)
 	struct thread *cur = thread_current ();
 	cur->open_files[fd-2] = NULL;
 	
-	lock_acquire (&filesys_lock);
+	filesys_lock_aquire ();
 	file_close (cur_file);
-	lock_release (&filesys_lock);
+	filesys_lock_release ();
 }
 
 /*
@@ -598,4 +598,14 @@ next_fd (struct thread *cur)
 void
 exit_status_ext (int e_status) {
 	exit_status(e_status);
+}
+
+void filesys_lock_aquire (void)
+{
+  lock_acquire (&filesys_lock);
+}
+
+void filesys_lock_release (void)
+{
+  lock_release (&filesys_lock);
 }

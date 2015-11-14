@@ -19,9 +19,10 @@ struct sup_page
     uint32_t read_bytes;
     uint32_t zero_bytes;
     bool writable;
+    int frame_location;   //0=memory, 1=swap, 2=disk
   };
 
-void spage_init(void);
+// void spage_init(void);
 struct sup_page* create_sup_page (struct file *f, off_t ofs, uint8_t *upage, uint32_t r_bytes, uint32_t z_bytes, bool write);
 void add_sup_page (struct sup_page *page);
 struct sup_page* get_sup_page (void *addr);
