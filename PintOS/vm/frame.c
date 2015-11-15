@@ -11,7 +11,6 @@
 #include "lib/kernel/list.h"
 #include "lib/kernel/hash.h"
 
-//static struct hash hash_frames;	// hash table of frames
 static struct lock frame_lock;	// lock for frame table
 static struct list fifo_list;		//list to keep track of FIFO order
 
@@ -34,6 +33,7 @@ if no frame available, evict a frame and use that one!
 void*
 get_frame (enum palloc_flags flags)
 {
+	lock_acquire (&frame_lock);
 	//this "addr" variable will be the return value at the end!
 	void* addr = palloc_get_page (flags);
 	struct frame *myframe;
@@ -41,7 +41,8 @@ get_frame (enum palloc_flags flags)
 	if (addr == NULL) 
 	{
 		//evict a frame and use this new frame (called evict function)
-		addr = evict_frame ();
+		evict_frame ();
+		//should now be able to properly palloc since a page was evicted
 		addr = palloc_get_page (flags);
 	}
 
@@ -55,6 +56,7 @@ get_frame (enum palloc_flags flags)
 
 		list_push_back (&fifo_list, &(myframe->fifo_elem));
 	}
+	lock_release (&frame_lock);
 	return addr;
 }
 
@@ -63,8 +65,9 @@ choose a frame to evict (using replacement algorithm),
 then clear it from the page directory of its "owner" thread.
 
 WHERE DO WE PUT THE EVICTED PAGE?  IN SWAP OR JUST FORGET ABOUT IT?
-Alex KK and Wes Drove*/
-void*
+Alex KK and Wes Drove
+*/
+void
 evict_frame (void)
 {
 	struct list_elem *temp_elem = list_pop_front (&fifo_list);
@@ -73,10 +76,11 @@ evict_frame (void)
 	//now put in swap or free
 	palloc_free_page (f->page);
 	// panic ??
-	return NULL;
 }
 
-//remove given frame (addr points to this frame) from the frame table and free its resources
+/* remove given frame (addr points to this frame) from the frame table and 
+free its resources
+*/
 void
 free_frame (void* frame_addr)
 {
@@ -96,16 +100,3 @@ free_frame (void* frame_addr)
   }
 	palloc_free_page (frame_addr); 
 }
-
-/*
-NOT CURRENTLY USING
-
-//hash_less_func function -- comparison function for the hash function
-static bool
-less_func (struct hash_elem *a, struct hash_elem *b, void *aux)
-{
-	const struct frame *frame_one = hash_entry (a, struct frame, hash);
-	const struct frame *frame_two = hash_entry (b, struct frame, hash);
-	return frame_one->page < frame_two->page;
-}
-*/

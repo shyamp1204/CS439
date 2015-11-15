@@ -22,10 +22,5 @@ void
 free_frame(void*);		//page_vaddr, uint32_t* pagedir
 
 //choose a frame to evict and clear it from the page directory of its owner thread
-void*
+void
 evict_frame (void);
-
-/*
-static bool
-less_func (struct hash_elem *a, struct hash_elem *b, void *aux);
-*/

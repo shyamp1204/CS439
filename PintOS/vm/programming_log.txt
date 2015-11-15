@@ -89,3 +89,36 @@ Wes, 30 minutes
 Alex, 30 minutes
 Katherine, 30 minutes
 
+11/13, 7:00pm - 1:00am Alex Katherine and Wes, 6 hours
+Driver Order and Time Length:
+Alex, 30 minutes
+Katherine, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+
+11/15, 4:00pm - 11:59pm Alex Katherine and Wes, 8 hours
+Driver Order and Time Length:
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes

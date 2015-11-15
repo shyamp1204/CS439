@@ -550,8 +550,7 @@ setup_stack (void **esp, char *cmd_line)
   int32_t counter = 0;
   char *token, *save_ptr;
   // create a "token" for each string seperated by a space
-  for (token = strtok_r (cmd_line, " ", &save_ptr); token != NULL; 
-        token = strtok_r (NULL, " ", &save_ptr), counter++) 
+  for (token = strtok_r (cmd_line, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr), counter++) 
   {
     //check to make sure number of arguments is less than 100
     if (counter >= 100) 

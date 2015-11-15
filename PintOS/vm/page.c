@@ -7,7 +7,7 @@
 #include "threads/thread.h"
 
 /* 
-Create a supplemental page and gets its values
+Create a supplemental page and set its struct values
 */
 struct sup_page* create_sup_page (struct file *f, off_t ofs, uint8_t *addr, uint32_t r_bytes, uint32_t z_bytes, bool write)
 {
@@ -54,7 +54,7 @@ delete_sup_page (struct sup_page *page)
 }
 
 /* 
-add the supplemental page to our data structure 
+add the supplemental page to our data structure (fifo list)
 */
 void 
 add_sup_page (struct sup_page *page)
@@ -63,8 +63,8 @@ add_sup_page (struct sup_page *page)
 }
 
 /* 
-Find the sup_page in PT which has the address ADDR. Return a null pointer
-if the sup_page is not found 
+Find the supplemental page at addr. Return a null pointer
+if the sup_page is not found, pointer to the struct if it is found
 */
 struct sup_page*
 get_sup_page (void *addr)
@@ -84,8 +84,8 @@ get_sup_page (void *addr)
 }
 
 /* 
-Remove the supplemental page table entry from the current thread's
-supplemental page table 
+Remove/delete the supplemental page table struct from the current thread's
+sup page table and free the memory
 */
 void
 destroy_sup_page_table ()
