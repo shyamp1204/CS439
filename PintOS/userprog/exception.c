@@ -196,27 +196,23 @@ page_fault (struct intr_frame *f)
       switch (spage->page_location)
       {
           case IN_SWAP:
-            /* spage data is in a swap slot */
+            // spage data is in a swap slot; get frame in memory
             frame = get_frame (PAL_USER);
 
+            //add pd mapping from spage's user_addr to frame; also sets spage's read/write bit
             filesys_lock_aquire ();
-            // if (!spagedir_set_spage (cur->spagedir, spage->user_addr, frame, spage->swap_writable))
-            //   free_frame (frame);
-
+            if (!pagedir_set_page (cur->pagedir, spage->v_addr, frame, spage->writable))
+               free_frame (frame);
             filesys_lock_release ();
 
-            /* Load the data into the frame from the swap slot */
-
-
-            /* If the spage was just a swap spage then we can delete it
-               since its only purpose was to reference a frame with swap
-               swap data. If it was file data in swap, then mark it as a
-               loaded file */
-
-              spage->page_location = IN_MEMORY;
+            //load data from swap slot to frame in main memory
+            load_swap(spage->v_addr, spage->swap_index);
+            
+            //set spage's page_location to "IN_MEMORY"!
+            spage->page_location = IN_MEMORY;
             break;
           case IN_DISK:  //WOULD BE NULL SINCE THE FRAME IS IN DISK
-            /* page data is in the file system (DISK) */
+            // page data is on disk
             frame = get_frame (PAL_USER);
             struct file* file = spage->file;
             /* The file-system lock will only be acquired if current
