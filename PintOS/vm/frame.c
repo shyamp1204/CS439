@@ -73,10 +73,15 @@ evict_frame (void)
 	struct list_elem *temp_elem = list_pop_front (&fifo_list);
 	//list entry to get the frame struct from the list_elem
 	struct frame *f = list_entry (temp_elem, struct frame, fifo_elem);
-	//now put in swap or free
-	palloc_free_page (f->page);
-	// panic ??
+	//put into swap
+	store_swap(f->page);
+  //get the addrs of the page being evicted
+  void* result = f->page;
+  //now put in swap or free
+  palloc_free_page (f->page);
+  return result;
 }
+
 
 /* remove given frame (addr points to this frame) from the frame table and 
 free its resources
