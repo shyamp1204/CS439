@@ -552,9 +552,6 @@ setup_stack (void **esp, char *cmd_line)
   // create a "token" for each string seperated by a space
   for (token = strtok_r (cmd_line, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr), counter++) 
   {
-    //check to make sure number of arguments is less than 100
-    if (counter >= 100) 
-      return TID_ERROR;
     args [counter] = token;
     //add 1 for null terminator on each token
     numOfBytes += strlen (token) + 1; 

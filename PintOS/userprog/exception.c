@@ -173,70 +173,57 @@ page_fault (struct intr_frame *f)
   }
 
   struct sup_page *spage = get_sup_page (upage);
-
-  if (not_present)  //if (not_present)
+  if (not_present)
   {
-    //find out where the faulting page is -- file system, swap slot, or all-zero page?
-    //use supplemental page table to locate the data that goes in the page
-
     if (spage != NULL && is_user_vaddr (fault_addr))
     {
       uint8_t *frame = NULL;
 
       //find out where the faulting page is -- file system, swap slot, or all-zero page?
+      //use supplemental page table to locate the data that goes in the page
       switch (spage->page_location)
       {
           case IN_SWAP:
             // spage data is in a swap slot; get frame in memory
             frame = get_frame (PAL_USER);
 
-            //add pd mapping from spage's user_addr to frame; also sets spage's read/write bit
             filesys_lock_aquire ();
+            //add the new mapping to the page dir
             if (!pagedir_set_page (cur->pagedir, spage->v_addr, frame, spage->writable))
                free_frame (frame);
             filesys_lock_release ();
 
             //load data from swap slot to frame in main memory
             load_swap(spage->v_addr, spage->swap_index);
-            
-            //set spage's page_location to "IN_MEMORY"!
-            spage->page_location = IN_MEMORY;
             break;
           case IN_DISK:  //WOULD BE NULL SINCE THE FRAME IS IN DISK
-            // page data is on disk
             frame = get_frame (PAL_USER);
             struct file* file = spage->file;
-            /* The file-system lock will only be acquired if current
-               thread does not hold it. This prevents issues when coming
-               from a read system call. */
+
             filesys_lock_aquire ();
 
             // reposition the current point in the file to offset to read at
             file_seek (spage->file, spage->offset);
             // read file into frame, and check if it equals spage read_bytes
-            if (file_read (spage->file, frame, spage->read_bytes)
-              != (int) spage->read_bytes)
+            if (file_read (spage->file, frame, spage->read_bytes)!= (int) spage->read_bytes)
               free_frame (frame);
 
             filesys_lock_release ();
 
-            //ZERO_BYTES bytes at UPAGE + READ_BYTES must be zeroed
             //memset (frame + spage->read_bytes, 0, spage->zero_bytes);
 
             // point the pte for faulting va to this physical page
-            if(!pagedir_set_page(cur->pagedir, spage->v_addr, frame, spage->writable))
+            if (!pagedir_set_page (cur->pagedir, spage->v_addr, frame, spage->writable))
               free_frame (frame);
-            spage->page_location = IN_MEMORY;
             break;
           case ALL_ZERO:
             frame = get_frame (PAL_USER);
             spage->page_location = IN_MEMORY;
-            //do we have to do anything else?!
             break;
       }
       return;
     }
-  }  //end if(not_present)
+  } 
 
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to

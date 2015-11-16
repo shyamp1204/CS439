@@ -80,7 +80,8 @@ evict_frame (void)
 }
 
 
-/* remove given frame (addr points to this frame) from the frame table and 
+/* 
+remove given frame (addr points to this frame) from the frame table and 
 free its resources
 */
 void

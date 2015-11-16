@@ -7,8 +7,7 @@
 
 static const size_t NUM_SECTORS_PER_PAGE = PGSIZE / BLOCK_SECTOR_SIZE;
 struct block* block_device;
-//bitmap = 0 means it is FREE, 1 means it is IN USE
-struct bitmap* swap_bitmap;
+struct bitmap* swap_bitmap;	//bitmap = 0 means it is FREE, 1 means it is IN USE
 struct lock swap_lock;
 bool is_initialized = false;
 
@@ -35,6 +34,9 @@ swap_init (void)
 	lock_init (&swap_lock);
 }
 
+/*
+updates the sup_page struct to the correct values after a change to/from swap
+*/
 void 
 change_page_location (void *addr, location t, int swap_index) {
 	struct sup_page* spage = get_sup_page (addr);
@@ -43,7 +45,9 @@ change_page_location (void *addr, location t, int swap_index) {
 }
 
 
-// load page from swap into main memory; return pa in main memory
+/* 
+load page from swap into main memory; return pa in main memory
+*/
 void
 load_swap (void* uaddr, int swap_index)
 {
@@ -67,7 +71,9 @@ load_swap (void* uaddr, int swap_index)
 	lock_release(&swap_lock);
 }
 
-// send page from main memory to swap and store it in swap
+/* 
+send page from main memory to swap and store it in swap
+*/
 int
 store_swap (void *uaddr)
 {
