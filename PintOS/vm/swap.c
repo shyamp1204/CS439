@@ -36,9 +36,10 @@ swap_init (void)
 }
 
 void 
-change_page_location (void *addr, location t) {
+change_page_location (void *addr, location t, int swap_index) {
 	struct sup_page* spage = get_sup_page (addr);
 	spage->page_location = t;
+	spage->swap_index = swap_index;
 }
 
 
@@ -62,7 +63,7 @@ load_swap (void* uaddr, int swap_index)
 	//set slot to FREE!
 	bitmap_set(swap_bitmap, swap_index, false);
 	location new_frame_location = IN_MEMORY;
-	change_page_location(uaddr, new_frame_location);
+	change_page_location(uaddr, new_frame_location, -1);
 	lock_release(&swap_lock);
 }
 
@@ -88,7 +89,7 @@ store_swap (void *uaddr)
 	}
 
 	location new_frame_location = IN_SWAP;
-	change_page_location (uaddr, new_frame_location);
+	change_page_location (uaddr, new_frame_location, swap_index);
 	lock_acquire (&swap_lock);
 
 	return swap_index;

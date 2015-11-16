@@ -158,20 +158,12 @@ page_fault (struct intr_frame *f)
   user = (f->error_code & PF_U) != 0;
 
   // check if user address is valid
-  if(user || !is_user_vaddr(fault_addr)) {
+  if(user || !is_user_vaddr(fault_addr) || write) {
     exit_status_ext(-1);
   }
 
-  /*check supplemental page table -- if this indicates that:
-    1) the user process should not expect any data at the address it was trying to access;
-    2) if the page lies within kernel virtual memory; or
-    3) if the access is an attempt to write to a read-only page
-    --> if any of these, then ACCESS IS INVALID! so terminate the process and free its resources
-  */
-
   //get the VA of faulting page and supplemental page table for this page
   void* upage = pg_round_down (fault_addr);
-  struct sup_page *spage = get_sup_page (upage);
   struct thread* cur = thread_current();
 
   // check if the page lies within kernel virtual memory
@@ -180,11 +172,7 @@ page_fault (struct intr_frame *f)
     exit_status_ext(-1);
   }
 
-  // check if the access is an attempt to write to a read-only page
-  if (spage != NULL && write && !spage->writable)
-  {
-    exit_status_ext(-1);
-  }
+  struct sup_page *spage = get_sup_page (upage);
 
   if (not_present)  //if (not_present)
   {

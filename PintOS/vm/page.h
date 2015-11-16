@@ -18,9 +18,7 @@ Struct that holds information about a page in the supplementary page table.
 struct sup_page
   {
     struct list_elem spage_elem;
-    bool page_in_swap;
     int swap_index;
-
     void *v_addr;
     struct file *file;
     off_t offset;

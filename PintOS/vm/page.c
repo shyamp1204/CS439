@@ -15,9 +15,7 @@ struct sup_page* create_sup_page (struct file *f, off_t ofs, uint8_t *addr, uint
   if (s_page == NULL)
     PANIC ("Failed to allocate memory");
 
-  s_page->page_in_swap = false;
   s_page->swap_index = -1;
-
   s_page->file = f;
   s_page->offset = ofs;
   s_page->v_addr = addr;
