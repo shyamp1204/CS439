@@ -107,3 +107,13 @@ free_frame (void* frame_addr)
   }
 	palloc_free_page (frame_addr); 
 }
+
+void frame_lock_aquire (void)
+{
+  lock_acquire (&frame_lock);
+}
+
+void frame_lock_release (void)
+{
+  lock_release (&frame_lock);
+}

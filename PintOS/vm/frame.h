@@ -26,3 +26,6 @@ void free_frame(void*);
 	thread
 */
 void evict_frame (void);
+
+void frame_lock_aquire (void);
+void frame_lock_release (void);

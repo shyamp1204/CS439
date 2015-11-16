@@ -558,6 +558,28 @@ setup_stack (void **esp, char *cmd_line)
     numOfBytes += strlen (token) + 1; 
   }
 
+    /*
+   2 kbs per page
+   counter# of args
+   each are takes:
+    4 byts for a pointer
+    and up to 4 bytes depending on type
+    4bytes for pointer back to arg
+    12 bytes per arg
+    round to 16 or 2^4 to simplify
+
+    2^11 bytes per page / 2^4 bytes per arg = 2^7 args per page
+    so counter/ 2^7 gives you the number of pages needed
+    
+
+    palloc enough pages to hold the whole stack
+  */
+  int j;
+  for(j = 0; j< (counter/(2^7))-1; j++)
+  {
+    kpage = get_frame (PAL_USER | PAL_ZERO);
+  }
+
   //Create a new thread to execute the command. 
   kpage = get_frame (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 

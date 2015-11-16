@@ -190,20 +190,23 @@ page_fault (struct intr_frame *f)
           frame = get_frame (PAL_USER);
 
           filesys_lock_aquire ();
+          frame_lock_aquire ();
           //add the new mapping to the page dir
           if (!pagedir_set_page (cur->pagedir, spage->v_addr, frame, 
                                                             spage->writable))
              free_frame (frame);
+           frame_lock_release ();
           filesys_lock_release ();
 
           //load data from swap slot to frame in main memory
           load_swap(spage->v_addr, spage->swap_index);
           break;
         case IN_DISK:  //WOULD BE NULL SINCE THE FRAME IS IN DISK
+          filesys_lock_aquire ();
+          frame_lock_aquire ();
           frame = get_frame (PAL_USER);
           struct file* file = spage->file;
 
-          filesys_lock_aquire ();
 
           // reposition the current point in the file to offset to read at
           file_seek (spage->file, spage->offset);
@@ -211,10 +214,8 @@ page_fault (struct intr_frame *f)
           if (file_read (spage->file, frame, spage->read_bytes)!= 
                                                       (int) spage->read_bytes)
             free_frame (frame);
-
+          frame_lock_release ();
           filesys_lock_release ();
-
-          //memset (frame + spage->read_bytes, 0, spage->zero_bytes);
 
           // point the pte for faulting va to this physical page
           if (!pagedir_set_page (cur->pagedir, spage->v_addr, frame, 
