@@ -126,6 +126,7 @@ kill (struct intr_frame *f)
    can find more information about both of these in the
    description of "Interrupt 14--Page Fault Exception (#PF)" in
    [IA32-v3a] section 5.15 "Exception and Interrupt Reference". 
+  Alex Katherine and Wes Drove
 */
 static void
 page_fault (struct intr_frame *f) 
@@ -158,9 +159,8 @@ page_fault (struct intr_frame *f)
   user = (f->error_code & PF_U) != 0;
 
   // check if user address is valid
-  if(user || !is_user_vaddr(fault_addr) || write) {
+  if(user || !is_user_vaddr(fault_addr) || write)
     exit_status_ext(-1);
-  }
 
   //get the VA of faulting page and supplemental page table for this page
   void* upage = pg_round_down (fault_addr);
@@ -168,9 +168,7 @@ page_fault (struct intr_frame *f)
 
   // check if the page lies within kernel virtual memory
   if (upage >= PHYS_BASE)
-  {
     exit_status_ext(-1);
-  }
 
   struct sup_page *spage = get_sup_page (upage);
   if (not_present)
@@ -179,47 +177,54 @@ page_fault (struct intr_frame *f)
     {
       uint8_t *frame = NULL;
 
-      //find out where the faulting page is -- file system, swap slot, or all-zero page?
-      //use supplemental page table to locate the data that goes in the page
+      /*
+        find out where the faulting page is: file system, swap slot, 
+        or all-zero page?
+
+        use supplemental page table to locate the data that goes in the page
+      */
       switch (spage->page_location)
       {
-          case IN_SWAP:
-            // spage data is in a swap slot; get frame in memory
-            frame = get_frame (PAL_USER);
+        case IN_SWAP:
+          // spage data is in a swap slot; get frame in memory
+          frame = get_frame (PAL_USER);
 
-            filesys_lock_aquire ();
-            //add the new mapping to the page dir
-            if (!pagedir_set_page (cur->pagedir, spage->v_addr, frame, spage->writable))
-               free_frame (frame);
-            filesys_lock_release ();
+          filesys_lock_aquire ();
+          //add the new mapping to the page dir
+          if (!pagedir_set_page (cur->pagedir, spage->v_addr, frame, 
+                                                            spage->writable))
+             free_frame (frame);
+          filesys_lock_release ();
 
-            //load data from swap slot to frame in main memory
-            load_swap(spage->v_addr, spage->swap_index);
-            break;
-          case IN_DISK:  //WOULD BE NULL SINCE THE FRAME IS IN DISK
-            frame = get_frame (PAL_USER);
-            struct file* file = spage->file;
+          //load data from swap slot to frame in main memory
+          load_swap(spage->v_addr, spage->swap_index);
+          break;
+        case IN_DISK:  //WOULD BE NULL SINCE THE FRAME IS IN DISK
+          frame = get_frame (PAL_USER);
+          struct file* file = spage->file;
 
-            filesys_lock_aquire ();
+          filesys_lock_aquire ();
 
-            // reposition the current point in the file to offset to read at
-            file_seek (spage->file, spage->offset);
-            // read file into frame, and check if it equals spage read_bytes
-            if (file_read (spage->file, frame, spage->read_bytes)!= (int) spage->read_bytes)
-              free_frame (frame);
+          // reposition the current point in the file to offset to read at
+          file_seek (spage->file, spage->offset);
+          // read file into frame, and check if it equals spage read_bytes
+          if (file_read (spage->file, frame, spage->read_bytes)!= 
+                                                      (int) spage->read_bytes)
+            free_frame (frame);
 
-            filesys_lock_release ();
+          filesys_lock_release ();
 
-            //memset (frame + spage->read_bytes, 0, spage->zero_bytes);
+          //memset (frame + spage->read_bytes, 0, spage->zero_bytes);
 
-            // point the pte for faulting va to this physical page
-            if (!pagedir_set_page (cur->pagedir, spage->v_addr, frame, spage->writable))
-              free_frame (frame);
-            break;
-          case ALL_ZERO:
-            frame = get_frame (PAL_USER);
-            spage->page_location = IN_MEMORY;
-            break;
+          // point the pte for faulting va to this physical page
+          if (!pagedir_set_page (cur->pagedir, spage->v_addr, frame, 
+                                                            spage->writable))
+            free_frame (frame);
+          break;
+        case ALL_ZERO:
+          frame = get_frame (PAL_USER);
+          spage->page_location = IN_MEMORY;
+          break;
       }
       return;
     }

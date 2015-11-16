@@ -8,8 +8,11 @@
 
 /* 
 Create a supplemental page and set its struct values
+Alex Drove
 */
-struct sup_page* create_sup_page (struct file *f, off_t ofs, uint8_t *addr, uint32_t r_bytes, uint32_t z_bytes, bool write)
+struct sup_page* 
+create_sup_page (struct file *f, off_t ofs, uint8_t *addr, 
+      uint32_t r_bytes, uint32_t z_bytes, bool write)
 {
   struct sup_page *s_page = malloc (sizeof (struct sup_page));
   if (s_page == NULL)
@@ -31,6 +34,7 @@ struct sup_page* create_sup_page (struct file *f, off_t ofs, uint8_t *addr, uint
 /* 
 Remove the supplemental page table entry from the current thread's
 supplemental page table 
+Alex and Wes drove
 */
 void
 delete_sup_page (struct sup_page *page)
@@ -40,10 +44,12 @@ delete_sup_page (struct sup_page *page)
   bool found = false;
   struct list sup_page_list = thread_current()->sup_page_table_list;
 
-  for (temp_elem = list_begin (&sup_page_list); temp_elem != list_end (&sup_page_list) && !found; temp_elem = list_next (temp_elem)) 
+  for (temp_elem = list_begin (&sup_page_list); temp_elem != 
+        list_end (&sup_page_list) && !found; temp_elem = list_next (temp_elem)) 
   {
     temp = list_entry (temp_elem, struct sup_page, spage_elem);
-    if (temp->v_addr == page->v_addr) {
+    if (temp->v_addr == page->v_addr) 
+    {
       found = true;
       list_remove (temp_elem);
       free (temp);
@@ -53,6 +59,7 @@ delete_sup_page (struct sup_page *page)
 
 /* 
 add the supplemental page to our data structure (fifo list)
+Alex Drove
 */
 void 
 add_sup_page (struct sup_page *page)
@@ -63,6 +70,7 @@ add_sup_page (struct sup_page *page)
 /* 
 Find the supplemental page at addr. Return a null pointer
 if the sup_page is not found, pointer to the struct if it is found
+Alex and Wes Drove
 */
 struct sup_page*
 get_sup_page (void *addr)
@@ -71,12 +79,12 @@ get_sup_page (void *addr)
   struct list_elem *temp_elem;
   struct list sup_page_list = thread_current ()->sup_page_table_list;
 
-  for (temp_elem = list_begin (&sup_page_list); temp_elem != list_end (&sup_page_list); temp_elem = list_next (temp_elem)) 
+  for (temp_elem = list_begin (&sup_page_list); temp_elem != 
+        list_end (&sup_page_list); temp_elem = list_next (temp_elem)) 
   {
     temp = list_entry (temp_elem, struct sup_page, spage_elem);
-    if (temp->v_addr == addr) {
+    if (temp->v_addr == addr)
       return temp;
-    }
   }
   return NULL;
 }
@@ -84,7 +92,7 @@ get_sup_page (void *addr)
 /* 
 Remove/delete the supplemental page table struct from the current thread's
 sup page table and free the memory
-*/
+KK Alex Drove*/
 void
 destroy_sup_page_table (void)
 {
@@ -93,7 +101,8 @@ destroy_sup_page_table (void)
   bool found = false;
   struct list sup_page_list = thread_current ()->sup_page_table_list;
 
-  for (temp_elem = list_begin (&sup_page_list); temp_elem != list_end (&sup_page_list) && !found; temp_elem = list_next (temp_elem)) 
+  for (temp_elem = list_begin (&sup_page_list); temp_elem 
+      != list_end (&sup_page_list) && !found; temp_elem = list_next (temp_elem)) 
   {
     temp = list_entry (temp_elem, struct sup_page, spage_elem);
     list_remove (temp_elem);

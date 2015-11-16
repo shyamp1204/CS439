@@ -15,6 +15,7 @@ static struct lock frame_lock;	// lock for frame table
 static struct list fifo_list;		//list to keep track of FIFO order
 
 //initialize the frame table
+//Alex and Katherine Drove
 void
 frame_init(void)
 {
@@ -29,6 +30,7 @@ if no frame available, evict a frame and use that one!
     PAL_ASSERT = 001,            Panic on failure. 
     PAL_ZERO = 002,              Zero page contents. 
     PAL_USER = 004               User page. 
+Alex Wes and Katherine Drove
 */
 void*
 get_frame (enum palloc_flags flags)
@@ -46,7 +48,7 @@ get_frame (enum palloc_flags flags)
 		addr = palloc_get_page (flags);
 	}
 
-	//We know here that there is an available page bc of either empty or evicted spot
+	//We know here there is an available page bc of either empty or evicted spot
 	if(addr != NULL) 
 	{
 		//successful memory allocation!  ADD IT TO OUR DATA STRUCTURE
@@ -64,7 +66,6 @@ get_frame (enum palloc_flags flags)
 choose a frame to evict (using replacement algorithm),
 then clear it from the page directory of its "owner" thread.
 
-WHERE DO WE PUT THE EVICTED PAGE?  IN SWAP OR JUST FORGET ABOUT IT?
 Alex KK and Wes Drove
 */
 void
@@ -83,6 +84,7 @@ evict_frame (void)
 /* 
 remove given frame (addr points to this frame) from the frame table and 
 free its resources
+Alex and Katherine Drove
 */
 void
 free_frame (void* frame_addr)
@@ -93,10 +95,12 @@ free_frame (void* frame_addr)
 
 	//remove (set to empty) the frame from our data structures
 	//Loop over the fifo list and remove the elem from the list
-	for (temp_elem = list_begin (&fifo_list); temp_elem != list_end (&fifo_list) && !found; temp_elem = list_next (temp_elem)) 
+	for (temp_elem = list_begin (&fifo_list); temp_elem != list_end (&fifo_list) 
+															&& !found; temp_elem = list_next (temp_elem)) 
   {
     f = list_entry (temp_elem, struct frame, fifo_elem);
-    if (f->page == frame_addr) {
+    if (f->page == frame_addr)
+    {
       found = true;
       list_remove (temp_elem);
     }

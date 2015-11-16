@@ -407,7 +407,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
  done:
   /* We arrive here whether the load is successful or not. */
   if (file != NULL) 
-    file_deny_write(file);    //the executable file loaded deny the ability to write to it
+    file_deny_write(file);  
   thread_current ()->exec_file = file;
 
   return success;
@@ -493,15 +493,15 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
-  /* if page_read_bytes == PGSIZE, the page should be demand paged from underlying
-  file on its first access;
-  if page_zero_bytes == PGSIZE, the page does not need to be read from disk at all
-  because it is all 0's -- handle such pages by creating a new page consisting
-  of all 0s at the first page fault;
-  otherwise, neither page_read_bytes NOR page_zero_bytes == PGSIZE; so,
-  an initial part of the page is to be read from the underlying file and the 
-  remainder is zeroed!
-  */
+/* if page_read_bytes == PGSIZE, the page should be demand paged from underlying
+file on its first access;
+if page_zero_bytes == PGSIZE, the page does not need to be read from disk at all
+because it is all 0's -- handle such pages by creating a new page consisting
+of all 0s at the first page fault;
+otherwise, neither page_read_bytes NOR page_zero_bytes == PGSIZE; so,
+an initial part of the page is to be read from the underlying file and the 
+remainder is zeroed!
+*/
 
       /* Get a page of memory. */
       uint8_t *kpage = get_frame (PAL_USER);
@@ -550,7 +550,8 @@ setup_stack (void **esp, char *cmd_line)
   int32_t counter = 0;
   char *token, *save_ptr;
   // create a "token" for each string seperated by a space
-  for (token = strtok_r (cmd_line, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr), counter++) 
+  for (token = strtok_r (cmd_line, " ", &save_ptr); token != NULL; 
+                    token = strtok_r (NULL, " ", &save_ptr), counter++) 
   {
     args [counter] = token;
     //add 1 for null terminator on each token
