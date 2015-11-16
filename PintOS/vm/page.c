@@ -88,7 +88,7 @@ Remove/delete the supplemental page table struct from the current thread's
 sup page table and free the memory
 */
 void
-destroy_sup_page_table ()
+destroy_sup_page_table (void)
 {
   struct sup_page *temp;
   struct list_elem *temp_elem;

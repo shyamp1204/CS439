@@ -6,8 +6,11 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "userprog/syscall.h"
+#include "userprog/pagedir.h"
 #include "vm/page.h"
 #include "vm/frame.h"
+#include "vm/swap.h"
+#include "filesys/file.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -230,7 +233,7 @@ page_fault (struct intr_frame *f)
             filesys_lock_release ();
 
             //ZERO_BYTES bytes at UPAGE + READ_BYTES must be zeroed
-            memset (frame + spage->read_bytes, 0, spage->zero_bytes);
+            //memset (frame + spage->read_bytes, 0, spage->zero_bytes);
 
             // point the pte for faulting va to this physical page
             if(!pagedir_set_page(cur->pagedir, spage->v_addr, frame, spage->writable))

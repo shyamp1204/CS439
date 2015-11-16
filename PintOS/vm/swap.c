@@ -5,46 +5,46 @@
 #include "threads/synch.h"
 #include "page.h"
 
-
 static const size_t NUM_SECTORS_PER_PAGE = PGSIZE / BLOCK_SECTOR_SIZE;
 struct block* block_device;
 //bitmap = 0 means it is FREE, 1 means it is IN USE
 struct bitmap* swap_bitmap;
 struct lock swap_lock;
+bool is_initialized = false;
 
-/*initialize the swap table
-	Katherine driving.
+/*
+initialize the swap table
+Katherine driving.
 */
 void
-swap_init(void)
+swap_init (void)
 {
-	//initialize block device!
-	block_device = block_get_role(BLOCK_SWAP);
+	//initialize block device
+	block_device = block_get_role (BLOCK_SWAP);
 	if (block_device == NULL)
 	{
 		PANIC("Called before the OS initialized block devices. Can't get block.");
 	}
 	//bitmap size = number of pages per block
-	size_t bitmap_size = block_size(block_device) / NUM_SECTORS_PER_PAGE;
-	swap_bitmap = bitmap_create(bitmap_size);
+	size_t bitmap_size = block_size (block_device) / NUM_SECTORS_PER_PAGE;
+	swap_bitmap = bitmap_create (bitmap_size);
 	if (swap_bitmap == NULL)
 	{
-		PANIC("Memory allocation failed for bitmap swap table.");
+		PANIC ("Memory allocation failed for bitmap swap table.");
 	}
-	//swap_bitmap -- all slots set to 0 (they are all FREE)
-	lock_init(&swap_lock);
+	lock_init (&swap_lock);
 }
 
 void 
-change_page_location (void *addr, location t){
-	struct sup_page* spage = get_sup_page(addr);
+change_page_location (void *addr, location t) {
+	struct sup_page* spage = get_sup_page (addr);
 	spage->page_location = t;
 }
 
 
 // load page from swap into main memory; return pa in main memory
 void
-load_swap(void* uaddr, int swap_index)
+load_swap (void* uaddr, int swap_index)
 {
 	//make sure swap_index is not null and is a valid index
 	lock_acquire(&swap_lock);
@@ -70,22 +70,26 @@ load_swap(void* uaddr, int swap_index)
 int
 store_swap (void *uaddr)
 {
+	if (!is_initialized) {
+		  swap_init ();
+		  is_initialized = true;
+	}
 	//scan bitmap for an open slot
-	lock_acquire(&swap_lock);
+	lock_acquire (&swap_lock);
 
-	int swap_index = bitmap_scan_and_flip(swap_bitmap, 0, 1, false);
+	int swap_index = bitmap_scan_and_flip (swap_bitmap, 0, 1, false);
 
 	//then write the page in memory to this slot in swap
 	block_sector_t sector_base = swap_index * NUM_SECTORS_PER_PAGE;
 	unsigned i;
-	for(i = 0; i < NUM_SECTORS_PER_PAGE; i++)
+	for (i = 0; i < NUM_SECTORS_PER_PAGE; i++)
 	{
 		block_write(block_device, sector_base + i, (BLOCK_SECTOR_SIZE * i) + uaddr);
 	}
 
 	location new_frame_location = IN_SWAP;
-	change_page_location(uaddr, new_frame_location);
-	lock_acquire(&swap_lock);
+	change_page_location (uaddr, new_frame_location);
+	lock_acquire (&swap_lock);
 
 	return swap_index;
 }

@@ -35,6 +35,6 @@ struct sup_page* create_sup_page (struct file *f, off_t ofs, uint8_t *upage, uin
 void add_sup_page (struct sup_page *page);
 struct sup_page* get_sup_page (void *addr);
 void delete_sup_page (struct sup_page *page);
-void destroy_sup_page_table ();
+void destroy_sup_page_table (void);
 
 #endif /* vm/page.h */
