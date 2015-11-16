@@ -3,6 +3,7 @@
 #include "threads/vaddr.h"
 #include <bitmap.h>
 #include "threads/synch.h"
+#include "page.h"
 
 
 static const size_t NUM_SECTORS_PER_PAGE = PGSIZE / BLOCK_SECTOR_SIZE;
@@ -34,6 +35,13 @@ swap_init(void)
 	lock_init(&swap_lock);
 }
 
+void 
+change_page_location (void *addr, location t){
+	struct sup_page* spage = get_sup_page(addr);
+	spage->page_location = t;
+}
+
+
 // load page from swap into main memory; return pa in main memory
 void
 load_swap(void* uaddr, int swap_index)
@@ -53,15 +61,18 @@ load_swap(void* uaddr, int swap_index)
 
 	//set slot to FREE!
 	bitmap_set(swap_bitmap, swap_index, false);
+	location new_frame_location = IN_MEMORY;
+	change_page_location(uaddr, new_frame_location);
 	lock_release(&swap_lock);
 }
 
 // send page from main memory to swap and store it in swap
 int
-store_swap(void *uaddr)
+store_swap (void *uaddr)
 {
 	//scan bitmap for an open slot
 	lock_acquire(&swap_lock);
+
 	int swap_index = bitmap_scan_and_flip(swap_bitmap, 0, 1, false);
 
 	//then write the page in memory to this slot in swap
@@ -71,8 +82,11 @@ store_swap(void *uaddr)
 	{
 		block_write(block_device, sector_base + i, (BLOCK_SECTOR_SIZE * i) + uaddr);
 	}
+
+	location new_frame_location = IN_SWAP;
+	change_page_location(uaddr, new_frame_location);
 	lock_acquire(&swap_lock);
-	//set slot to IN USE!
-	// bitmap_set(swap_bitmap, swap_index, true);
+
 	return swap_index;
 }
+

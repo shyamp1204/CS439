@@ -75,11 +75,8 @@ evict_frame (void)
 	struct frame *f = list_entry (temp_elem, struct frame, fifo_elem);
 	//put into swap
 	store_swap(f->page);
-  //get the addrs of the page being evicted
-  void* result = f->page;
   //now put in swap or free
   palloc_free_page (f->page);
-  return result;
 }
 
 
