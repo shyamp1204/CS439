@@ -1,0 +1,163 @@
+10/6, 9:30pm - 11:30pm Alex and Wes, 2 hours
+Driver Order and Time Length:
+Alex, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Wes, 30 minutes
+
+10/7, 8:00pm - 11:00pm Alex, Katherine, and Wes, 3 hours
+Driver Order and Time Length:
+Alex, 30 minutes
+Wes, 30 minutes
+Katherine, 30 minutes
+Alex, 30 minutes
+Wes, 30 minutes
+Katherine, 30 minutes
+
+10/8, 1:00pm - 2:00pm Alex, 1 hours
+Driver Order and Time Length:
+Alex, 60 minutes
+
+10/8, 3:30pm - 5:30pm Alex and Katherine, 2 hours
+Driver Order and Time Length:
+Alex, 30 minutes
+Katherine, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+
+10/11, 11:00pm - 12:00am Wes, 1 hour
+Driver Order and Time Length:
+Wes, 60 minutes
+
+10/12, 3:30pm - 5pm Katherine, Wes, and Alex, 1.5 hours
+Driver Order and Time Length:
+Alex, 30 minutes
+Wes, 30 minutes
+Katherine, 30 minutes
+
+10/12, 8:00pm - 4am Katherine Alex and Wes, 8 hours
+Driver Order and Time Length:
+Wes, 30 minutes
+Katherine, 30 minutes
+Alex, 30 minutes
+Wes, 30 minutes
+Katherine, 30 minutes
+Alex, 30 minutes
+Wes, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Katherine, 30 minutes
+
+10/13, 12:30pm - 3:30pm Alex and Katherine, 3 hours
+Driver Order and Time Length:
+Alex, 30 minutes
+Katherine, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+
+10/14, 8:00pm - 1030pm Katherine, Wes, and Alex, 2.5 hours
+Driver Order and Time Length:
+Alex, 30 minutes
+Wes, 30 minutes
+Katherine, 30 minutes
+Alex, 30 minutes
+Wes, 30 minutes
+
+10/16 1230pm -3 Alex and Wes, 2.5 hours
+Alex, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+
+
+10/17 130pm - 4:30 Alex and Wes, 3 hours
+Alex, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Wes, 30 minutes
+
+10/18 9pm - 11pm Alex, 2 hours
+Alex, 2 hours
+
+10/19 730pm - 1230am Alex, Katherine, and Wes, 5 hours
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Katherine, 30 minutes
+
+10/20 1pm - 5pm Alex, Katherine, and Wes, 4 hours
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+
+10/20 7pm - 12am Alex, Katherine, and Wes, 5 hours
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+
+10/21 7pm - 11pm Alex, Katherine, and Wes, 4 hours
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+
+10/22 7pm - 3:30am Alex, Katherine, and Wes, 7 hours
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+
+10/23 12pm - pm Alex, Katherine, and Wes, x hours
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
+Alex, 30 minutes
+Katherine, 30 minutes
+Wes, 30 minutes
