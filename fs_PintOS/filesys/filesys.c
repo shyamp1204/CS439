@@ -55,6 +55,8 @@ filesys_create (const char *name, off_t initial_size)
     free_map_release (inode_sector, 1);
   dir_close (dir);
 
+  printf("Making file:%s in filesys_create\n",name);
+
   return success;
 }
 
@@ -73,6 +75,8 @@ filesys_open (const char *name)
     dir_lookup (dir, name, &inode);
   dir_close (dir);
 
+
+ printf("Opening file:%s in filesys_open\n",name);
   return file_open (inode);
 }
 
