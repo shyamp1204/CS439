@@ -147,7 +147,7 @@ inode_create (block_sector_t sector, off_t length){
         free_map_allocate (1, &disk_inode->direct_block_sectors[index]);
 
         //Fill sector with Zeros
-        block_write (fs_device, &disk_inode->direct_block_sectors[index], zeros);
+        block_write (fs_device, disk_inode->direct_block_sectors[index], zeros);
 
         remaining_sectors--;
       }
@@ -206,7 +206,7 @@ inode_create (block_sector_t sector, off_t length){
 
         remaining_sectors -= create_indirect(remaining_sectors, first_lvl_id);
 
-        //write to disk the inode we made on heap
+        //write to disk the inode we made on heap. I DONT THINK ARG 2 IS WRITE FORMAT!!!!!!!!!!!!!!!!
         block_write (fs_device, &(second_lvl_id[index]), first_lvl_id);
 
         free(first_lvl_id);
