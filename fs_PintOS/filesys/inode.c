@@ -62,6 +62,68 @@ static block_sector_t
 byte_to_sector (const struct inode *inode, off_t pos) 
 {
   ASSERT (inode != NULL);
+
+  //initalize the inode on heap
+  size_t location = bytes_to_sectors (pos);
+
+  
+  if(location < NUM_DIRECT_PTR)
+  {
+    return inode->data.direct_block_sectors[location];
+  }
+  else if(location < NUM_DIRECT_PTR + NUM_PTR_PER_BLOCK)
+  {
+    int first_lvl_offset = location - NUM_DIRECT_PTR;
+
+    struct indirect_block *first_lvl_id = NULL;  
+    /* If this assertion fails, the inode structure is not exactly
+    one sector in size, and you should fix that. */
+    ASSERT (sizeof *first_lvl_id == BLOCK_SECTOR_SIZE);
+    first_lvl_id = calloc (1, sizeof *first_lvl_id);
+    block_read (fs_device, inode->data.indirect_block_sector, first_lvl_id);
+
+    block_sector_t result = first_lvl_id->direct_block_sectors[first_lvl_offset];
+
+    free(first_lvl_id);
+
+    return result;
+  } 
+  else if(pos < 8388608)  
+  {
+    size_t second_lvl_offset = location - NUM_DIRECT_PTR -NUM_PTR_PER_BLOCK;
+    size_t first_lvl_offset = second_lvl_offset % NUM_PTR_PER_BLOCK;
+    second_lvl_offset = second_lvl_offset / NUM_PTR_PER_BLOCK;
+
+    struct indirect_block *second_lvl_id = NULL;
+    /* If this assertion fails, the inode structure is not exactly
+    one sector in size, and you should fix that. */
+    ASSERT (sizeof *second_lvl_id == BLOCK_SECTOR_SIZE);
+    second_lvl_id = calloc (1, sizeof *second_lvl_id);
+    block_read (fs_device, inode->data.indirect_block_sector, second_lvl_id);
+
+    block_sector_t first_lvl_id_sector_num = second_lvl_id->direct_block_sectors[second_lvl_offset];
+
+    struct indirect_block *first_lvl_id = NULL;  
+    /* If this assertion fails, the inode structure is not exactly
+    one sector in size, and you should fix that. */
+    ASSERT (sizeof *first_lvl_id == BLOCK_SECTOR_SIZE);
+    first_lvl_id = calloc (1, sizeof *first_lvl_id);
+    block_read (fs_device, first_lvl_id_sector_num, first_lvl_id);
+
+    block_sector_t result = first_lvl_id->direct_block_sectors[first_lvl_offset];
+
+    free(first_lvl_id);
+
+    free(second_lvl_id);
+
+    return result;
+  } 
+  else  //greater than 8MB
+  {
+    return -1;
+  }
+
+
   if (pos < inode->data.length)
     return inode->data.start + pos / BLOCK_SECTOR_SIZE;
   else
@@ -98,6 +160,7 @@ create_indirect(size_t remaining_sectors, struct indirect_block *first_lvl_id)
   } 
   if (index < NUM_PTR_PER_BLOCK)  // might not need this just a sneaky suspicion 
   {
+   
     ;//did not use all of the 1st level indirect block
   }
 
