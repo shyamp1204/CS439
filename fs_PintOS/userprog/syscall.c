@@ -606,7 +606,7 @@ Changes the current working directory of the process to dir, which may be relati
 */ 
 bool chdir (const char *dir) 
 {
-
+return false;
 }
 
 /*
@@ -614,7 +614,7 @@ bool chdir (const char *dir)
 */
 bool mkdir (const char *dir) 
 {
-
+return false;
 }
 
 /*
@@ -629,7 +629,7 @@ READDIR_MAX_LEN is defined in "lib/user/syscall.h". If your file system supports
 */
 bool readdir (int fd, char *name) 
 {
-
+return false;
 }
 
 /*
@@ -637,7 +637,7 @@ Returns true if fd represents a directory, false if it represents an ordinary fi
 */
 bool isdir (int fd) 
 {
-
+return false;
 }
 
 /*
@@ -647,6 +647,6 @@ An inode number persistently identifies a file or directory. It is unique during
 */
 int inumber (int fd)
 {
-	
+	return 42;
 }
 

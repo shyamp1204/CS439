@@ -86,7 +86,7 @@ create_indirect(size_t remaining_sectors, struct indirect_block *first_lvl_id)
   static char zeros[BLOCK_SECTOR_SIZE];
 
   int index;
-  for(index = 0; index < NUM_PTR_PER_BLOCK && index < remaining_sectors; index++)
+  for(index = 0; index < NUM_PTR_PER_BLOCK && remaining_sectors > 0; index++)
   {
     //Allocate a sector
     free_map_allocate (1, &(first_lvl_id[index]));
@@ -138,11 +138,11 @@ inode_create (block_sector_t sector, off_t length){
     disk_inode->length = length;
     disk_inode->magic = INODE_MAGIC;
 
-    //alocate direct pointers
+    //allocate direct pointers
     if(remaining_sectors > 0)
     {
       int index;
-      for(index = 0; index < NUM_DIRECT_PTR && index < remaining_sectors; index++){
+      for(index = 0; index < NUM_DIRECT_PTR &&  remaining_sectors > 0; index++){
         //Allocate a sector
         free_map_allocate (1, &disk_inode->direct_block_sectors[index]);
 
@@ -175,7 +175,7 @@ inode_create (block_sector_t sector, off_t length){
       free(first_lvl_id);                             
     } 
     else 
-      disk_inode->indirect_block_sector == NULL;
+      disk_inode->indirect_block_sector = NULL;
 
     
     //check remaining length
@@ -211,14 +211,18 @@ inode_create (block_sector_t sector, off_t length){
 
         free(first_lvl_id);
       } 
+      if (index >= NUM_PTR_PER_BLOCK && remaining_sectors > 0)// File is too big
+      {
+        ;//did not use all of the 1st level indirect block
+      }
 
       //write to disk the inode we made on heap
-      block_write (fs_device, second_lvl_id, &disk_inode->indirect_block_sector);
+      block_write (fs_device, disk_inode->doubly_indirect_block_sector, second_lvl_id);
 
       free(second_lvl_id);
     } 
     else 
-      disk_inode->doubly_indirect_block_sector == NULL;
+      disk_inode->doubly_indirect_block_sector = NULL;
 
 
     //write to disk the inode we made on heap
