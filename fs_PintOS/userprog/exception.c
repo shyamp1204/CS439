@@ -154,12 +154,8 @@ page_fault (struct intr_frame *f)
 
   // check if user address is valid
   if(user || !is_user_vaddr(fault_addr)) {
-    exit_status_ext(-1);
+    exit_status_ext (-1);
   }
-
-  // if(user) {
-  //   exit_status_ext(-1);
-  // }
 
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to

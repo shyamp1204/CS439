@@ -10,27 +10,26 @@
 
 /* Identifies an inode. */
 #define INODE_MAGIC 0x494e4f44
-
-#define NUM_DIRECT_PTR 123
-
+#define NUM_DIRECT_PTR 124
 #define NUM_PTR_PER_BLOCK 128
 
 /* On-disk inode.
    Must be exactly BLOCK_SECTOR_SIZE (512 = 2^9) bytes long. 
-   ptr = 8 or 2^3*/
+   ptr = 8 or 2^3
+*/
 struct inode_disk
 {
-  block_sector_t start;               /* First data sector. */ // don't need this anymore
   off_t length;                       /* File size in bytes. */
   unsigned magic;                     /* Magic number. */
   
-  block_sector_t direct_block_sectors[NUM_DIRECT_PTR];   // Direct Pointers Array  //might need to change that number
-  block_sector_t indirect_block_sector;                       // First lvl Indirect pointers
-  block_sector_t doubly_indirect_block_sector;                //Second lvl indirect pointers
+  block_sector_t direct_block_sectors[NUM_DIRECT_PTR];   // Direct Pointers Array 
+  block_sector_t indirect_block_sector;                  // First lvl Indirect pointers
+  block_sector_t doubly_indirect_block_sector;           //Second lvl indirect pointers
 };
 
 /* Returns the number of sectors to allocate for an inode SIZE
-   bytes long. */
+   bytes long. 
+*/
 static inline size_t
 bytes_to_sectors (off_t size)
 {
@@ -57,7 +56,8 @@ struct indirect_block
 /* Returns the block device sector that contains byte offset POS
    within INODE.
    Returns -1 if INODE does not contain data for a byte at offset
-   POS. */
+   POS. 
+*/
 static block_sector_t
 byte_to_sector (const struct inode *inode, off_t pos) 
 {
@@ -66,40 +66,43 @@ byte_to_sector (const struct inode *inode, off_t pos)
   //initalize the inode on heap
   size_t location = bytes_to_sectors (pos);
 
-  
-  if(location < NUM_DIRECT_PTR)
+  if (location <= NUM_DIRECT_PTR)
   {
+    //pos is in one of the direct blocks
     return inode->data.direct_block_sectors[location];
   }
   else if(location < NUM_DIRECT_PTR + NUM_PTR_PER_BLOCK)
   {
+    //pos is in the first level indirect blocks
     int first_lvl_offset = location - NUM_DIRECT_PTR;
-
     struct indirect_block *first_lvl_id = NULL;  
+
     /* If this assertion fails, the inode structure is not exactly
     one sector in size, and you should fix that. */
     ASSERT (sizeof *first_lvl_id == BLOCK_SECTOR_SIZE);
+    
+    //malloc ID on heap and read its sector from disk into memory
     first_lvl_id = calloc (1, sizeof *first_lvl_id);
     block_read (fs_device, inode->data.indirect_block_sector, first_lvl_id);
 
     block_sector_t result = first_lvl_id->direct_block_sectors[first_lvl_offset];
 
-    free(first_lvl_id);
-
+    free (first_lvl_id);
     return result;
   } 
-  else if(pos < 8388608)  
+  else if (pos < 8388608)  //number of bytes our file supports
   {
-    size_t second_lvl_offset = location - NUM_DIRECT_PTR -NUM_PTR_PER_BLOCK;
-    size_t first_lvl_offset = second_lvl_offset % NUM_PTR_PER_BLOCK;
+    int second_lvl_offset = location - NUM_DIRECT_PTR - NUM_PTR_PER_BLOCK;
+    int first_lvl_offset = second_lvl_offset % NUM_PTR_PER_BLOCK;
     second_lvl_offset = second_lvl_offset / NUM_PTR_PER_BLOCK;
 
     struct indirect_block *second_lvl_id = NULL;
     /* If this assertion fails, the inode structure is not exactly
     one sector in size, and you should fix that. */
     ASSERT (sizeof *second_lvl_id == BLOCK_SECTOR_SIZE);
+
     second_lvl_id = calloc (1, sizeof *second_lvl_id);
-    block_read (fs_device, inode->data.indirect_block_sector, second_lvl_id);
+    block_read (fs_device, inode->data.doubly_indirect_block_sector, second_lvl_id);
 
     block_sector_t first_lvl_id_sector_num = second_lvl_id->direct_block_sectors[second_lvl_offset];
 
@@ -107,26 +110,18 @@ byte_to_sector (const struct inode *inode, off_t pos)
     /* If this assertion fails, the inode structure is not exactly
     one sector in size, and you should fix that. */
     ASSERT (sizeof *first_lvl_id == BLOCK_SECTOR_SIZE);
+
     first_lvl_id = calloc (1, sizeof *first_lvl_id);
     block_read (fs_device, first_lvl_id_sector_num, first_lvl_id);
 
     block_sector_t result = first_lvl_id->direct_block_sectors[first_lvl_offset];
 
     free(first_lvl_id);
-
     free(second_lvl_id);
 
     return result;
   } 
-  else  //greater than 8MB
-  {
-    return -1;
-  }
-
-
-  if (pos < inode->data.length)
-    return inode->data.start + pos / BLOCK_SECTOR_SIZE;
-  else
+  else  //greater than 8MB (our file size constraint)
     return -1;
 }
 
@@ -141,7 +136,9 @@ inode_init (void)
   list_init (&open_inodes);
 }
 
+/*
 
+*/
 int
 create_indirect(size_t remaining_sectors, struct indirect_block *first_lvl_id)
 {
@@ -240,7 +237,7 @@ inode_create (block_sector_t sector, off_t length){
     else 
       disk_inode->indirect_block_sector = NULL;
 
-    
+
     //check remaining length
     //write to second lvl indirect
     if(remaining_sectors > 0)
@@ -287,11 +284,10 @@ inode_create (block_sector_t sector, off_t length){
     else 
       disk_inode->doubly_indirect_block_sector = NULL;
 
-
     //write to disk the inode we made on heap
     block_write (fs_device, sector, disk_inode);
     success = true; 
-  
+
     free (disk_inode);
   }
   //lock release
@@ -371,8 +367,23 @@ inode_close (struct inode *inode)
       if (inode->removed) 
         {
           free_map_release (inode->sector, 1);
-          free_map_release (inode->data.start,
-                            bytes_to_sectors (inode->data.length)); 
+          //free_map_release (inode->data.start, bytes_to_sectors (inode->data.length)); 
+
+          int sectors_to_free = bytes_to_sectors (inode->data.length);
+
+          //NEED TO WRTIE CODE HERE TO FREE THE ENTIRE INODE
+          int sectors_freed = 0;
+          while (sectors_to_free > 0) {
+            if (sectors_freed < NUM_DIRECT_PTR)
+              free_map_release (inode->data.direct_block_sectors[sectors_freed], 1);  //free indirect pointers
+            else if (sectors_freed < NUM_DIRECT_PTR +NUM_PTR_PER_BLOCK) {
+              //free_map_release (direct_block_sectors[i], 1);  //free indirect pointers
+            }
+            else {
+
+            }
+            sectors_freed++;
+          }
         }
 
       free (inode); 

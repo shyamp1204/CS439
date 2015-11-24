@@ -45,6 +45,7 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
+
 	if (invalid_ptr (f->esp))
 	{
 		exit_status (-1);
