@@ -158,7 +158,7 @@ create_indirect(size_t remaining_sectors, struct indirect_block *first_lvl_id)
 
     remaining_sectors--;
   } 
-  return index;
+  return remaining_sectors;
 }
 
 
@@ -229,7 +229,7 @@ inode_create (block_sector_t sector, off_t length){
       //zeros out block
       block_write (fs_device, disk_inode->indirect_block_sector, zeros);
 
-      remaining_sectors -= create_indirect(remaining_sectors, first_lvl_id);
+      remaining_sectors = create_indirect(remaining_sectors, first_lvl_id);
 
       //write to disk the inode we made on heap
       block_write (fs_device, disk_inode->indirect_block_sector, first_lvl_id);
@@ -272,7 +272,7 @@ inode_create (block_sector_t sector, off_t length){
         //zeros out block
         block_write (fs_device, (second_lvl_id->direct_block_sectors[index]), zeros);
 
-        remaining_sectors -= create_indirect(remaining_sectors, first_lvl_id);
+        remaining_sectors = create_indirect(remaining_sectors, first_lvl_id);
 
         //write to disk the inode we made on heap. 
         block_write (fs_device, (second_lvl_id->direct_block_sectors[index]), first_lvl_id);
