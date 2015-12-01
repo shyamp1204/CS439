@@ -7,6 +7,8 @@
 #include "filesys/free-map.h"
 #include "threads/malloc.h"
 #include "threads/synch.h"
+#include <stdio.h>
+
 
 /* Identifies an inode. */
 #define INODE_MAGIC 0x494e4f44
@@ -61,6 +63,7 @@ struct indirect_block
 static block_sector_t
 byte_to_sector (const struct inode *inode, off_t pos) 
 {
+  // printf("######## Im in byte_to_sector\n");
   ASSERT (inode != NULL);
 
   //initalize the inode on heap
@@ -90,7 +93,7 @@ byte_to_sector (const struct inode *inode, off_t pos)
     free (first_lvl_id);
     return result;
   } 
-  else if (pos < 8388608)  //number of bytes our file supports
+  else if (location < 8388608 / BLOCK_SECTOR_SIZE)  //number of bytes our file supports
   {
     int second_lvl_offset = location - NUM_DIRECT_PTR - NUM_PTR_PER_BLOCK;
     int first_lvl_offset = second_lvl_offset % NUM_PTR_PER_BLOCK;
@@ -148,19 +151,13 @@ create_indirect(size_t remaining_sectors, struct indirect_block *first_lvl_id)
   for(index = 0; index < NUM_PTR_PER_BLOCK && remaining_sectors > 0; index++)
   {
     //Allocate a sector
-    free_map_allocate (1, &(first_lvl_id[index]));
-
+    free_map_allocate (1, &(first_lvl_id->direct_block_sectors[index]));
+    //&(first_lvl_id[index]) == first_lvl_id + index
     //Fill sector with Zeros
-    block_write (fs_device, &(first_lvl_id[index]), zeros);
+    block_write (fs_device, (first_lvl_id->direct_block_sectors[index]), zeros);
 
     remaining_sectors--;
   } 
-  if (index < NUM_PTR_PER_BLOCK)  // might not need this just a sneaky suspicion 
-  {
-   
-    ;//did not use all of the 1st level indirect block
-  }
-
   return index;
 }
 
@@ -173,6 +170,8 @@ create_indirect(size_t remaining_sectors, struct indirect_block *first_lvl_id)
    Returns false if memory or disk allocation fails. */
 bool 
 inode_create (block_sector_t sector, off_t length){
+   printf("             sdfg sd   I am in inode_create sector%d\n", (int)sector);
+
   //init lock       data_lock
   //lock aquire
   //init inode disk
@@ -204,7 +203,7 @@ inode_create (block_sector_t sector, off_t length){
       int index;
       for(index = 0; index < NUM_DIRECT_PTR &&  remaining_sectors > 0; index++){
         //Allocate a sector
-        free_map_allocate (1, &disk_inode->direct_block_sectors[index]);
+        free_map_allocate (1, &(disk_inode->direct_block_sectors[index]));
 
         //Fill sector with Zeros
         block_write (fs_device, disk_inode->direct_block_sectors[index], zeros);
@@ -226,6 +225,9 @@ inode_create (block_sector_t sector, off_t length){
 
       //allocate the indirect block
       free_map_allocate (1, &disk_inode->indirect_block_sector);
+
+      //zeros out block
+      block_write (fs_device, disk_inode->indirect_block_sector, zeros);
 
       remaining_sectors -= create_indirect(remaining_sectors, first_lvl_id);
 
@@ -251,6 +253,9 @@ inode_create (block_sector_t sector, off_t length){
       //Allocate a sector
       free_map_allocate (1, &disk_inode->doubly_indirect_block_sector);
      
+      //zeros out block
+      block_write (fs_device, disk_inode->doubly_indirect_block_sector, zeros);
+
       int index;
       for(index = 0; index < NUM_PTR_PER_BLOCK && remaining_sectors > 0; index++)
       {
@@ -262,19 +267,18 @@ inode_create (block_sector_t sector, off_t length){
         first_lvl_id = calloc (1, sizeof *first_lvl_id);
 
         //Allocate a sector
-        free_map_allocate (1, &(second_lvl_id[index]));
+        free_map_allocate (1, &(second_lvl_id->direct_block_sectors[index]));
+        
+        //zeros out block
+        block_write (fs_device, (second_lvl_id->direct_block_sectors[index]), zeros);
 
         remaining_sectors -= create_indirect(remaining_sectors, first_lvl_id);
 
-        //write to disk the inode we made on heap. I DONT THINK ARG 2 IS WRITE FORMAT!!!!!!!!!!!!!!!!
-        block_write (fs_device, &(second_lvl_id[index]), first_lvl_id);
+        //write to disk the inode we made on heap. 
+        block_write (fs_device, (second_lvl_id->direct_block_sectors[index]), first_lvl_id);
 
         free(first_lvl_id);
       } 
-      if (index >= NUM_PTR_PER_BLOCK && remaining_sectors > 0)// File is too big
-      {
-        ;//did not use all of the 1st level indirect block
-      }
 
       //write to disk the inode we made on heap
       block_write (fs_device, disk_inode->doubly_indirect_block_sector, second_lvl_id);
@@ -301,6 +305,8 @@ inode_create (block_sector_t sector, off_t length){
 struct inode *
 inode_open (block_sector_t sector)
 {
+    printf("             sdfg sd   I am in inode_open sector%d\n", (int)sector);
+;
   struct list_elem *e;
   struct inode *inode;
 
@@ -335,6 +341,7 @@ inode_open (block_sector_t sector)
 struct inode *
 inode_reopen (struct inode *inode)
 {
+  printf("             sdfg sd   I am in inode_reOPEN sector%d\n", (int)inode->sector);
   if (inode != NULL)
     inode->open_cnt++;
   return inode;
@@ -347,12 +354,27 @@ inode_get_inumber (const struct inode *inode)
   return inode->sector;
 }
 
+//free the mappings of an indirect block
+int
+free_indirect_block(int sectors_freed, int sectors_to_free, struct indirect_block *first_lvl_id)
+{
+  int index;
+  for(index = 0; index + sectors_freed < sectors_to_free && index < NUM_PTR_PER_BLOCK; index++)
+  {
+    free_map_release (first_lvl_id->direct_block_sectors[index], 1);  //free indirect pointers
+  }
+
+  free (first_lvl_id);
+  return index;
+}
+
 /* Closes INODE and writes it to disk. (Does it?  Check code.)
    If this was the last reference to INODE, frees its memory.
    If INODE was also a removed inode, frees its blocks. */
 void
 inode_close (struct inode *inode) 
 {
+ printf("             sdfg sd   I am in inode_close sector%d\n", (int)inode->sector);
   /* Ignore null pointer. */
   if (inode == NULL)
     return;
@@ -366,24 +388,65 @@ inode_close (struct inode *inode)
       /* Deallocate blocks if removed. */
       if (inode->removed) 
         {
-          free_map_release (inode->sector, 1);
           //free_map_release (inode->data.start, bytes_to_sectors (inode->data.length)); 
 
           int sectors_to_free = bytes_to_sectors (inode->data.length);
 
           //NEED TO WRTIE CODE HERE TO FREE THE ENTIRE INODE
           int sectors_freed = 0;
-          while (sectors_to_free > 0) {
-            if (sectors_freed < NUM_DIRECT_PTR)
-              free_map_release (inode->data.direct_block_sectors[sectors_freed], 1);  //free indirect pointers
-            else if (sectors_freed < NUM_DIRECT_PTR +NUM_PTR_PER_BLOCK) {
-              //free_map_release (direct_block_sectors[i], 1);  //free indirect pointers
-            }
-            else {
-
-            }
+          while(sectors_freed < NUM_DIRECT_PTR && sectors_freed < sectors_to_free)
+          {
+            free_map_release (inode->data.direct_block_sectors[sectors_freed], 1);  //free indirect pointers
             sectors_freed++;
           }
+
+          //first lvl indirect 
+          if(sectors_freed < sectors_to_free && sectors_freed < NUM_DIRECT_PTR + NUM_PTR_PER_BLOCK)
+          {
+            struct indirect_block *first_lvl_id = NULL;  
+
+            /* If this assertion fails, the inode structure is not exactly
+            one sector in size, and you should fix that. */
+            ASSERT (sizeof *first_lvl_id == BLOCK_SECTOR_SIZE);
+            
+            //malloc ID on heap and read its sector from disk into memory
+            first_lvl_id = calloc (1, sizeof *first_lvl_id);
+            block_read (fs_device, inode->data.indirect_block_sector, first_lvl_id);
+
+            sectors_freed += free_indirect_block(sectors_freed ,sectors_to_free, first_lvl_id);
+          }
+
+          // double indirect
+          if (sectors_freed < sectors_to_free && sectors_freed < 8388608 / BLOCK_SECTOR_SIZE)  //number of bytes our file supports
+          {
+
+            struct indirect_block *second_lvl_id = NULL;
+            /* If this assertion fails, the inode structure is not exactly
+            one sector in size, and you should fix that. */
+            ASSERT (sizeof *second_lvl_id == BLOCK_SECTOR_SIZE);
+
+            second_lvl_id = calloc (1, sizeof *second_lvl_id);
+            block_read (fs_device, inode->data.doubly_indirect_block_sector, second_lvl_id);
+
+            int second_lvl_offset;
+            for(second_lvl_offset = 0; second_lvl_offset < NUM_PTR_PER_BLOCK && sectors_freed < sectors_to_free; second_lvl_offset++)
+            {
+              block_sector_t first_lvl_id_sector_num = second_lvl_id->direct_block_sectors[second_lvl_offset];
+              
+              struct indirect_block *first_lvl_id = NULL;  
+              /* If this assertion fails, the inode structure is not exactly
+              one sector in size, and you should fix that. */
+              ASSERT (sizeof *first_lvl_id == BLOCK_SECTOR_SIZE);
+
+              first_lvl_id = calloc (1, sizeof *first_lvl_id);
+              block_read (fs_device, first_lvl_id_sector_num, first_lvl_id);
+
+              sectors_freed += free_indirect_block(sectors_freed, sectors_to_free, first_lvl_id);
+
+            }
+            free(second_lvl_id);
+          } 
+          free_map_release (inode->sector, 1);
         }
 
       free (inode); 

@@ -305,8 +305,6 @@ thread_tid (void)
 void
 thread_exit (void) 
 {
-      PANIC ("AAAAAA exiting");
-
   ASSERT (!intr_context ());
 
   struct thread* cur = thread_current();
