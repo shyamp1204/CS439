@@ -194,7 +194,6 @@ inode_create (block_sector_t sector, off_t length){
   /* If this assertion fails, the inode structure is not exactly
      one sector in size, and you should fix that. */
   ASSERT (sizeof *disk_inode == BLOCK_SECTOR_SIZE);
-
   disk_inode = calloc (1, sizeof *disk_inode);
 
   if (disk_inode != NULL)
@@ -476,6 +475,7 @@ inode_remove (struct inode *inode)
 off_t
 inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset) 
 {
+  printf ("RRRRRRREAD Inode: %d Length: %d\n", inode->sector, inode->data.length);
   uint8_t *buffer = buffer_;
   off_t bytes_read = 0;
   uint8_t *bounce = NULL;
@@ -534,8 +534,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
    (Normally a write at end of file would extend the inode, but
    growth is not yet implemented.) */
 off_t
-inode_write_at (struct inode *inode, const void *buffer_, off_t size,
-                off_t offset) 
+inode_write_at (struct inode *inode, const void *buffer_, off_t size, off_t offset) 
 {
   const uint8_t *buffer = buffer_;
   off_t bytes_written = 0;
@@ -546,9 +545,48 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 
   while (size > 0) 
   {
+    if (offset + size > inode_length (inode) && size > 0)
+    {
+      struct inode_disk *disk_inode = NULL;
+      ASSERT (sizeof *disk_inode == BLOCK_SECTOR_SIZE);
+      disk_inode = calloc (1, sizeof *disk_inode);
+
+      printf ("+++++++ EXTEND FILE +++++++ Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
+
+      //I need to extend my file length
+      if (byte_to_sector (inode, offset + size) < 0)
+      {
+        //NEED TO ALLOCATE NEW BLOCKS
+        if (inode->data.length < BLOCK_SECTOR_SIZE*NUM_DIRECT_PTR)  //124*512
+        {
+          printf ("  HERE????\n");
+          //allocate next direct pointer
+          int next_direct_idx = ((inode->data.length + size) / 512);  //Not sure about the  +1
+          free_map_allocate (1, &(inode->data.direct_block_sectors[next_direct_idx]));
+        }
+        else if (inode->data.length < BLOCK_SECTOR_SIZE *( NUM_DIRECT_PTR+NUM_PTR_PER_BLOCK) )
+        {
+          //indirect pointer needed
+          int next_direct_idx = (inode->data.length / 512) - NUM_DIRECT_PTR;
+          //READ INDIRECT BLOCK INTO MEMORY, THEN ALLOCATE NEXT SPOT
+          //free_map_allocate (1, &(inode->data.indirect_block_sector[next_direct_idx]);
+          inode->data.length = inode->data.length + size;   //increase the size to the extended file length
+        }
+        else
+        {
+          //doubly indirect needed
+          int second_ib_index = ((inode->data.length / 512) - NUM_DIRECT_PTR) %128;
+        }
+      }
+
+      inode->data.length = inode->data.length + size;   //increase the size to the extended file length
+
+      printf ("length: %d\n", inode->data.length);
+    }
+
     /* Sector to write, starting byte offset within sector. */
-    block_sector_t sector_idx = byte_to_sector (inode, offset);
     int sector_ofs = offset % BLOCK_SECTOR_SIZE;
+    block_sector_t sector_idx = byte_to_sector (inode, offset);
 
     /* Bytes left in inode, bytes left in sector, lesser of the two. */
     off_t inode_left = inode_length (inode) - offset;
@@ -560,6 +598,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
     if (chunk_size <= 0)
       break;
 
+    ////////////////EVERYTHING FROM HERE DOWN SHOULD BE GOOD
     if (sector_ofs == 0 && chunk_size == BLOCK_SECTOR_SIZE)
     {
       /* Write full sector directly to disk. */
