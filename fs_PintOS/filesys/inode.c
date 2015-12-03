@@ -537,39 +537,39 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
 off_t
 inode_write_at (struct inode *inode, const void *buffer_, off_t size, off_t offset) 
 {
+  ASSERT (size >0);
   const uint8_t *buffer = buffer_;
   off_t bytes_written = 0;
   uint8_t *bounce = NULL;
 
   if (inode->deny_write_cnt)
     return 0;
+  printf ("+++++++ EXTEND FILE +++++++ Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
 
-  while (size > 0) 
-  {
-    if (offset + size > inode_length (inode) && size > 0)
+
+  //ALLOCATE ALL BLOCKS NEEDED FOR THIS WRITE
+  if (offset + size > inode_length (inode))
     {
-      struct inode_disk *disk_inode = NULL;
-      ASSERT (sizeof *disk_inode == BLOCK_SECTOR_SIZE);
-      disk_inode = calloc (1, sizeof *disk_inode);
-      *disk_inode = inode->data;
+      //EXTEND FILE LENGTH
+      // printf ("+++++++ EXTEND FILE +++++++ Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
 
-      printf ("+++++++ EXTEND FILE +++++++ Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
-
-      //I need to extend my file length
-      if (byte_to_sector (inode, offset + size) == ERR_VALUE)
+      while (byte_to_sector (inode, offset + size) == ERR_VALUE)
       {
-        //NEED TO ALLOCATE NEW BLOCKS
-        if (disk_inode->length < BLOCK_SECTOR_SIZE*NUM_DIRECT_PTR)  //124*512
+        //NEED TO ALLOCATE 1 NEW BLOCK
+        if (inode->data.length < BLOCK_SECTOR_SIZE*NUM_DIRECT_PTR)  //124*512
         {
-          printf ("  HERE????\n");
+          // printf ("  HERE????\n");
           //allocate next direct pointer
-          int next_direct_idx = ((disk_inode->length + size) / 512);  //Not sure about the  +1
-          free_map_allocate (1, &(disk_inode->direct_block_sectors[next_direct_idx]));
+          int next_direct_idx = ((inode->data.length + size) / 512)+1;  //Not sure about the  +1
+          printf("next direct indirect: %d\n", next_direct_idx);
+          free_map_allocate (1, &(inode->data.direct_block_sectors[next_direct_idx]));
         }
-        else if (disk_inode->length < BLOCK_SECTOR_SIZE *( NUM_DIRECT_PTR+NUM_PTR_PER_BLOCK) )
+        else if (inode->data.length < BLOCK_SECTOR_SIZE *( NUM_DIRECT_PTR+NUM_PTR_PER_BLOCK) )
         {
+          printf ("2  HERE????\n");
+
           //indirect pointer needed
-          int next_direct_idx = (disk_inode->length / 512) - NUM_DIRECT_PTR;
+          int next_direct_idx = (inode->data.length / 512) - NUM_DIRECT_PTR;
           //READ INDIRECT BLOCK INTO MEMORY, THEN ALLOCATE NEXT SPOT
           //free_map_allocate (1, &(inode->data.indirect_block_sector[next_direct_idx]);
         }
@@ -578,20 +578,21 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size, off_t offs
           //doubly indirect needed
           int second_ib_index = ((inode->data.length / 512) - NUM_DIRECT_PTR) %128;
         }
+
+        // int distance_past_len = (offset+size) - inode_length (inode);
+        // int add = distance_past_len < 512 ? distance_past_len : 512;
+        inode->data.length += 512;   //increase the size to the extended file length
       }
 
-      disk_inode->length += size;   //increase the size to the extended file length
       
-      //WRITE OUT TEMP DISK_INODE BACK TO DISK
-      block_write (fs_device, inode->sector, disk_inode);
-      printf ("length: %d\n", disk_inode->length);
+      //WRITE OUT (IN MEMORY) INODE BACK TO DISK
+      block_write (fs_device, inode->sector, inode);
+      printf ("length: %d\n", inode->data.length);
+  }
 
-      free (disk_inode);
-
-
-      //https://jawpintos.googlecode.com/svn/trunk/project4/src/filesys/inode.c
-    }
-
+  ////////////////DO NOT TOUCH ANYTHING FROM HERE ON!!!!!
+  while (size > 0) 
+  {
     /* Sector to write, starting byte offset within sector. */
     int sector_ofs = offset % BLOCK_SECTOR_SIZE;
     block_sector_t sector_idx = byte_to_sector (inode, offset);
@@ -606,7 +607,6 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size, off_t offs
     if (chunk_size <= 0)
       break;
 
-    ////////////////EVERYTHING FROM HERE DOWN SHOULD BE GOOD
     if (sector_ofs == 0 && chunk_size == BLOCK_SECTOR_SIZE)
     {
       /* Write full sector directly to disk. */
