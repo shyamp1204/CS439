@@ -539,7 +539,15 @@ extend_file (struct inode *inode, off_t size, off_t offset)
   //EXTEND FILE LENGTH
   printf ("====== EXTEND FILE ===== Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
 
-  size_t sectors_to_add = ((offset+size) - inode_length (inode)) / BLOCK_SECTOR_SIZE;
+  size_t sectors_to_add = 0;
+  if (( (offset+size - inode_length (inode)) % BLOCK_SECTOR_SIZE) == 0)
+    sectors_to_add = ((offset+size) - inode_length (inode)) / BLOCK_SECTOR_SIZE;
+  else
+    sectors_to_add = (( offset + size - inode_length (inode)) / BLOCK_SECTOR_SIZE) +1;
+
+  printf ("******SECTORS ADDING: %d\n", sectors_to_add);
+
+
   while (sectors_to_add > 0)  //byte_to_sector (inode, offset + size -1) == ERR_VALUE
   {
     //NEED TO ALLOCATE 1 NEW BLOCK
@@ -576,7 +584,7 @@ extend_file (struct inode *inode, off_t size, off_t offset)
     int add = distance_past_len < 512 ? distance_past_len : 512;
     inode->data.length += 37;   //increase the size to the extended file length
     // printf ("1 length: %d\n", inode->data.length);
-
+    sectors_to_add--;
   }
 
   //WRITE OUT (IN MEMORY) INODE BACK TO DISK
@@ -601,14 +609,20 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size, off_t offs
   if (inode->deny_write_cnt)
     return 0;
 
-  if (inode->sector >200)
+  if (inode->sector >200) {
     printf ("+++++++ WRITE FILE +++++++ Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
 
   //IF WE ARE WRITING PAST EOF, EXTEND THE FILE
-  if (((offset + size-1)/BLOCK_SECTOR_SIZE) > (inode->data.length) /BLOCK_SECTOR_SIZE || inode->data.length == 0)
+  bool both_zero = (offset + size-1)/BLOCK_SECTOR_SIZE ==0 && (inode->data.length) == 0;
+  if ( ((offset + size-1)/BLOCK_SECTOR_SIZE) > (inode->data.length)/BLOCK_SECTOR_SIZE || both_zero )
     extend_file (inode, size, offset);
   else if (offset + size > inode_length (inode))
+  {
     inode->data.length = offset + size; 
+    block_write (fs_device, inode->sector, (&inode->data));
+    printf ("$$$$$ Length; %d\n", inode->data.length);
+  }
+}
 
   ////////////////DO NOT TOUCH ANYTHING FROM HERE ON!!!!!
   while (size > 0) 
