@@ -529,6 +529,62 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
   return bytes_read;
 }
 
+/* allocates more disk sector blocks to expand th file for a write past EOF*/
+void
+extend_file (struct inode *inode, off_t size, off_t offset)
+{
+  static char zeros[BLOCK_SECTOR_SIZE];
+  //block_write (fs_device, disk_inode->direct_block_sectors[index], zeros);
+
+  //EXTEND FILE LENGTH
+  printf ("====== EXTEND FILE ===== Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
+
+  size_t sectors_to_add = ((offset+size) - inode_length (inode)) / BLOCK_SECTOR_SIZE;
+  while (sectors_to_add > 0)  //byte_to_sector (inode, offset + size -1) == ERR_VALUE
+  {
+    //NEED TO ALLOCATE 1 NEW BLOCK
+    if (inode->data.length < BLOCK_SECTOR_SIZE*NUM_DIRECT_PTR)  //124*512
+    {
+      // printf ("  HERE????");
+      // printf ("    LENGTH: %d\n", inode->data.length);
+
+      //allocate next direct pointer
+      int next_direct_idx = ((inode->data.length) / 512);  
+      printf("next direct indirect: %d\n", next_direct_idx);
+
+      free_map_allocate (1, &(inode->data.direct_block_sectors[next_direct_idx]));
+      block_write (fs_device, inode->data.direct_block_sectors[next_direct_idx], zeros);
+
+      // printf ("^^^^^ Allocated sector: %d\n", inode->data.direct_block_sectors[next_direct_idx]);
+    }
+    else if (inode->data.length < BLOCK_SECTOR_SIZE *( NUM_DIRECT_PTR+NUM_PTR_PER_BLOCK) )
+    {
+      // printf ("2  HERE????\n");
+
+      //indirect pointer needed
+      int next_direct_idx = (inode->data.length / 512) - NUM_DIRECT_PTR;
+      //READ INDIRECT BLOCK INTO MEMORY, THEN ALLOCATE NEXT SPOT
+      //free_map_allocate (1, &(inode->data.indirect_block_sector[next_direct_idx]);
+    }
+    else
+    {
+      //doubly indirect needed
+      int second_ib_index = ((inode->data.length / 512) - NUM_DIRECT_PTR) %128;
+    }
+
+    int distance_past_len = (offset+size) - inode_length (inode);
+    int add = distance_past_len < 512 ? distance_past_len : 512;
+    inode->data.length += 37;   //increase the size to the extended file length
+    // printf ("1 length: %d\n", inode->data.length);
+
+  }
+
+  //WRITE OUT (IN MEMORY) INODE BACK TO DISK
+  block_write (fs_device, inode->sector, (&inode->data));
+  // printf ("length: %d\n", inode->data.length);
+
+}
+
 /* Writes SIZE bytes from BUFFER into INODE, starting at OFFSET.
    Returns the number of bytes actually written, which may be
    less than SIZE if end of file is reached or an error occurs.
@@ -544,51 +600,15 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size, off_t offs
 
   if (inode->deny_write_cnt)
     return 0;
-  printf ("+++++++ EXTEND FILE +++++++ Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
 
+  if (inode->sector >200)
+    printf ("+++++++ WRITE FILE +++++++ Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
 
-  //ALLOCATE ALL BLOCKS NEEDED FOR THIS WRITE
-  if (offset + size > inode_length (inode))
-    {
-      //EXTEND FILE LENGTH
-      // printf ("+++++++ EXTEND FILE +++++++ Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
-
-      while (byte_to_sector (inode, offset + size) == ERR_VALUE)
-      {
-        //NEED TO ALLOCATE 1 NEW BLOCK
-        if (inode->data.length < BLOCK_SECTOR_SIZE*NUM_DIRECT_PTR)  //124*512
-        {
-          // printf ("  HERE????\n");
-          //allocate next direct pointer
-          int next_direct_idx = ((inode->data.length + size) / 512)+1;  //Not sure about the  +1
-          printf("next direct indirect: %d\n", next_direct_idx);
-          free_map_allocate (1, &(inode->data.direct_block_sectors[next_direct_idx]));
-        }
-        else if (inode->data.length < BLOCK_SECTOR_SIZE *( NUM_DIRECT_PTR+NUM_PTR_PER_BLOCK) )
-        {
-          printf ("2  HERE????\n");
-
-          //indirect pointer needed
-          int next_direct_idx = (inode->data.length / 512) - NUM_DIRECT_PTR;
-          //READ INDIRECT BLOCK INTO MEMORY, THEN ALLOCATE NEXT SPOT
-          //free_map_allocate (1, &(inode->data.indirect_block_sector[next_direct_idx]);
-        }
-        else
-        {
-          //doubly indirect needed
-          int second_ib_index = ((inode->data.length / 512) - NUM_DIRECT_PTR) %128;
-        }
-
-        // int distance_past_len = (offset+size) - inode_length (inode);
-        // int add = distance_past_len < 512 ? distance_past_len : 512;
-        inode->data.length += 512;   //increase the size to the extended file length
-      }
-
-      
-      //WRITE OUT (IN MEMORY) INODE BACK TO DISK
-      block_write (fs_device, inode->sector, inode);
-      printf ("length: %d\n", inode->data.length);
-  }
+  //IF WE ARE WRITING PAST EOF, EXTEND THE FILE
+  if (((offset + size-1)/BLOCK_SECTOR_SIZE) > (inode->data.length) /BLOCK_SECTOR_SIZE || inode->data.length == 0)
+    extend_file (inode, size, offset);
+  else if (offset + size > inode_length (inode))
+    inode->data.length = offset + size; 
 
   ////////////////DO NOT TOUCH ANYTHING FROM HERE ON!!!!!
   while (size > 0) 
@@ -642,6 +662,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size, off_t offs
 
   return bytes_written;
 }
+
 
 /* Disables writes to INODE.
    May be called at most once per inode opener. */
