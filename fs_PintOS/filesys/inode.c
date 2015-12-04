@@ -8,7 +8,7 @@
 #include "threads/malloc.h"
 #include "threads/synch.h"
 #include <stdio.h>
-
+#include <file.c>
 
 /* Identifies an inode. */
 #define INODE_MAGIC 0x494e4f44
@@ -604,7 +604,6 @@ extend_file (struct inode *inode, off_t size, off_t offset)
 off_t
 inode_write_at (struct inode *inode, const void *buffer_, off_t size, off_t offset) 
 {
-  ASSERT (size >0);
   const uint8_t *buffer = buffer_;
   off_t bytes_written = 0;
   uint8_t *bounce = NULL;
@@ -612,8 +611,8 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size, off_t offs
   if (inode->deny_write_cnt)
     return 0;
 
-  // if (inode->sector > 200)
-    // printf ("++++++ WRITING FILE +++++ Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
+  // if (inode->sector > 200) 
+  //   printf ("++++++ WRITING FILE +++++ Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
 
   //SEE IF WE ARE TRYING TO WRITE PAST THE EOF
   bool both_zero = (offset + size-1)/BLOCK_SECTOR_SIZE ==0 && (inode->data.length) == 0;

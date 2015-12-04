@@ -311,6 +311,7 @@ Alex and Katherine Drove
 static void 
 my_remove (struct intr_frame *f) 
 {
+	//UPDATE FOR DIRECTORIES
 	const char *filename = (char *)*(int*)(4+(f->esp));
 
   if (invalid_ptr ((void *)filename)) 
@@ -345,6 +346,7 @@ Alexc Drove
 static void 
 my_open (struct intr_frame *f) 
 {
+	//MUST ALSO OPEN DIRECTORIES
 	const char *filename = (char *)*(int*)(4+(f->esp));
 	struct thread *cur = thread_current ();
 
@@ -358,12 +360,17 @@ my_open (struct intr_frame *f)
 	struct file *cur_file = filesys_open (filename);
 	lock_release (&filesys_lock);
 
+
 	if (cur_file != NULL) 
 	{
 		//get the next open file descriptor available, and put the file in it
 		int fd = next_fd (cur);
 		cur->open_files[fd-2] = cur_file;
 		f->eax = fd;		//return int;
+	}
+	else if (1) 
+	{
+		struct dir =  dir_open(cur->file);
 	}
 	else 
 	{
@@ -484,6 +491,7 @@ my_write (struct intr_frame *f)
 
 	  	if (cur->exec_file != cur_file)
 				f->eax = file_write (cur_file, buffer, length);  //return bytes written
+
 	  	lock_release (&filesys_lock);
 	  }
 	}
@@ -512,8 +520,8 @@ my_seek (struct intr_frame *f)
 	off_t size = file_length (cur_file);
 	if (position < 0) 
 		return;
-	else if (position > size)
-		position = size;
+	// else if (position > size)
+	// 	position = size;
 
 	file_seek (cur_file, position);
 	lock_release (&filesys_lock);
