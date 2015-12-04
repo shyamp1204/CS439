@@ -90,7 +90,7 @@ FAIL tests/filesys/extended/grow-dir-lg
 pass tests/filesys/extended/grow-file-size
 pass tests/filesys/extended/grow-root-lg
 pass tests/filesys/extended/grow-root-sm
-FAIL tests/filesys/extended/grow-seq-lg
+pass tests/filesys/extended/grow-seq-lg
 pass tests/filesys/extended/grow-seq-sm
 FAIL tests/filesys/extended/grow-sparse
 pass tests/filesys/extended/grow-tell
@@ -119,4 +119,4 @@ FAIL tests/filesys/extended/grow-sparse-persistence
 FAIL tests/filesys/extended/grow-tell-persistence
 FAIL tests/filesys/extended/grow-two-files-persistence
 FAIL tests/filesys/extended/syn-rw-persistence
-40 of 121 tests failed.
+39 of 121 tests failed.
