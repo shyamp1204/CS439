@@ -318,7 +318,7 @@ my_create (struct intr_frame *f)
  	}
 
  	lock_acquire (&filesys_lock);
-	f->eax = filesys_create (filename, initial_size);   //returns boolean
+	f->eax = filesys_create (filename, initial_size, false);   //returns boolean
 	lock_release (&filesys_lock);
 }
 
@@ -669,10 +669,15 @@ my_mkdir (struct intr_frame *f)
 }
 
 /*
-Reads a directory entry from file descriptor fd, which must represent a directory. If successful, stores the null-terminated file name in name, which must have room for READDIR_MAX_LEN + 1 bytes, and returns true. If no entries are left in the directory, returns false.
+Reads a directory entry from file descriptor fd, which must represent a directory. 
+If successful, stores the null-terminated file name in name, which must have room 
+for READDIR_MAX_LEN + 1 bytes, and returns true. If no entries are left in the directory, returns false.
 "." and ".." should not be returned by readdir.
-If the directory changes while it is open, then it is acceptable for some entries not to be read at all or to be read multiple times. Otherwise, each directory entry should be read once, in any order.
-READDIR_MAX_LEN is defined in "lib/user/syscall.h". If your file system supports longer file names than the basic file system, you should increase this value from the default of 14.
+If the directory changes while it is open, then it is acceptable for some 
+entries not to be read at all or to be read multiple times. Otherwise, each 
+directory entry should be read once, in any order.
+READDIR_MAX_LEN is defined in "lib/user/syscall.h". If your file system supports 
+longer file names than the basic file system, you should increase this value from the default of 14.
 */
 static void 
 my_readdir (struct intr_frame *f) 
@@ -685,6 +690,8 @@ my_readdir (struct intr_frame *f)
   	exit_status (-1);
   	return;
   }
+
+  struct file *cur_file =  get_file (fd);
 
 	// return dir_readdir (struct dir *dir, char name[NAME_MAX + 1]);
 	// return bool;

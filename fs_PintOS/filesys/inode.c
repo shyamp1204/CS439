@@ -12,7 +12,7 @@
 
 /* Identifies an inode. */
 #define INODE_MAGIC 0x494e4f44
-#define NUM_DIRECT_PTR 124
+#define NUM_DIRECT_PTR 122
 #define NUM_PTR_PER_BLOCK 128
 #define ERR_VALUE 99999999
 
@@ -24,8 +24,8 @@ struct inode_disk
 {
   off_t length;                       /* File size in bytes. */
   unsigned magic;                     /* Magic number. */
-  //bool is_dir;                        /*true if inode is directory, false if file*/
-  //block_sector_t parent_dir;          /*-1 default, block sector of parent directory inode otherwise*/
+  bool is_dir;                        /*true if inode is directory, false if file*/
+  block_sector_t parent_dir;          /*-1 default, block sector of parent directory inode otherwise*/
   
   block_sector_t direct_block_sectors[NUM_DIRECT_PTR];   // Direct Pointers Array 
   block_sector_t indirect_block_sector;                  // First lvl Indirect pointers
@@ -183,7 +183,7 @@ create_indirect(size_t remaining_sectors, struct indirect_block *first_lvl_id)
   Wes and KK writing here
 */
 bool 
-inode_create (block_sector_t sector, off_t length)
+inode_create (block_sector_t sector, off_t length, bool is_dir)
 {
   //init lock (data_lock) AND lock aquire????
   struct inode_disk *disk_inode = NULL;
@@ -206,6 +206,8 @@ inode_create (block_sector_t sector, off_t length)
 
     disk_inode->length = length;
     disk_inode->magic = INODE_MAGIC;
+    disk_inode->is_dir = is_dir;
+    disk_inode->parent_dir = ROOT_DIR_SECTOR;
 
     //allocate direct pointers
     if(remaining_sectors > 0)
@@ -301,7 +303,6 @@ inode_create (block_sector_t sector, off_t length)
 struct inode *
 inode_open (block_sector_t sector)
 {
-  // printf("             sdfg sd   I am in inode_open sector%d\n", (int)sector);
   struct list_elem *e;
   struct inode *inode;
 
@@ -329,6 +330,8 @@ inode_open (block_sector_t sector)
   inode->deny_write_cnt = 0;
   inode->removed = false;
 
+  lock_init (&inode->data_lock);
+
   block_read (fs_device, inode->sector, &inode->data);
   return inode;
 }
@@ -351,7 +354,7 @@ inode_get_inumber (const struct inode *inode)
 
 //free the mappings of an indirect block
 int
-free_indirect_block(int sectors_freed, int sectors_to_free, struct indirect_block *first_lvl_id)
+free_indirect_block (int sectors_freed, int sectors_to_free, struct indirect_block *first_lvl_id)
 {
   int index;
   for(index = 0; index + sectors_freed < sectors_to_free && index < NUM_PTR_PER_BLOCK; index++)
@@ -368,7 +371,6 @@ free_indirect_block(int sectors_freed, int sectors_to_free, struct indirect_bloc
 void
 inode_close (struct inode *inode) 
 {
- // printf("             sdfg sd   I am in inode_close sector%d\n", (int)inode->sector);
   /* Ignore null pointer. */
   if (inode == NULL)
     return;
@@ -462,7 +464,6 @@ inode_remove (struct inode *inode)
 off_t
 inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset) 
 {
-  // printf ("RRRRRRREAD Inode: %d Length: %d\n", inode->sector, inode->data.length);
   uint8_t *buffer = buffer_;
   off_t bytes_read = 0;
   uint8_t *bounce = NULL;
@@ -511,7 +512,6 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
     bytes_read += chunk_size;
   }
   free (bounce);
-
   return bytes_read;
 }
 
@@ -521,6 +521,8 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
 void
 extend_file (struct inode *inode, off_t size, off_t offset)
 {
+  lock_acquire (&inode->data_lock);
+
   int next_index  = inode_length(inode) / BLOCK_SECTOR_SIZE + 1;
   size_t sectors_to_add = 0;
   static char zeros[BLOCK_SECTOR_SIZE];
@@ -548,6 +550,8 @@ extend_file (struct inode *inode, off_t size, off_t offset)
     }
     else if (inode->data.length < BLOCK_SECTOR_SIZE *( NUM_DIRECT_PTR+NUM_PTR_PER_BLOCK) )
     {
+        // printf ("@@@ IN Indirect\n");
+
       //allocate next indirect pointer space
       struct indirect_block *first_lvl_id = calloc (1, sizeof *first_lvl_id);
       
@@ -556,6 +560,7 @@ extend_file (struct inode *inode, off_t size, off_t offset)
         //Indirect block has not been created yet, allocate the indirect block
         free_map_allocate (1, &inode->data.indirect_block_sector);  
         block_write (fs_device, inode->data.indirect_block_sector, zeros);
+        
       }
       else
         block_read (fs_device, inode->data.indirect_block_sector, first_lvl_id);
@@ -577,9 +582,11 @@ extend_file (struct inode *inode, off_t size, off_t offset)
     sectors_to_add--;
     next_index++;
   }
+  lock_release (&inode->data_lock);
 
   //WRITE OUT (IN MEMORY) INODE BACK TO DISK
   block_write (fs_device, inode->sector, (&inode->data));
+  // printf ("~~~~~ Length: %d", inode->data.length);
 }
 
 /* Writes SIZE bytes from BUFFER into INODE, starting at OFFSET.
@@ -666,7 +673,6 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size, off_t offs
     bytes_written += chunk_size;
   }
   free (bounce);
-
   return bytes_written;
 }
 
