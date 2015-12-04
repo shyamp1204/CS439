@@ -622,7 +622,9 @@ next_fd (struct thread *cur)
 	return -1;
 }
 
-//function for outside files to call exit_status
+/*
+	function for outside files to call exit_status
+*/
 void
 exit_status_ext (int e_status) {
 	exit_status(e_status);
@@ -630,7 +632,8 @@ exit_status_ext (int e_status) {
 
 
 /*
-Changes the current working directory of the process to dir, which may be relative or absolute. Returns true if successful, false on failure. 
+Changes the current working directory of the process to dir, which may be 
+relative or absolute. Returns true if successful, false on failure. 
 */ 
 static bool 
 my_chdir (struct intr_frame *f) 
@@ -640,12 +643,21 @@ my_chdir (struct intr_frame *f)
 }
 
 /*
-  Creates the directory named dir, which may be relative or absolute. Returns true if successful, false on failure. Fails if dir already exists or if any directory name in dir, besides the last, does not already exist. That is, mkdir("/a/b/c") succeeds only if "/a/b" already exists and "/a/b/c" does not. 
+  Creates the directory named dir, which may be relative or absolute. 
+  Returns true if successful, false on failure. 
+  Fails if dir already exists or if any directory name in dir, besides 
+  the last, does not already exist. 
+  That is, mkdir("/a/b/c") succeeds only if "/a/b" already exists and "/a/b/c" 
+  does not. 
 */
 static bool 
 my_mkdir (struct intr_frame *f) 
 {
+	// printf ("&&&&&&&&&&&& DOES THIS HAPPEN?\n");
 	char *dir = (char *)*(int*)(4+(f->esp));
+	
+	// exit_status(-1);
+
 	//bool dir_add (struct dir *, const char *name, block_sector_t);
 	return false;
 }

@@ -42,13 +42,17 @@ bytes_to_sectors (off_t size)
 /* In-memory inode. */
 struct inode 
 {
-  struct lock data_lock;
   struct list_elem elem;              /* Element in inode list. */
   block_sector_t sector;              /* Sector number of disk location. */
   int open_cnt;                       /* Number of openers. */
   bool removed;                       /* True if deleted, false otherwise. */
   int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
   struct inode_disk data;             /* Inode content. */
+
+  //ADDED
+  bool is_dir;                        /*true if inode is directory, false if file*/
+  block_sector_t parent_dir;          /*-1 default, block sector of parent directory inode otherwise*/
+  struct lock data_lock;
 };
 
 struct indirect_block
@@ -69,9 +73,7 @@ int free_indirect_block(int sectors_freed, int sectors_to_free, struct indirect_
 static block_sector_t
 byte_to_sector (const struct inode *inode, off_t pos) 
 {
-  // printf("######## Im in byte_to_sector\n");
   ASSERT (inode != NULL);
-
   size_t location = pos / BLOCK_SECTOR_SIZE;
   
   if(pos < inode->data.length)
@@ -81,7 +83,7 @@ byte_to_sector (const struct inode *inode, off_t pos)
       //pos is in one of the direct blocks
       return inode->data.direct_block_sectors[location];
     }
-    else if(location < NUM_DIRECT_PTR + NUM_PTR_PER_BLOCK)
+    else if (location < NUM_DIRECT_PTR + NUM_PTR_PER_BLOCK)
     {
       //pos is in the first level indirect blocks
       int first_lvl_offset = location - NUM_DIRECT_PTR;
@@ -94,7 +96,6 @@ byte_to_sector (const struct inode *inode, off_t pos)
       //malloc ID on heap and read its sector from disk into memory
       first_lvl_id = calloc (1, sizeof *first_lvl_id);
       block_read (fs_device, inode->data.indirect_block_sector, first_lvl_id);
-
       block_sector_t result = first_lvl_id->direct_block_sectors[first_lvl_offset];
 
       free (first_lvl_id);
@@ -174,8 +175,6 @@ create_indirect(size_t remaining_sectors, struct indirect_block *first_lvl_id)
   return remaining_sectors;
 }
 
-
-
 /* Initializes an inode with LENGTH bytes of data and
    writes the new inode to sector SECTOR on the file system
    device.
@@ -187,9 +186,7 @@ create_indirect(size_t remaining_sectors, struct indirect_block *first_lvl_id)
 bool 
 inode_create (block_sector_t sector, off_t length)
 {
-  //init lock       data_lock
-  //lock aquire
-  //init inode disk
+  //init lock (data_lock) AND lock aquire????
   struct inode_disk *disk_inode = NULL;
   bool success = false;
 
@@ -226,8 +223,7 @@ inode_create (block_sector_t sector, off_t length)
       }
     }
 
-    //check remaining length
-    //write to first lvl indirect
+    //create indirect block if we need more data sectors
     if(remaining_sectors > 0)
     {
       struct indirect_block *first_lvl_id = NULL;  
@@ -239,10 +235,7 @@ inode_create (block_sector_t sector, off_t length)
 
       //allocate the indirect block
       free_map_allocate (1, &disk_inode->indirect_block_sector);
-
-      //zeros out block
       block_write (fs_device, disk_inode->indirect_block_sector, zeros);
-
       remaining_sectors = create_indirect(remaining_sectors, first_lvl_id);
 
       //write to disk the inode we made on heap
@@ -253,9 +246,7 @@ inode_create (block_sector_t sector, off_t length)
     else 
       disk_inode->indirect_block_sector = NULL;
 
-
-    //check remaining length
-    //write to second lvl indirect
+    //create 2nd level indirect block if we need more data sectors
     if(remaining_sectors > 0)
     {
       struct indirect_block *second_lvl_id = NULL;
@@ -266,8 +257,6 @@ inode_create (block_sector_t sector, off_t length)
 
       //Allocate a sector
       free_map_allocate (1, &disk_inode->doubly_indirect_block_sector);
-     
-      //zeros out block
       block_write (fs_device, disk_inode->doubly_indirect_block_sector, zeros);
 
       int index;
@@ -282,21 +271,16 @@ inode_create (block_sector_t sector, off_t length)
 
         //Allocate a sector
         free_map_allocate (1, &(second_lvl_id->direct_block_sectors[index]));
-        
-        //zeros out block
         block_write (fs_device, (second_lvl_id->direct_block_sectors[index]), zeros);
-
         remaining_sectors = create_indirect(remaining_sectors, first_lvl_id);
 
         //write to disk the inode we made on heap. 
         block_write (fs_device, (second_lvl_id->direct_block_sectors[index]), first_lvl_id);
-
         free(first_lvl_id);
       } 
 
       //write to disk the inode we made on heap
       block_write (fs_device, disk_inode->doubly_indirect_block_sector, second_lvl_id);
-
       free(second_lvl_id);
     } 
     else 
@@ -308,7 +292,7 @@ inode_create (block_sector_t sector, off_t length)
 
     free (disk_inode);
   }
-  //lock release
+  //lock release????
   return success;
 }
 
@@ -405,7 +389,7 @@ inode_close (struct inode *inode)
 
       //NEED TO WRTIE CODE HERE TO FREE THE ENTIRE INODE
       int sectors_freed = 0;
-      while(sectors_freed < NUM_DIRECT_PTR && sectors_freed < sectors_to_free && inode->data.direct_block_sectors[sectors_freed] != NULL)
+      while (sectors_freed < NUM_DIRECT_PTR && sectors_freed < sectors_to_free && inode->data.direct_block_sectors[sectors_freed] != NULL)
       {
         free_map_release (inode->data.direct_block_sectors[sectors_freed], 1);  //free indirect pointers
         sectors_freed++;
