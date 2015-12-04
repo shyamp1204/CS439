@@ -9,6 +9,7 @@
 #include "threads/synch.h"
 #include <stdio.h>
 #include <file.c>
+#include "threads/thread.h"
 
 /* Identifies an inode. */
 #define INODE_MAGIC 0x494e4f44
@@ -207,7 +208,9 @@ inode_create (block_sector_t sector, off_t length, bool is_dir)
     disk_inode->length = length;
     disk_inode->magic = INODE_MAGIC;
     disk_inode->is_dir = is_dir;
-    disk_inode->parent_dir = ROOT_DIR_SECTOR;
+    
+    //set parent directory to the thread current working dir
+    disk_inode->parent_dir = thread_current()->current_working_dir;
 
     //allocate direct pointers
     if(remaining_sectors > 0)

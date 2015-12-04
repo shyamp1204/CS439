@@ -12,6 +12,7 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "malloc.h"
+#include "filesys/filesys.h"
 #include "lib/kernel/list.h"
 #ifdef USERPROG
 #include "userprog/process.h"
@@ -100,6 +101,9 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   
+ //Set main threads CWD to root
+  initial_thread->current_working_dir = ROOT_DIR_SECTOR;
+
   initial_thread->tid = allocate_tid ();
   sema_init (&(initial_thread->exec_sema),0);  //for the main thread
 }
@@ -218,7 +222,9 @@ thread_create (const char *name, int priority,
   sema_init (&(t->exec_sema),0);
   t->my_info->tid = tid;
   t->my_info->exit_status= -1;
-  // put the child_info struct of t on the parents children list
+
+  t->current_working_dir = cur->current_working_dir;
+
   list_push_back (&cur->children_list, &(t->my_info->elem));
 
   /* Add to run queue. */

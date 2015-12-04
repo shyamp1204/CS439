@@ -115,6 +115,7 @@ struct thread
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
+    block_sector_t current_working_dir;     /*sector number that points to the inode that keeps track of working directory*/
 #endif
 
     /* Owned by thread.c. */
@@ -125,7 +126,6 @@ struct thread
     struct file* exec_file;       /* the current file this thread is executing*/
     struct file *open_files[128];           /* List of open files. */
 
-    block_sector_t current_working_dir;     /*sector number that points to the inode that keeps track of working directory*/
   };
 
 /* If false (default), use round-robin scheduler.
