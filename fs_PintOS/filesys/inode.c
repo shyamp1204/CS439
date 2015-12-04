@@ -538,7 +538,7 @@ extend_file (struct inode *inode, off_t size, off_t offset)
 
   size_t sectors_to_add = 0;
   static char zeros[BLOCK_SECTOR_SIZE];
-  printf ("====== EXTEND FILE ===== Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
+  // printf ("====== EXTEND FILE ===== Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
 
   if (( (offset+size - inode_length (inode)) % BLOCK_SECTOR_SIZE) == 0)
     sectors_to_add = ((offset+size) - inode_length (inode)) / BLOCK_SECTOR_SIZE;
@@ -575,12 +575,15 @@ extend_file (struct inode *inode, off_t size, off_t offset)
 
         //zeros out block
         block_write (fs_device, inode->data.indirect_block_sector, zeros);
-
+      }
+      else
+      {
+       block_read (fs_device, inode->data.indirect_block_sector, first_lvl_id);
       }
       // Add the sector needed
       free_map_allocate (1, &(first_lvl_id->direct_block_sectors[next_index- NUM_DIRECT_PTR]));
-      
-      printf ("^^^^^ Allocated sector: %d\n", first_lvl_id->direct_block_sectors[next_index- NUM_DIRECT_PTR]); 
+
+      // printf ("^^^^^ Allocated sector: %d\n", first_lvl_id->direct_block_sectors[next_index- NUM_DIRECT_PTR]); 
       //Fill sector with Zeros
       block_write (fs_device, (first_lvl_id->direct_block_sectors[next_index- NUM_DIRECT_PTR]), zeros);
       
