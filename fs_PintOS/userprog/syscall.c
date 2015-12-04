@@ -15,6 +15,9 @@
 #include "threads/synch.h"
 #include "lib/string.h"
 #include "filesys/inode.h"
+#include "threads/malloc.h"
+#include "filesys/directory.h"
+
 
 static void syscall_handler (struct intr_frame *);
 static int invalid_ptr (void *ptr);
@@ -380,7 +383,6 @@ my_open (struct intr_frame *f)
 	struct file *cur_file = filesys_open (filename);
 	lock_release (&filesys_lock);
 
-
 	if (cur_file != NULL) 
 	{
 		//get the next open file descriptor available, and put the file in it
@@ -631,16 +633,26 @@ exit_status_ext (int e_status) {
 	exit_status(e_status);
 }
 
-
 /*
 Changes the current working directory of the process to dir, which may be 
 relative or absolute. Returns true if successful, false on failure. 
+Alex drove
 */ 
 static void 
 my_chdir (struct intr_frame *f) 
 {
 	char *dir_name = (char *)*(int*)(8+(f->esp));
-	f->eax = filesys_chdir (dir_name);
+
+	if (invalid_ptr (dir_name)) 
+	{
+  	exit_status (-1);
+  	return;
+  }
+
+ //  dir_close(thread_current()->current_working_dir);
+	// thread_current()->current_working_dir = dir_name;
+
+	f->eax = false;
 }
 
 /*
@@ -650,6 +662,7 @@ my_chdir (struct intr_frame *f)
   the last, does not already exist. 
   That is, mkdir("/a/b/c") succeeds only if "/a/b" already exists and "/a/b/c" 
   does not. 
+	Alex drove
 */
 static void 
 my_mkdir (struct intr_frame *f) 
@@ -661,7 +674,7 @@ my_mkdir (struct intr_frame *f)
   	exit_status (-1);
   	return;
   }
-  
+
   f->eax = filesys_mkdir (dir_name);
 }
 
@@ -675,6 +688,7 @@ entries not to be read at all or to be read multiple times. Otherwise, each
 directory entry should be read once, in any order.
 READDIR_MAX_LEN is defined in "lib/user/syscall.h". If your file system supports 
 longer file names than the basic file system, you should increase this value from the default of 14.
+Alex drove
 */
 static void 
 my_readdir (struct intr_frame *f) 
@@ -690,13 +704,18 @@ my_readdir (struct intr_frame *f)
 
   struct file *cur_file =  get_file (fd);
 
-	// return dir_readdir (struct dir *dir, char name[NAME_MAX + 1]);
+  struct dir *mydir = malloc (sizeof *mydir);
+  // mydir->inode = get_inode_from_file (cur_file);
+  // mydir->pos = get_pos_from_file (cur_file);
+
 	// return bool;
-  f->eax = false;
+  f->eax = dir_readdir (mydir, dir_name);	//false
+  free (mydir);
 }
 
 /*
 Returns true if fd represents a directory, false if it represents an ordinary file. 
+Alex drove
 */
 static void 
 my_isdir (struct intr_frame *f) 
@@ -710,6 +729,7 @@ my_isdir (struct intr_frame *f)
 /*
 Returns the inode number of the inode associated with fd, which may represent an ordinary file or a directory.
 An inode number persistently identifies a file or directory. It is unique during the file's existence. In Pintos, the sector number of the inode is suitable for use as an inode number.
+Alex drove
 */
 static void 
 my_inumber (struct intr_frame *f)

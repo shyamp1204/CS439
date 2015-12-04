@@ -10,12 +10,6 @@
 static char* self_path = ".";
 static char* parent_path = "..";
 
-/* A directory. */
-struct dir 
-  {
-    struct inode *inode;                /* Backing store. */
-    off_t pos;                          /* Current position. */
-  };
 
 /* A single directory entry. */
 struct dir_entry 
@@ -31,7 +25,7 @@ bool
 dir_create (block_sector_t sector, size_t entry_cnt, block_sector_t parent)
 {
   struct dir *new_dir = malloc(sizeof(struct dir));
-  bool success = inode_create (sector, entry_cnt * sizeof (struct dir_entry), true);;
+  bool success = inode_create (sector, entry_cnt * sizeof (struct dir_entry), true);
 
   /* open dirs inode */
   new_dir->inode = inode_open (sector);
@@ -343,7 +337,7 @@ dir_get_path_and_file (const char * dir_path, char** path, char** name)
   User has to close dir. 
  */
 struct dir*
-dir_getdir(const char *path)
+dir_getdir (const char *path)
 {
   if(path == NULL)
     return thread_current()->current_working_dir;
@@ -353,7 +347,7 @@ dir_getdir(const char *path)
 
   /* check if path is relative or absolute */
   if(path[0] == '/')
-    current_dir = dir_open_root();
+    current_dir = dir_open_root ();
   else
     current_dir = dir_reopen(thread_current()->current_working_dir);
 
@@ -391,3 +385,4 @@ dir_getdir(const char *path)
   /* return last directory */
   return current_dir;
 }
+

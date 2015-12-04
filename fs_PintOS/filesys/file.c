@@ -171,6 +171,7 @@ file_tell (struct file *file)
   return file->pos;
 }
 
+/*get the sector number from the file passed in the file param*/
 int 
 get_sector_from_file (struct file *file)
 {

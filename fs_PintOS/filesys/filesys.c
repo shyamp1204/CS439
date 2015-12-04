@@ -48,15 +48,24 @@ filesys_done (void)
 bool
 filesys_create (const char *name, off_t initial_size, bool is_dir) 
 {
-  block_sector_t inode_sector = 0;
-  struct dir *dir = dir_open_root ();
-  bool success = (dir != NULL
+  bool success = false;
+  char *path;
+  char *file_name;
+
+  if(name != NULL && strlen (name) > 0 && dir_get_path_and_file (name, &path, &file_name))
+  {
+    char *path = NULL;
+
+    block_sector_t inode_sector = 0;
+    struct dir *dir = dir_open_root ();
+    success = (dir != NULL
                   && free_map_allocate (1, &inode_sector)
                   && inode_create (inode_sector, initial_size, is_dir)
                   && dir_add (dir, name, inode_sector));
-  if (!success && inode_sector != 0) 
-    free_map_release (inode_sector, 1);
-  dir_close (dir);
+    if (!success && inode_sector != 0) 
+      free_map_release (inode_sector, 1);
+    dir_close (dir);
+  }
 
   return success;
 }
@@ -69,14 +78,12 @@ filesys_create (const char *name, off_t initial_size, bool is_dir)
 struct file *
 filesys_open (const char *name)
 {
- // printf("Opening file:%s in filesys_open\n",name);
   struct dir *dir = dir_open_root ();
   struct inode *inode = NULL;
 
   if (dir != NULL)
     dir_lookup (dir, name, &inode);
   dir_close (dir);
-
 
   return file_open (inode);
 }
@@ -107,15 +114,46 @@ do_format (void)
   printf ("done.\n");
 }
 
-
+/* creates a directory file */
 bool filesys_mkdir (char *path_name)
 {
   return filesys_create (path_name, 0, true);
 }
 
-/*change directories*/
-bool filesys_chdir (const char *path_name)
+/* Search for file name in directory tree.
+   Returns file if successful, NULL otherwise. 
+*/
+static struct file*
+filesys_get_file (const char *name)
 {
-  return true;
+  if(name == NULL || strlen(name) == 0)
+    return NULL;
+
+  /* check and fetch path and file name */
+  char *path = NULL;
+  char *file = NULL;
+  dir_get_path_and_file(name, &path, &file);
+
+  /* fetch target dir */
+  // struct dir *target_dir = path == NULL ? dir_reopen(thread_current()->current_working_dir) : dir_getdir (path);
+
+  /* if target dir exists look for file */
+  // if(target_dir != NULL)
+  // {
+    /* file is directory itself */
+    // if(strcmp(file, "") == 0)
+    // {
+      // return file_open (target_dir->inode);
+    // }
+    
+    /* fetch file */
+    // struct inode *file_inode = NULL;
+    // dir_lookup(target_dir, file, &file_inode);
+
+    /* close directory and return file */
+    // dir_close (target_dir);
+    // return file_open(file_inode);
+  // }
+  return NULL;
 }
 
