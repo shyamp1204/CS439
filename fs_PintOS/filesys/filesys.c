@@ -56,8 +56,6 @@ filesys_create (const char *name, off_t initial_size)
     free_map_release (inode_sector, 1);
   dir_close (dir);
 
-  // printf("Making file:%s in filesys_create\n",name);
-
   return success;
 }
 
@@ -105,4 +103,16 @@ do_format (void)
     PANIC ("root directory creation failed");
   free_map_close ();
   printf ("done.\n");
+}
+
+/*Make a new directory*/
+bool filesys_mkdir (char *path_name)
+{
+  return true; //filesys_create (path_name, 0)
+}
+
+/*change directories*/
+bool filesys_chdir (const char *path_name)
+{
+  return true;
 }

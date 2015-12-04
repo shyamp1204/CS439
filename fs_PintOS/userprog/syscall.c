@@ -14,6 +14,7 @@
 #include "devices/input.h"
 #include "threads/synch.h"
 #include "lib/string.h"
+#include "filesys/inode.h"
 
 static void syscall_handler (struct intr_frame *);
 static int invalid_ptr (void *ptr);
@@ -33,11 +34,11 @@ static void my_close (int fd);
 static struct file *get_file (int fd);
 static int next_fd (struct thread *cur);
 static void exit_status (int e_status);
-static bool my_chdir (struct intr_frame *f);
-static bool my_mkdir (struct intr_frame *f);
-static bool my_readdir (struct intr_frame *f);
-static bool my_isdir (struct intr_frame *f);
-static int my_inumber (struct intr_frame *f);
+static void my_chdir (struct intr_frame *f);
+static void my_mkdir (struct intr_frame *f);
+static void my_readdir (struct intr_frame *f);
+static void my_isdir (struct intr_frame *f);
+static void my_inumber (struct intr_frame *f);
 struct lock filesys_lock;
 
 void
@@ -635,11 +636,11 @@ exit_status_ext (int e_status) {
 Changes the current working directory of the process to dir, which may be 
 relative or absolute. Returns true if successful, false on failure. 
 */ 
-static bool 
+static void 
 my_chdir (struct intr_frame *f) 
 {
-	char *dir = (char *)*(int*)(8+(f->esp));
-	return false;
+	char *dir_name = (char *)*(int*)(8+(f->esp));
+	f->eax = filesys_chdir (dir_name);
 }
 
 /*
@@ -650,16 +651,21 @@ my_chdir (struct intr_frame *f)
   That is, mkdir("/a/b/c") succeeds only if "/a/b" already exists and "/a/b/c" 
   does not. 
 */
-static bool 
+static void 
 my_mkdir (struct intr_frame *f) 
 {
-	// printf ("&&&&&&&&&&&& DOES THIS HAPPEN?\n");
-	char *dir = (char *)*(int*)(4+(f->esp));
-	
-	// exit_status(-1);
+	char *dir_name = (char *)*(int*)(4+(f->esp));
+		
+	if (invalid_ptr (dir_name)) 
+	{
+  	exit_status (-1);
+  	return;
+  }
 
-	//bool dir_add (struct dir *, const char *name, block_sector_t);
-	return false;
+  if (strlen (dir_name) <= 0)
+  	f->eax = false;
+
+  f->eax = filesys_mkdir (dir_name);
 }
 
 /*
@@ -668,33 +674,46 @@ Reads a directory entry from file descriptor fd, which must represent a director
 If the directory changes while it is open, then it is acceptable for some entries not to be read at all or to be read multiple times. Otherwise, each directory entry should be read once, in any order.
 READDIR_MAX_LEN is defined in "lib/user/syscall.h". If your file system supports longer file names than the basic file system, you should increase this value from the default of 14.
 */
-static bool 
+static void 
 my_readdir (struct intr_frame *f) 
 {
 	int fd = *((int *)(4+(f->esp)));
-	char *name = (char *)*(int*)(8+(f->esp));
-	//bool dir_readdir (struct dir *dir, char name[NAME_MAX + 1]);
-	return false;
+	char *dir_name = (char *)*(int*)(8+(f->esp));
+
+	if (invalid_ptr (dir_name)) 
+	{
+  	exit_status (-1);
+  	return;
+  }
+
+	// return dir_readdir (struct dir *dir, char name[NAME_MAX + 1]);
+	// return bool;
+  f->eax = false;
 }
 
 /*
 Returns true if fd represents a directory, false if it represents an ordinary file. 
 */
-static bool 
+static void 
 my_isdir (struct intr_frame *f) 
 {
 	int fd = *((int *)(4+(f->esp)));
 	//bool dir_lookup (const struct dir *, const char *name, struct inode **);
-	return false;
+	// return bool;
+	f->eax = true;
 }
 
 /*
 Returns the inode number of the inode associated with fd, which may represent an ordinary file or a directory.
 An inode number persistently identifies a file or directory. It is unique during the file's existence. In Pintos, the sector number of the inode is suitable for use as an inode number.
 */
-static int 
+static void 
 my_inumber (struct intr_frame *f)
 {
 	int fd = *((int *)(4+(f->esp)));
-	return 42;
+	struct file *cur_file = get_file (fd);
+
+	f->eax = 42;	//cur_file->inode->sector
+	// return int;
+	//WHY THE FFFF IS THIS NOT WORKING?
 }

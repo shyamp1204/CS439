@@ -116,8 +116,7 @@ lookup (const struct dir *dir, const char *name,
    On success, sets *INODE to an inode for the file, otherwise to
    a null pointer.  The caller must close *INODE. */
 bool
-dir_lookup (const struct dir *dir, const char *name,
-            struct inode **inode) 
+dir_lookup (const struct dir *dir, const char *name, struct inode **inode) 
 {
   struct dir_entry e;
 

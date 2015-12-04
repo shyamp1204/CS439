@@ -5,7 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "synch.h"
-
+#include "devices/block.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -124,6 +124,8 @@ struct thread
     struct child_info* my_info;   /* struct to store the child info even after it dies*/
     struct file* exec_file;       /* the current file this thread is executing*/
     struct file *open_files[128];           /* List of open files. */
+
+    block_sector_t current_working_dir;     /*sector number that points to the inode that keeps track of working directory*/
   };
 
 /* If false (default), use round-robin scheduler.

@@ -24,6 +24,8 @@ struct inode_disk
 {
   off_t length;                       /* File size in bytes. */
   unsigned magic;                     /* Magic number. */
+  //bool is_dir;                        /*true if inode is directory, false if file*/
+  //block_sector_t parent_dir;          /*-1 default, block sector of parent directory inode otherwise*/
   
   block_sector_t direct_block_sectors[NUM_DIRECT_PTR];   // Direct Pointers Array 
   block_sector_t indirect_block_sector;                  // First lvl Indirect pointers
@@ -49,9 +51,6 @@ struct inode
   int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
   struct inode_disk data;             /* Inode content. */
 
-  //ADDED
-  bool is_dir;                        /*true if inode is directory, false if file*/
-  block_sector_t parent_dir;          /*-1 default, block sector of parent directory inode otherwise*/
   struct lock data_lock;
 };
 
@@ -329,7 +328,8 @@ inode_open (block_sector_t sector)
   inode->open_cnt = 1;
   inode->deny_write_cnt = 0;
   inode->removed = false;
-  block_read (fs_device, inode->sector, &inode->data);// WES - WHAT DOES THIS DO? -KK
+
+  block_read (fs_device, inode->sector, &inode->data);
   return inode;
 }
 
@@ -337,7 +337,6 @@ inode_open (block_sector_t sector)
 struct inode *
 inode_reopen (struct inode *inode)
 {
-  // printf("             sdfg sd   I am in inode_reOPEN sector%d\n", (int)inode->sector);
   if (inode != NULL)
     inode->open_cnt++;
   return inode;
@@ -526,6 +525,12 @@ extend_file (struct inode *inode, off_t size, off_t offset)
   size_t sectors_to_add = 0;
   static char zeros[BLOCK_SECTOR_SIZE];
 
+// int i;
+//   for (i = 0; i < BLOCK_SECTOR_SIZE; ++i)
+//   {
+//     zeros[i] = 0xff;
+//   }
+
   // printf ("====== EXTEND FILE ===== Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
 
   if (((offset+size - inode_length (inode)) % BLOCK_SECTOR_SIZE) == 0)
@@ -692,3 +697,4 @@ inode_length (const struct inode *inode)
 {
   return inode->data.length;
 }
+
