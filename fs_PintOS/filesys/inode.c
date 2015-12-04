@@ -538,7 +538,7 @@ extend_file (struct inode *inode, off_t size, off_t offset)
 
   size_t sectors_to_add = 0;
   static char zeros[BLOCK_SECTOR_SIZE];
-  // printf ("====== EXTEND FILE ===== Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
+  printf ("====== EXTEND FILE ===== Inode: %d, Size: %d, offset: %d, length: %d\n", inode->sector, size, offset, inode->data.length);
 
   if (( (offset+size - inode_length (inode)) % BLOCK_SECTOR_SIZE) == 0)
     sectors_to_add = ((offset+size) - inode_length (inode)) / BLOCK_SECTOR_SIZE;
@@ -557,14 +557,37 @@ extend_file (struct inode *inode, off_t size, off_t offset)
       free_map_allocate (1, &(inode->data.direct_block_sectors[next_index]));
       block_write (fs_device, inode->data.direct_block_sectors[next_index], zeros);
 
-      // printf ("^^^^^ Allocated sector: %d\n", inode->data.direct_block_sectors[next_direct_idx]);
+      // printf ("^^^^^ Allocated sector: %d\n", inode->data.direct_block_sectors[next_index]);
     }
     else if (inode->data.length < BLOCK_SECTOR_SIZE *( NUM_DIRECT_PTR+NUM_PTR_PER_BLOCK) )
     {
-      //indirect pointer needed
-      int next_direct_idx = (inode->data.length + size / 512) - NUM_DIRECT_PTR;
-      // free_map_allocate (1, &(inode->data.direct_block_sectors[next_direct_idx]));
-      // block_write (fs_device, inode->data.direct_block_sectors[next_direct_idx], zeros);
+      struct indirect_block *first_lvl_id = NULL;  
+      /* If this assertion fails, the inode structure is not exactly
+      one sector in size, and you should fix that. */
+      ASSERT (sizeof *first_lvl_id == BLOCK_SECTOR_SIZE);
+
+      first_lvl_id = calloc (1, sizeof *first_lvl_id);
+      
+      if(inode->data.indirect_block_sector == NULL)
+      {
+        //allocate the indirect block
+        free_map_allocate (1, &inode->data.indirect_block_sector);
+
+        //zeros out block
+        block_write (fs_device, inode->data.indirect_block_sector, zeros);
+
+      }
+      // Add the sector needed
+      free_map_allocate (1, &(first_lvl_id->direct_block_sectors[next_index- NUM_DIRECT_PTR]));
+      
+      printf ("^^^^^ Allocated sector: %d\n", first_lvl_id->direct_block_sectors[next_index- NUM_DIRECT_PTR]); 
+      //Fill sector with Zeros
+      block_write (fs_device, (first_lvl_id->direct_block_sectors[next_index- NUM_DIRECT_PTR]), zeros);
+      
+      //write to disk the inode we made on heap
+      block_write (fs_device, inode->data.indirect_block_sector, first_lvl_id);
+
+      free(first_lvl_id);       
     }
     else
     {
