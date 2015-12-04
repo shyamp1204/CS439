@@ -33,6 +33,11 @@ static void my_close (int fd);
 static struct file *get_file (int fd);
 static int next_fd (struct thread *cur);
 static void exit_status (int e_status);
+static bool my_chdir (struct intr_frame *f);
+static bool my_mkdir (struct intr_frame *f);
+static bool my_readdir (struct intr_frame *f);
+static bool my_isdir (struct intr_frame *f);
+static int my_inumber (struct intr_frame *f);
 struct lock filesys_lock;
 
 void
@@ -96,6 +101,21 @@ syscall_handler (struct intr_frame *f)
 			break;
 		case SYS_CLOSE:
 			my_close (*((int *)(4+(f->esp))));
+			break;
+		case SYS_CHDIR:
+			my_chdir (f);
+			break;
+		case SYS_MKDIR:
+			my_mkdir (f);
+			break;
+		case SYS_READDIR:
+			my_readdir (f);
+			break;
+		case SYS_ISDIR:
+			my_isdir (f);
+			break;
+		case SYS_INUMBER:
+			my_inumber (f);
 			break;
 		default :
 			exit_status (-1);  
@@ -191,7 +211,6 @@ my_exit (struct intr_frame *f)
  	}
 
 	exit_status (e_status);
-
 	f->eax = e_status;		//return value in eax
 }
 
@@ -368,9 +387,9 @@ my_open (struct intr_frame *f)
 		cur->open_files[fd-2] = cur_file;
 		f->eax = fd;		//return int;
 	}
-	else if (1) 
+	else if (0) 
 	{
-		struct dir =  dir_open(cur->file);
+		// struct dir =  dir_open(cur->file);
 	}
 	else 
 	{
@@ -613,49 +632,57 @@ exit_status_ext (int e_status) {
 /*
 Changes the current working directory of the process to dir, which may be relative or absolute. Returns true if successful, false on failure. 
 */ 
-bool chdir (const char *dir) 
+static bool 
+my_chdir (struct intr_frame *f) 
 {
-return false;
+	char *dir = (char *)*(int*)(8+(f->esp));
+	return false;
 }
 
 /*
   Creates the directory named dir, which may be relative or absolute. Returns true if successful, false on failure. Fails if dir already exists or if any directory name in dir, besides the last, does not already exist. That is, mkdir("/a/b/c") succeeds only if "/a/b" already exists and "/a/b/c" does not. 
 */
-bool mkdir (const char *dir) 
+static bool 
+my_mkdir (struct intr_frame *f) 
 {
-return false;
+	char *dir = (char *)*(int*)(4+(f->esp));
+	//bool dir_add (struct dir *, const char *name, block_sector_t);
+	return false;
 }
 
 /*
 Reads a directory entry from file descriptor fd, which must represent a directory. If successful, stores the null-terminated file name in name, which must have room for READDIR_MAX_LEN + 1 bytes, and returns true. If no entries are left in the directory, returns false.
-
 "." and ".." should not be returned by readdir.
-
 If the directory changes while it is open, then it is acceptable for some entries not to be read at all or to be read multiple times. Otherwise, each directory entry should be read once, in any order.
-
 READDIR_MAX_LEN is defined in "lib/user/syscall.h". If your file system supports longer file names than the basic file system, you should increase this value from the default of 14.
-
 */
-bool readdir (int fd, char *name) 
+static bool 
+my_readdir (struct intr_frame *f) 
 {
-return false;
+	int fd = *((int *)(4+(f->esp)));
+	char *name = (char *)*(int*)(8+(f->esp));
+	//bool dir_readdir (struct dir *dir, char name[NAME_MAX + 1]);
+	return false;
 }
 
 /*
 Returns true if fd represents a directory, false if it represents an ordinary file. 
 */
-bool isdir (int fd) 
+static bool 
+my_isdir (struct intr_frame *f) 
 {
-return false;
+	int fd = *((int *)(4+(f->esp)));
+	//bool dir_lookup (const struct dir *, const char *name, struct inode **);
+	return false;
 }
 
 /*
 Returns the inode number of the inode associated with fd, which may represent an ordinary file or a directory.
-
 An inode number persistently identifies a file or directory. It is unique during the file's existence. In Pintos, the sector number of the inode is suitable for use as an inode number.
 */
-int inumber (int fd)
+static int 
+my_inumber (struct intr_frame *f)
 {
+	int fd = *((int *)(4+(f->esp)));
 	return 42;
 }
-
