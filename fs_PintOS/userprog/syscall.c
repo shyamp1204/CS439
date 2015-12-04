@@ -661,10 +661,7 @@ my_mkdir (struct intr_frame *f)
   	exit_status (-1);
   	return;
   }
-
-  if (strlen (dir_name) <= 0)
-  	f->eax = false;
-
+  
   f->eax = filesys_mkdir (dir_name);
 }
 
@@ -720,7 +717,5 @@ my_inumber (struct intr_frame *f)
 	int fd = *((int *)(4+(f->esp)));
 	struct file *cur_file = get_file (fd);
 
-	f->eax = 42;	//cur_file->inode->sector
-	// return int;
-	//WHY THE FFFF IS THIS NOT WORKING?
+	f->eax = get_sector_from_file (cur_file);		// return int;
 }

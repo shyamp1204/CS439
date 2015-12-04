@@ -100,10 +100,7 @@ thread_init (void)
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
-  
- //Set main threads CWD to root
-  initial_thread->current_working_dir = ROOT_DIR_SECTOR;
-
+  initial_thread->current_working_dir = NULL;
   initial_thread->tid = allocate_tid ();
   sema_init (&(initial_thread->exec_sema),0);  //for the main thread
 }
@@ -223,7 +220,11 @@ thread_create (const char *name, int priority,
   t->my_info->tid = tid;
   t->my_info->exit_status= -1;
 
-  t->current_working_dir = cur->current_working_dir;
+  /* if child thread and not idle or read-ahead or main set working dir */
+  if(t != initial_thread && strcmp(name, "idle") != 0 && strcmp(name, "read-ahead") != 0)
+  {
+    t->current_working_dir = thread_current()->current_working_dir;
+  }
 
   list_push_back (&cur->children_list, &(t->my_info->elem));
 

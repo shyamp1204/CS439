@@ -170,3 +170,9 @@ file_tell (struct file *file)
   ASSERT (file != NULL);
   return file->pos;
 }
+
+int 
+get_sector_from_file (struct file *file)
+{
+  return get_sector_from_inode (file->inode);
+}
