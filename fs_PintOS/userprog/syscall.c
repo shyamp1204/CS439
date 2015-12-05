@@ -650,7 +650,10 @@ static void
 my_chdir (struct intr_frame *f) 
 {
 	char *dir_name = (char *)*(int*)(8+(f->esp));
+		
+	lock_acquire (&filesys_lock);
 	f->eax = filesys_chdir (dir_name); //false;
+	lock_release (&filesys_lock);
 }
 
 /*
@@ -673,7 +676,9 @@ my_mkdir (struct intr_frame *f)
   	return;
   }
 
+	lock_acquire (&filesys_lock);
   f->eax = filesys_mkdir (dir_name);
+	lock_release (&filesys_lock);
 }
 
 /*
@@ -706,7 +711,9 @@ my_readdir (struct intr_frame *f)
   // mydir->inode = get_inode_from_file (cur_file);
   // mydir->pos = get_pos_from_file (cur_file);
 
+	lock_acquire (&filesys_lock);
   f->eax = dir_readdir (mydir, dir_name);	// return bool;
+  lock_release (&filesys_lock);
   free (mydir);
 }
 
@@ -735,5 +742,7 @@ my_inumber (struct intr_frame *f)
 	int fd = *((int *)(4+(f->esp)));
 	struct file *cur_file = get_file (fd);
 
+	lock_acquire (&filesys_lock);
 	f->eax = get_sector_from_file (cur_file);		// return int;
+	lock_release (&filesys_lock);
 }
