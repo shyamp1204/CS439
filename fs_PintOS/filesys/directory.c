@@ -10,7 +10,6 @@
 static char* self_path = ".";
 static char* parent_path = "..";
 
-
 /* A single directory entry. */
 struct dir_entry 
   {
@@ -24,20 +23,19 @@ struct dir_entry
 bool
 dir_create (block_sector_t sector, size_t entry_cnt, block_sector_t parent)
 {
-  struct dir *new_dir = malloc(sizeof(struct dir));
+  struct dir *dir = malloc (sizeof(struct dir));
   bool success = inode_create (sector, entry_cnt * sizeof (struct dir_entry), true);
 
-  /* open dirs inode */
-  new_dir->inode = inode_open (sector);
-  new_dir->pos = 0;
+  //open directory inode
+  dir->inode = inode_open (sector);
+  dir->pos = 0;
 
-  /* add "." and ".." to dir */
-  success &= dir_add (new_dir, self_path, sector);
-  success &= dir_add (new_dir, parent_path, parent);
+  // add "." and ".." files to directory
+  success &= dir_add (dir, self_path, sector);
+  success &= dir_add (dir, parent_path, parent);
 
-  /* close dir */
-  dir_close (new_dir);
-
+  //close directory
+  dir_close (dir);
   return success;
 }
 
@@ -48,17 +46,17 @@ dir_open (struct inode *inode)
 {
   struct dir *dir = calloc (1, sizeof *dir);
   if (inode != NULL && dir != NULL)
-    {
-      dir->inode = inode;
-      dir->pos = 0;
-      return dir;
-    }
+  {
+    dir->inode = inode;
+    dir->pos = 0;
+    return dir;
+  }
   else
-    {
-      inode_close (inode);
-      free (dir);
-      return NULL; 
-    }
+  {
+    inode_close (inode);
+    free (dir);
+    return NULL; 
+  }
 }
 
 /* Opens the root directory and returns a directory for it.
@@ -82,10 +80,10 @@ void
 dir_close (struct dir *dir) 
 {
   if (dir != NULL)
-    {
-      inode_close (dir->inode);
-      free (dir);
-    }
+  {
+    inode_close (dir->inode);
+    free (dir);
+  }
 }
 
 /* Returns the inode encapsulated by DIR. */
@@ -246,143 +244,51 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
   return false;
 }
 
-/* Splits up dir_path and saves the corresponding parts into
- * path and dir name. Returns true if legal, false if not. */
-bool
-dir_get_path_and_file (const char * dir_path, char** path, char** name)
-{
-  /* path can only look like this:
-   *
-   * a) absolute:
-   *    1) /c
-   *    2) /c/
-   *    1) /b/c
-   *    2) /b/c/
-   *
-   * b) relative:
-   *    1) c
-   *    2) c/
-   *    3) b/c
-   *    4) b/c/
-   * */
-
-  size_t dir_path_len = strlen (dir_path);
-
-  /* create local copy of dir_path */
-  char* local_copy = malloc (dir_path_len + 1);
-  strlcpy (local_copy, dir_path, dir_path_len + 1);
-
-  /* delete last character if its '/' */
-  if((size_t) strrchr(local_copy, '/') == dir_path_len){
-    local_copy[dir_path_len] = 0x0;
-  }
-
-  /* path can now only look like this:
-   *
-   * a) absolute:
-   *    1) /c
-   *    1) /b/c
-   *
-   * b) relative:
-   *    1) c
-   *    3) b/c
-   * */
-
-  /* get path/dir separator, function returns the last occurance of char in string */
-  char *seperator = strrchr (local_copy, '/');
-
-  /* relative, no path */
-  if(seperator == NULL)
-  {
-    *name = local_copy;
-
-    *path = malloc(1);
-    (*path)[0] = 0x0;
-
-    return true;
-  }
-
-  /* absolute, no path (=root) */
-  else if(seperator == local_copy)
-  {
-    *path = malloc(2);
-    (*path)[0] = '/';
-    (*path)[1] = 0x0;
-
-    *name = malloc(dir_path_len);
-    strlcpy(*name, dir_path + sizeof(char), dir_path_len);
-  }
-
-  /* everything else */
-  else
-  {
-    /* save path */
-    unsigned path_len = seperator - local_copy;
-    *path = malloc(path_len + 1);
-    strlcpy(*path, local_copy, path_len + 1);
-
-    /* save dir name */
-    unsigned name_len = dir_path_len - (seperator - local_copy);
-    *name = malloc(name_len + 1);
-    strlcpy(*name, seperator + 1, name_len + 1);
-
-  }
-
-  free(local_copy);
-  return true;
-
-}
 
 /* Opens directory at path. Returns directory on success, NULL on failure.
-  User has to close dir. 
+  User has to close dir.
+  Alex and KK drove here
  */
 struct dir*
-dir_getdir (const char *path)
+dir_getdir (const char *path_name)
 {
-  if(path == NULL)
+  if(path_name == NULL)
     return thread_current()->current_working_dir;
 
   struct dir* current_dir;
-  unsigned path_len = strlen (path);
 
-  /* check if path is relative or absolute */
-  if(path[0] == '/')
-    current_dir = dir_open_root ();
+  if(path_name[0] == '/')
+    current_dir = dir_open_root ();   //absolute path!
   else
-    current_dir = dir_reopen(thread_current()->current_working_dir);
+    current_dir = dir_reopen(thread_current()->current_working_dir);  //relative path!
 
-  /* create local copy of dir_path */
-  char* path_copy = malloc(path_len + 1);
-  strlcpy(path_copy, path, path_len + 1);
+  // create local copy of dir_path
+  char* path_copy = malloc (strlen (path_name) + 1);
+  strlcpy (path_copy, path_name, strlen (path_name) + 1);
 
-  /* traverse directory tree */
-
-  /* char s[] = "  String to  tokenize. "; */
-  char *next, *save_ptr;
+  //set up variables to traverse string
+  char *next;
+  char *save_ptr;
   struct inode* next_inode = NULL;
-
 
   for (next = strtok_r (path_copy, "/", &save_ptr); next != NULL; next = strtok_r (NULL, "/", &save_ptr))
   {
-    /* found next directory */
+    //next is the next directory
     if(dir_lookup (current_dir, next, &next_inode))
     {
-      /* save next directory */
       struct dir *tmp_dir = dir_open (next_inode);
       
-      /* close old dir and switch to new */
+      // close old dir and switch to new
       dir_close (current_dir);
       current_dir = tmp_dir;
     }
-    /* directory not found -> abort */
     else
     {
+      //next directory doesn't exist
       dir_close (current_dir);
       return NULL;
     }
   }
-
-  /* return last directory */
   return current_dir;
 }
 

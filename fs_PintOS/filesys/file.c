@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include "threads/thread.h"
 
-
 /* An open file. */
 struct file 
   {
@@ -177,3 +176,4 @@ get_sector_from_file (struct file *file)
 {
   return get_sector_from_inode (file->inode);
 }
+

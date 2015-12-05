@@ -12,6 +12,8 @@
 struct block *fs_device;
 
 static void do_format (void);
+struct inode* traverse_path (struct dir *dir, char* path);
+char* traverse_path_name (struct dir *dir, char* path);
 
 /* Initializes the file system module.
    If FORMAT is true, reformats the file system. */
@@ -25,11 +27,10 @@ filesys_init (bool format)
   inode_init ();
   free_map_init ();
 
-  thread_current()->current_working_dir = ROOT_DIR_SECTOR;  //dir_open_root();
+  thread_current()->current_working_dir = ROOT_DIR_SECTOR; 
 
   if (format) 
     do_format ();
-
   free_map_open ();
 }
 
@@ -49,13 +50,9 @@ bool
 filesys_create (const char *name, off_t initial_size, bool is_dir) 
 {
   bool success = false;
-  char *path;
-  char *file_name;
 
-  if(name != NULL && strlen (name) > 0 && dir_get_path_and_file (name, &path, &file_name))
+  if(name != NULL && strlen (name) > 0)
   {
-    char *path = NULL;
-
     block_sector_t inode_sector = 0;
     struct dir *dir = dir_open_root ();
     success = (dir != NULL
@@ -74,7 +71,8 @@ filesys_create (const char *name, off_t initial_size, bool is_dir)
    Returns the new file if successful or a null pointer
    otherwise.
    Fails if no file named NAME exists,
-   or if an internal memory allocation fails. */
+   or if an internal memory allocation fails. 
+   KK writing here */
 struct file *
 filesys_open (const char *name)
 {
@@ -114,46 +112,46 @@ do_format (void)
   printf ("done.\n");
 }
 
-/* creates a directory file */
+/*creates a directory file 
+  alex driving here
+*/
 bool filesys_mkdir (char *path_name)
 {
   return filesys_create (path_name, 0, true);
 }
 
-/* Search for file name in directory tree.
-   Returns file if successful, NULL otherwise. 
-*/
-static struct file*
-filesys_get_file (const char *name)
+/* change directories */
+bool filesys_chdir (const char *path_name)
 {
-  if(name == NULL || strlen(name) == 0)
-    return NULL;
+  return true;
+}
 
-  /* check and fetch path and file name */
-  char *path = NULL;
-  char *file = NULL;
-  dir_get_path_and_file(name, &path, &file);
+/*
+  given a parent directory and path, returns pointer to the inode
+  KK and Wes driving here
+*/
+struct inode*
+traverse_path (struct dir *dir, char* path)
+{
+  struct inode *inode = NULL;
+  char * save_ptr;
+  char * token;
+  if (path[0] == "/")
+    token = strtok_r (path, "/", &save_ptr);
 
-  /* fetch target dir */
-  // struct dir *target_dir = path == NULL ? dir_reopen(thread_current()->current_working_dir) : dir_getdir (path);
-
-  /* if target dir exists look for file */
-  // if(target_dir != NULL)
-  // {
-    /* file is directory itself */
-    // if(strcmp(file, "") == 0)
-    // {
-      // return file_open (target_dir->inode);
-    // }
-    
-    /* fetch file */
-    // struct inode *file_inode = NULL;
-    // dir_lookup(target_dir, file, &file_inode);
-
-    /* close directory and return file */
-    // dir_close (target_dir);
-    // return file_open(file_inode);
-  // }
-  return NULL;
+  //look in current dir for the file "name"
+  for(token = strtok_r (path, "/", &save_ptr); token != NULL && dir != NULL; token = strtok_r (NULL, "/", &save_ptr)) {
+    if(!dir_lookup (dir, token, &inode))
+      return NULL;
+    //now, *inode is set to the inode associated with the file
+    if(!is_dir(inode))
+    {
+      //if it's a file, at end of path, so file_open and return inode
+      file_open (inode);
+      return inode;
+    }
+    dir = dir_open (inode);
+  }
+  return inode;
 }
 

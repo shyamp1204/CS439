@@ -220,8 +220,8 @@ thread_create (const char *name, int priority,
   t->my_info->tid = tid;
   t->my_info->exit_status= -1;
 
-  /* if child thread and not idle or read-ahead or main set working dir */
-  if(t != initial_thread && strcmp(name, "idle") != 0 && strcmp(name, "read-ahead") != 0)
+  // if child thread and not idle or read-ahead or main set working dir 
+  if(t != initial_thread && strcmp(name, "idle") != 0)
   {
     t->current_working_dir = thread_current()->current_working_dir;
   }

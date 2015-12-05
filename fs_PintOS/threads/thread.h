@@ -116,7 +116,7 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
     // block_sector_t current_working_dir;     /*sector number that points to the inode that keeps track of working directory*/
-      struct dir *current_working_dir;      /* current working directory */
+    struct dir *current_working_dir;      /* current working directory */
 #endif
 
     /* Owned by thread.c. */
@@ -126,7 +126,6 @@ struct thread
     struct child_info* my_info;   /* struct to store the child info even after it dies*/
     struct file* exec_file;       /* the current file this thread is executing*/
     struct file *open_files[128];           /* List of open files. */
-
   };
 
 /* If false (default), use round-robin scheduler.

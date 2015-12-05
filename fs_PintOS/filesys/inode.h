@@ -20,5 +20,7 @@ void inode_deny_write (struct inode *);
 void inode_allow_write (struct inode *);
 off_t inode_length (const struct inode *);
 block_sector_t get_sector_from_inode (struct inode *);
+bool is_dir (struct inode *);
+void extend_file (struct inode *inode, off_t size, off_t offset);
 
 #endif /* filesys/inode.h */

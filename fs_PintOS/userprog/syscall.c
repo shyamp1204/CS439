@@ -18,7 +18,6 @@
 #include "threads/malloc.h"
 #include "filesys/directory.h"
 
-
 static void syscall_handler (struct intr_frame *);
 static int invalid_ptr (void *ptr);
 static void my_halt (void);
@@ -44,6 +43,7 @@ static void my_isdir (struct intr_frame *f);
 static void my_inumber (struct intr_frame *f);
 struct lock filesys_lock;
 
+/*initilizes structs in syscall.c*/
 void
 syscall_init (void) 
 {
@@ -51,6 +51,9 @@ syscall_init (void)
 	lock_init (&filesys_lock);
 }
 
+/*function to handle the interrupt frame and call correct system call
+	Alex drove here
+*/
 static void
 syscall_handler (struct intr_frame *f) 
 {
@@ -364,7 +367,7 @@ When a single file is opened more than once, whether by a single process or
 different processes, each open returns a new file descriptor. Different file 
 descriptors for a single file are closed independently in separate calls to 
 close and they do not share a file position.
-Alexc Drove
+Alex Drove
 */
 static void 
 my_open (struct intr_frame *f) 
@@ -389,10 +392,6 @@ my_open (struct intr_frame *f)
 		int fd = next_fd (cur);
 		cur->open_files[fd-2] = cur_file;
 		f->eax = fd;		//return int;
-	}
-	else if (0) 
-	{
-		// struct dir =  dir_open(cur->file);
 	}
 	else 
 	{
@@ -420,7 +419,8 @@ Reads size bytes from the file open as fd into buffer. Returns the number of
 bytes actually read (0 at end of file), or -1 if the file could not be read
 (due to a condition other than end of file). fd 0 reads from the keyboard using
 input_getc().
-Alex and Katherine Drove*/
+Alex and Katherine Drove
+*/
 static void 
 my_read (struct intr_frame *f) {
 	int fd = *((int *)(4+(f->esp)));
@@ -476,7 +476,8 @@ of buffer in one call to putbuf(), at least as long as size is not bigger than a
 few hundred bytes. (It is reasonable to break up larger buffers.) Otherwise, 
 lines of text output by different processes may end up interleaved on the 
 console, confusing both human readers and our grading scripts.
-Alex and Wes Drove*/
+Alex and Wes Drove
+*/
 static void 
 my_write (struct intr_frame *f) 
 {
@@ -530,7 +531,8 @@ unwritten gap with zeros. (However, in Pintos, files will have a fixed length
 until project 4 is complete, so writes past end of file will return an error.) 
 These semantics are implemented in the file system and do not require any 
 special effort in system call implementation.
-Alex Drove*/
+Alex Drove
+*/
 static void 
 my_seek (struct intr_frame *f) 
 {
@@ -552,7 +554,8 @@ my_seek (struct intr_frame *f)
 /*
 Returns the position of the next byte to be read or written in open file fd,
 expressed in bytes from the beginning of the file. 
-Alex Drove*/
+Alex Drove
+*/
 static void 
 my_tell (struct intr_frame *f) 
 {
@@ -575,7 +578,8 @@ my_tell (struct intr_frame *f)
 /* 
 Closes file descriptor fd. Exiting or terminating a process implicitly closes 
 all its open file descriptors, as if by calling this function for each one.
-Alex Drove*/
+Alex Drove
+*/
 static void 
 my_close (int fd) 
 {  
@@ -593,7 +597,8 @@ my_close (int fd)
 /*
 Helper method: Given param file descriptor,
 function returns the appropriate file
-Alex Drove*/
+Alex Drove
+*/
 static struct file *
 get_file (int fd)
 {
@@ -606,7 +611,10 @@ get_file (int fd)
   return cur->open_files[fd-2];
 }
 
-//Return the next file discriptor from a threads open thread list
+/*
+Return the next file discriptor from a threads open thread list
+Alex drove
+*/
 static int
 next_fd (struct thread *cur) 
 {
@@ -626,7 +634,7 @@ next_fd (struct thread *cur)
 }
 
 /*
-	function for outside files to call exit_status
+function for outside files to call exit_status.  KK drove
 */
 void
 exit_status_ext (int e_status) {
@@ -642,17 +650,7 @@ static void
 my_chdir (struct intr_frame *f) 
 {
 	char *dir_name = (char *)*(int*)(8+(f->esp));
-
-	if (invalid_ptr (dir_name)) 
-	{
-  	exit_status (-1);
-  	return;
-  }
-
- //  dir_close(thread_current()->current_working_dir);
-	// thread_current()->current_working_dir = dir_name;
-
-	f->eax = false;
+	f->eax = filesys_chdir (dir_name); //false;
 }
 
 /*
@@ -708,8 +706,7 @@ my_readdir (struct intr_frame *f)
   // mydir->inode = get_inode_from_file (cur_file);
   // mydir->pos = get_pos_from_file (cur_file);
 
-	// return bool;
-  f->eax = dir_readdir (mydir, dir_name);	//false
+  f->eax = dir_readdir (mydir, dir_name);	// return bool;
   free (mydir);
 }
 
@@ -721,9 +718,10 @@ static void
 my_isdir (struct intr_frame *f) 
 {
 	int fd = *((int *)(4+(f->esp)));
-	//bool dir_lookup (const struct dir *, const char *name, struct inode **);
-	// return bool;
-	f->eax = true;
+	struct file *cur_file = get_file (fd);
+
+	f->eax = true;	//return bool;	//bool dir_lookup (const struct dir *, const char *name, struct inode **);
+	//struct dir* dir_getdir (const char *path_name)
 }
 
 /*

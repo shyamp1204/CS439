@@ -83,3 +83,19 @@ Alex 30 min
 Wes 30 min
 Katherine 30 min
 Wes 30 min
+
+
+12/3, 6 - 1am Alex and Wes and Katherine,  7 hours
+Driver Order and Time Length:
+Alex 30 min
+Wes 30 min
+Katherine 30 min
+....
+
+12/4, 8am-11pm Alex and Wes and Katherine,  15 hours
+Driver Order and Time Length:
+Wes 30 min
+Alex 30 min
+Katherine 30 min
+.....
+
