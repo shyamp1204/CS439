@@ -115,8 +115,7 @@ struct thread
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
-    // block_sector_t current_working_dir;     /*sector number that points to the inode that keeps track of working directory*/
-    struct dir *current_working_dir;      /* current working directory */
+    block_sector_t current_working_dir;     /*sector number that points to the inode that keeps track of working directory*/
 #endif
 
     /* Owned by thread.c. */

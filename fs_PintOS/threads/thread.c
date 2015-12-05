@@ -100,7 +100,7 @@ thread_init (void)
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
-  initial_thread->current_working_dir = NULL;
+  initial_thread->current_working_dir = ROOT_DIR_SECTOR;
   initial_thread->tid = allocate_tid ();
   sema_init (&(initial_thread->exec_sema),0);  //for the main thread
 }
