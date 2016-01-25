@@ -1,0 +1,85 @@
+Homework #: 4
+Student Name:Alex Irion
+EID:aji272
+CS login:alex10
+Email address:alexirion10@gmail.com
+Unique Number: 50745
+
+1.
+Yes, if we assume there are interrupts.  If an interrupt occurs and tries to modify data that the kerner was working on, the interrupt could mess up the kernel value.  We would need a critical section to ensure only 1 thread is running inside the kernel at a time, making it re-entrant.
+
+2.
+
+2.1
+any value between 1 and 200 is possible based on how much run time the threads have before the pthread_join() call is made.
+
+2.2
+if m concurrent threads are running, the final value is bounded between 1 and 100*m
+
+3.
+Both semaphores and monitors aim to accomplish thread synchronization by mutual exclusion.  In other words, they both accomplish mutual exclusion.
+
+Semaphores - are essentially counters, that can be changed up (V) or down (P) based on the number of threads that have encountered the semaphore.  If the semaphore value is initialized to 1, it is basically a monitor, however semaphores can be initialed to values greater than 1.
+
+monitors - are designed so only one thread can access an object/struct/funciton/critical section at a time.  If one thread is already within an area that the monitor is protecting, any other thread that encounters the monitor will have to wait until the running thread has exited the monitor area of code.
+
+
+4.
+No deadlock will occur because both semaphores will be acquired in the same order by both threads.
+
+5.
+Semaphore mutex =1;
+Semaphore Ox =0;
+Semaphore Hy =0;
+
+Oxygen() {
+	Ox++;
+}
+
+Hydrogen() {
+	Hy++;
+}
+
+Water() {
+	mutex->down();
+	if(Hy >= 2 && Ox >= 1) {
+		Hy -= 2;
+		Ox -= 1;
+		make water;
+	}
+	mutex->up();
+}
+
+
+6.
+Lock lock;
+Condition OxCV, HyCV;
+
+
+Oxygen() {
+	lock->acquire();
+	Ox++;
+	lock->release();
+}
+
+Hydrogen() {
+	lock->acquire();
+	Hy++;
+	lock->release();
+}
+
+Water() {
+	lock->acquire();
+	while(HyCV < 2) {
+		HyCV->wait(lock);
+	}
+	while(OxcV <1) {
+		OxCV->wait(lock);
+	}
+
+	<produce water>
+	lock->release();
+}
+
+
+

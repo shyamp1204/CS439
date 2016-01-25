@@ -1,0 +1,40 @@
+Homework #: 5
+Student Name:Alex Irion
+EID:aji272
+CS login:alex10
+Email address:alexirion10@gmail.com
+Unique Number: 50745
+
+1.
+Physical address space is a	collection of physical memory addresses	supported by the hardware from address 0 to address	MAX(sys).
+Virtual address is a collection of addresses that the process can access (in the processes view) from 0 to MAX(prog).
+Virtual memory is often larger than physical address space (but unrelated), because only the currently running or current needed process frames are mapped onto physical address space from virtual address.
+MMU converts VA into physical address
+
+2.
+Something not in a processes address space
+If the address a process is trying to access is outside of its "limit" register, a memory exception occurs.
+The end result is a segfault and will kill the process.
+
+3.
+Paging is better than relocation because it reduces external fragmentation and it allows shared memory, because several virtual addresses can point to the same physical addresses
+
+4.
+Internal fragmentation is unused memory inside of a page frame.  Since the stack and heap grow/shrink dynamically, there are parts of memory inside of each frame that are often unused.
+Reducing page size or Multi-level paging could reduce internal fragmentation.
+
+5.
+A page fault is caused by trying to reference pages that aren't mapped into physical memory.
+The end result is the OS maps the missing page into memory and then restarts the faulting process.
+
+6. 
+In a 32 bit machine we subdivide the virtual address into 4 segments as (10 bit, 8 bit, 6 bit, 8 bit).
+We use a 3 level page table such that the first 10 bits are for the first level and so on.
+What is the page size in such a system?
+2^8 = 256 bytes
+
+
+What is the size of a page table for a process that has 256k of memory starting at address 0?
+1024 pages
+9216 bytes
+

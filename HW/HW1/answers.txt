@@ -1,0 +1,67 @@
+Homework #:1
+Student Name: Alex Irion
+EID: aji272
+CS login: alex10
+Email address: alexirion10@gmail.com
+Unique Number: 50745
+===========================================================
+1. done.
+
+===========================================================
+2. done.
+
+===========================================================
+3.
+Pair programming should contain both partners being together at the same computer at least 80% of the time while doing the assignment.  One person should be typing (driver) and the other person should sit next to the driver “observing, commenting, and making suggestions” to the driver.  They should switch “drivers” every 30 minutes.  Group members should log parts of the code that they worked on and for how long.  The pair/group should spend between 1-4 hours together working per session (but really until the project is complete lol).
+
+===========================================================
+4.
+#include <stdio.h>
+
+int main(int argc, char *argv[]) {
+  int numOfLoops;
+  if(argc == 2) {
+    numOfLoops = atoi(argv[1]);  //ascii to int function call
+    recursiveHelper(numOfLoops);
+    //if(numOfLoops == numOfLoops)
+    	//printf("Goodbye\n");
+  }
+  else  {
+    printf("incorrect arguments, please try again\n");
+  }
+}
+
+int recursiveHelper(int loops) {
+  if(loops <= 0) 
+    return 0;
+  else {
+    printf("Hello, World!\n");
+    return recursiveHelper(loops -1);
+  }
+}
+
+===========================================================
+5. 
+gcc -g HelloWorld.c -o hello
+
+===========================================================
+6.
+> gdb hello			//starts gdb
+> b recursiveHelper    		//breakpoint at recursive method
+> print loops   		//print parameter passed
+> bt  				//prints backtrace of the call stack
+
+recursive call is on line 19 
+
+Breakpoint 1 at 0x4005d5: file HelloWorld.c, line 15.
+
+#0  recursiveHelper (loops=0) at HelloWorld.c:15
+#1  0x00000000004005f9 in recursiveHelper (loops=1) at HelloWorld.c:19
+#2  0x00000000004005f9 in recursiveHelper (loops=2) at HelloWorld.c:19
+#3  0x00000000004005f9 in recursiveHelper (loops=3) at HelloWorld.c:19
+#4  0x00000000004005f9 in recursiveHelper (loops=4) at HelloWorld.c:19
+#5  0x00000000004005f9 in recursiveHelper (loops=5) at HelloWorld.c:19
+
+===========================================================
+7.
+When I run the program compiled with optimization level 4, the x value in “if(x == x)” is shown to be 0.  Previous runs of this program with lower optimization levels kept the command line argument value throughout the entire execution.  This is most likely because the compiler recognized that the value would always equal itself, hence always passing the if statement and executing the nested statements.  

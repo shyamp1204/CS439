@@ -1,0 +1,67 @@
+Homework #: 8
+Student Name: Alex Irion
+EID: aji272
+CS login: alex10
+Email address: alexirion10@gmail.com
+Unique Number: 50745
+
+1.1 - a
+1.2 - d
+1.3 - b
+
+2.
+Disk requests come into the disk driver for tracks 10, 22, 20, 2, 40, 6, and 38, in that order. A seek takes 6 msec per track moved. How much seek time is needed for the following scheduling algorithms?
+
+In all cases, the arm is initially at track 20, and you may assume that the head is traveling towards higher numbers.
+a) FIFO
+146*6 = 876
+
+b) SSTF 
+60*6 = 360
+
+c) LOOK (SCAN, but doesn't move to the end) 
+58*6 = 348
+
+3.
+Suppose I have a disk such as the 320GB SATA drive described here and I have a workload consisting of 10,000 reads to sectors randomly scattered across the disk. How long will these 10,000 request take (total) assuming the disk services requests in FIFO order?
+
+seek + rotation
+
+(12+5.5)*10000 = 175000 ms
+175 seconds
+2 mins 55 seconds
+
+4.
+Some file allocation schemes limit the size of the file whether or not there is enough space for a larger file. Which ones and why?
+
+Linked
+->Direct (Limits file sizes because file headers can only hold a max number of pointers, otherwise they would have to be variably sized)
+Contiguous
+->Multi-Level index (if all of the inode's are full, you can't expand the file anymore)
+Extents
+
+5.
+How does a journaling file system maintain file system consistency even in the event of a crash? Name an example of a journaling file system.
+
+These file systems are able to maintain consistency, even in the event of a crash, because they keep track of changes not yet committed to the file system's main part by recording the intentions of such changes in a data structure known as a "journal".
+Transaction logs...
+
+HFS+ 
+Git
+
+6.
+append data to: /usr/jane/classes/cs439/exam_notes.txt
+
+1. read root inode (contains data block)
+2. read root data block (contains usr/ loc)
+3. read usr inode, (containts data block loc)
+4. read usr data block, (contains jane/ loc)
+5. read jane/ inode (contains data block loc)
+6. read jane data block (contains classes/ loc)
+7. read classes inode (contains data block loc)
+8. read classes data block (contains cs439/ loc)
+9. read cs439 inode (contains data block loc)
+10. read cs439 data block (contains exam_notes.txt)
+11. read txt inode (contains last data block loc)
+12. write to last data block
+

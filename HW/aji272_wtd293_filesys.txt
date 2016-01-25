@@ -1,0 +1,86 @@
+Fill out and submit the template below for **each** group member with
+which you have worked this _semester_.  This information will
+remain confidential.
+
+Name each file in the following format: <your_cs_login>_<partner_cs_login>_<proj>.txt where <proj> is one of the following: shell, threads, user, vm, fs.
+If you worked with this person for multiple projects, just turn it in under
+one of the projects, and then list the relevant projects under "Project" below.
+
+Turnin each evaluation to the Canvas assignment "Peer Evaluations".
+
+***Once you have evaluated each of your group members, use this form
+to evaluate your contribution as compared to your group members.  In the
+comments section, explain your reasoning for your self-evaluation score. 
+Turnin your self-evaluation in the same mannger using the following file name:
+
+<your_cs_login>_<your_cs_login>_all.txt
+
+
+****Evaluations are due by 12/7/2015 at 11:59:59p.****
+
+[Please delete above text before submitting the template.]
+
+                    +---------------------------+
+                    |           CS 439          |
+		    |      Partner Evaluation	|
+		    +---------------------------+
+
+---- Your Name ----
+
+Name:alex irion
+EID:aji272
+CS login:alex10
+Email:alexirion10@gmail.com
+Unique Number:50745
+
+---- Group Member----
+
+Name: Katherine Heyne
+EID: kfh293
+CS login: kfh293
+Email: katherine.heyne@yahoo.com
+Unique Number: 50745
+
+---- Projects ----
+
+Projects on which you worked with this person:
+Project 0 - Project 4 (all of them)
+
+---- Evaluation ----
+
+Using the following scale, evaluate your group member for the given
+qualities.
+
+1 (rarely/never)           
+2 (occasionally/sometimes)          
+3 (all/most of the time) 
+
+____ did fair share of work 
+2
+____ was cooperative/did agreed upon task 
+3
+____ contributed to ideas/planning 
+3
+____ made him or herself available to meet
+3
+____ was positive, helpful 
+3
+____ contributed to overall project success 
+3
+
+
+What grade would you give this person on his or her performance as
+a group member (A+, A, A-, B+, B, B-, ...)? 
+A
+
+
+Comments:
+Excelent partner
+
+
+
+
+
+
+
+

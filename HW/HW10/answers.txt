@@ -1,0 +1,46 @@
+ 1.
+ Consider a multi-level paging system with 128 pages and a page size of 256 bytes. The system has 1024 bytes of physical memory and is byte addressable. Assume the first-level page table holds 8 entries.
+
+    How many bits are in a physical address? 10
+
+    How many bits of the virtual address represent the first-level page table? 7
+
+    How many bits of the virtual address represent the page number? 7
+
+    How many bits are in the complete virtual address? 15
+
+    What size are the page frames? 256 bytes
+
+
+2.
+This style will increase the reliability of the system, however it is more expensive and will slow speeds.
+
+3.
+Sun's network file system (NFS) protocol provides reliability via:
+
+    at-most-once semantics
+  ->at-least-once semantics
+    two-phase commit
+  ->transactions 
+
+4.
+In two-phase commit, suppose the master fails after writing ``GLOBAL_COMMIT'' to disk and sending ``GLOBAL_COMMIT'' to all participating nodes but before any of the nodes receive this message. Suppose that the ``GLOBAL_COMMIT'' message reaches i of the n participants and that the participants implement a protocol in which they communicate with one another when they suspect the primary has died. What is the minimum number of participants that must receive the ``GLOBAL_COMMIT'' message to allow the participants to complete the transaction without waiting for the master to recover?
+
+2
+
+5.
+Considering all the pieces of the operating system we have discussed, describe the steps the OS takes when performing a context switch. Assume that processes are waiting in the ready queue. 
+
+context switch starts with an interrupt.  All user data is saved in the stack and registers.  The process is stored in the TLB and control is switched over to the kernel.  The kernel handles the interupt and returns to the user process, which executes the statement before the interrupt occured.
+
+
+
+Know details of NFS and GFS
+
+Reliable out of unreliable parts
+
+Network issues (timeout, syn/ack)
+Raid (for disk)
+Idempotence
+Transaction log
+

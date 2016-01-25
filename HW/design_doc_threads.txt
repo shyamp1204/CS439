@@ -1,0 +1,263 @@
+			+--------------------+
+			|        CS 439      |
+			| PROJECT 1: THREADS |
+			|   DESIGN DOCUMENT  |
+			+--------------------+
+
+****EACH student submits a (unique) design document.****
+
+---- Name ----
+
+>> Fill your name, UT EID, CS login, email address, and unique number:
+
+Name:alex irion
+EID:aji272
+CS login:alex10
+Email:alexirion10@gmail.com
+Unique Number:50745
+
+
+Slip days used on this project:0
+
+---- GROUP ----
+
+>> Fill the names, UT EIDs, CS logins, email addresses, and unique numbers
+>> of your group members.  Also fill in each person's ranking on the 
+>> partner evaluation scale, as determined by you.
+
+Name1:Wesley Draper
+EID1:wtd293
+CS login:wdraper
+Email:wesleydraper@gmail.com
+Unique Number:50745
+Ranking (scale below):marginal
+
+Name2:Katherine Heyne
+EID2:kfh293
+CS login:kfh293
+Email:katherine.heyne@yahoo.com
+Unique Number:50745
+Ranking (scale below):satisfactory
+
+
+
+---- PARTNER EVALUATION SCALE ----
+
+>> Excellent: Consistently went above and beyond - tutored others, carried
+>> more than his/her fair share of the load.
+
+>> Very Good: Consistently did what he/she was supposed to do, very well
+>> prepared and cooperative.
+
+>> Satisfactory: Usually did what he/she was supposed to do, minimally
+>> prepared and cooperative.
+
+>> Marginal: Sometimes failed to show up and/or rarely prepared.
+
+>> Deficient: Often failed to show up and/or rarely prepared.
+
+>> Unsatisfactory: Consistently failed to show up and/or unprepared.
+
+>> Superficial: Practically no participation.
+
+>> No Show: No participation at all.
+
+
+---- PRELIMINARIES ----
+
+>> If you have any preliminary comments on your submission, notes for the
+>> TAs, or extra credit, please give them here.
+
+>> Please cite any offline or online sources you consulted while
+>> preparing your submission, other than the Pintos documentation, course
+>> text, lecture notes, and course staff.
+
+			     ALARM CLOCK
+			     ===========
+
+---- DATA STRUCTURES ----
+
+>> A1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+
+struct thread
+  {
+    .....
+
+    //ADDED VALUES
+    uint64_t wakeupTime; 
+    struct semaphore sema_sleep;   
+    struct list_elem waiting_elem;   
+  };
+
+	//stores the time in ticks that the thread should wake up at. Set by adding total time since boot + time to sleep for
+    uint64_t wakeupTime;         
+
+    // Semaphore that blocks the thread while sleeping.  Call down to block, up to unblock
+    struct semaphore sema_sleep;  
+
+    // a list element so that each thread can be put into lists, spefically wait_list 
+    struct list_elem waiting_elem;    
+
+---- ALGORITHMS ----
+
+>> A2: Briefly describe what happens in a call to timer_sleep(),
+>> including the effects of the timer interrupt handler.
+
+if sleep_ticks is < 0, the thread will not sleep.  We accomplish this by storing the current computer up time into the structs wakeupTime. 
+In this, the wakeupTime will always be less than the computer time there after and will NOT be sleeping
+
+if sleep_ticks > 0, the thread needs to sleep.  We accomplish this by storing the computer up time (timer_ticks ()) + the ticks from the function
+parameter into the threads struct wakeupTime value.
+Next we put that sleeping thread into a wait_list by using the threads list_elem field in the stuct.
+Next we call sema down with the semaphore in that threads stuct, causing the thread to block and remove from the ready list.
+
+The timer interrupt handler is called every time a "tick" occurs.  Every time that the computer ticks, we need to check our wait_list to see if
+any thread needs to be woken up.  We do this by looping over the wait_list, checking each thread if its wakeupTime is now less than the total computer time.
+If the thread needs to be woken up, we remove it from the wait_list and call sema_up
+
+
+
+>> A3: What steps are taken to minimize the amount of time spent in
+>> the timer interrupt handler?
+
+time spent in the interrupt handler is reduced by ordering the the wait_list by each threads wakeupTime.  
+This helps, because now when we loop over our linked list as soon as we find the first element thats wakeupTime is > computer time we know that all the elements after it will hold the same condition. We would no longer need to continue looking at the rest of the elements in the list.
+
+---- SYNCHRONIZATION ----
+
+>> A4: How are race conditions avoided when multiple threads call
+>> timer_sleep() simultaneously?
+
+We avoid race conditions because we don't use global or shared data in the timer_sleep function, instead this data is contained within each individual thread.
+
+Multiple threads cann access this function simultaneously because they don't change other threads data.
+
+>> A5: How are race conditions avoided when a timer interrupt occurs
+>> during a call to timer_sleep()?
+
+Race conditions are avoided because when we call sema down while sleeping, which disables interupts (because sema_down should be an atomic operation).
+We do this so that inserting data into the shared "ready_list" isn't interupted when doing an insert or remove.
+
+
+---- RATIONALE ----
+
+>> A6: Why did you choose this design?  In what ways is it superior to
+>> another design you considered?
+
+I was confused some by the waiters list in the Semaphore struct.
+We chose to put the semaphore in the thread struct, so that each thread can call sema_down essentially blocking it from running until the correct amount of time passes.
+We also created our own wait list in timer.c to keep track of all of the waiting threads.  
+
+We also ordered our wait list by waitlist by wakupTime so that we could wake up threads more efficiently.
+
+
+
+			 PRIORITY SCHEDULING
+			 ===================
+
+---- DATA STRUCTURES ----
+
+>> B1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+    int base_priority;				/* stores the origional thread priority so that a thread can reset to this after a donation is done */
+    struct lock lock_to_acquire;    /* the lock that the thread owns and uses */
+    struct list donations_list;   /* list of all priority donations donated to this thread */
+
+>> B2: Explain the data structure used to track priority donation.
+>> Use ASCII art, a diagram, or a drawing to illustrate a nested 
+>> donation.  (You may submit an additional file of type .png or .pdf
+>> for this problem.)
+
+attached in PNG file.
+
+---- ALGORITHMS ----
+
+>> B3: How do you ensure that the highest priority thread waiting for
+>> a lock, semaphore, or condition variable wakes up first?
+
+We insure that the highest priority thread on the waiters list gets woken up first by always inserting into the waiters list in order based on priority.
+Therefore, the highest priority thread should always be the first thread on the waiters list.
+
+>> B4: Describe the sequence of events when a call to lock_acquire()
+>> causes a priority donation.  How is nested donation handled?
+
+Priority donation occurs when a thread calls lock_acquire(), but the lock already has a holder.
+Once this happens we check to see if the current thread has a higher priority that the lock holder.
+If this is true, we set the lock holders effective priority to the current threads priority.
+
+nested donation is handled by storing all donations in a list in each thread.  By doing this, the lock holder only needs the donation of the highes priority thread on its list.
+
+
+>> B5: Describe the sequence of events when lock_release() is called
+>> on a lock that a higher-priority thread is waiting for.
+
+When lock_release() is called we reset the current threads priority to its base priority, pop the highest priority thread off its list.
+The lock is then handed to that thread (with the highest priority from the wait_list)
+
+
+
+---- SYNCHRONIZATION ----
+
+>> B6: Describe a potential race in thread_set_priority() and explain
+>> how your implementation avoids it.  Can you use a lock to avoid
+>> this race?
+
+We could use a lock to prevent the race condition so that when multiple threads are trying to set_priority().
+If we didn't do this, multiple threads would be trying to set their priorities simultaneously, which is a behavior we don't want.
+
+When dealing with nested donations, only one thread should change its priority at a time.
+
+
+
+---- RATIONALE ----
+
+>> B7: Why did you choose this design?  In what ways is it superior to
+>> another design you considered?
+
+This design is superior because it passes the tests haha.
+
+I was a little confused in how the lock struct has a semaphore within it, but this actually works well because our semaphore is being used only as a binary semaphore.
+We were unable to finish all of the donations, however using a list to store the thread that is waiting on the lock was the most straightforward way to determine donation.
+
+
+
+			   SURVEY QUESTIONS
+			   ================
+
+Answering these questions is optional, but it will help us improve the
+course in future semesters.  Feel free to tell us anything you
+want--these questions are just to spur your thoughts.  You may also
+choose to respond anonymously in the course evaluations at the end of
+the semester.
+
+>> In your opinion, was this assignment, or any one of the two problems
+>> in it, too easy or too hard?  Did it take too long or too little time?
+
+Took too long especially on a test week.
+
+It was very difficult to know where to start with the sleep/alarm part.  If it didn't take
+so long to figure that out the project wouldn't have been so bad.
+
+>> Did you find that working on a particular part of the assignment gave
+>> you greater insight into some aspect of OS design?
+
+Yes, writing the priority queue gave me some additional insight
+
+>> Is there some particular fact or hint we should give students in
+>> future semesters to help them solve the problems?  Conversely, did you
+>> find any of our guidance to be misleading?
+
+It would be helpful if there was a list of functions that we should not alter.
+Emphasizing how the linked list worked, with how the list_elem inside of the struct was very helpful
+
+>> Do you have any suggestions for the TAs to more effectively assist
+>> students, either for future semesters or the remaining projects?
+
+START EARLY!
+
+>> Any other comments?

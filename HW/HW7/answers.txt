@@ -1,0 +1,44 @@
+Homework #: 7
+Student Name: Alex Irion
+EID: aji272
+CS login: alex10
+Email address: alexirion10@gmail.com
+Unique Number: 50745
+
+1.  
+A translation lookaside buffer is a memory cache that stores recent translations of virtual memory to physical addresses for faster retrieval. When a virtual memory address is referenced by a program, the address is translated into physical address and initially checks if it exists in the TLB.  If not we search physical memory which is much slower.
+
+
+2.
+14 page faults
+
+00002222223333444
+-1111444444111111
+--333355555522220
+---66666600055555
+
+
+3.
+3 frames: 9 faults
+0003333444222
+-111000000033
+--22211111114
+
+4 frames: 10 faults
+0000000002222
+-111111111111
+--33333333333
+-----44444444
+
+
+4.
+The buffer could be more than 1 page, which the rest of the buffer would continue writing to another page that could be mapped somewhere else.
+VM isn't contiguous
+
+
+5.
+1024*512*512*4
+= 1e+9
+= 1GB
+
+ 

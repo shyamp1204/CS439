@@ -1,0 +1,82 @@
+Homework #:3
+Student Name:Alex Irion
+EID:aji272
+CS login:alex10
+Email address: alexirion10@gmail.com
+unique number: 50745
+
+1.
+Process A = Q1
+Process B = Q3
+Process C = Q3
+
+2.
+Stack(local variables + pointers):
+int b;
+int g;
+double z;
+
+Heap(declared + defined in main + malloc):
+j = malloc(MAXBUF*sizeof(char));
+int * m;
+
+Data Segment(static variables + globals):
+//shared between all threads
+int i;
+char * j;
+static float c;
+
+
+3.
+#include <pthread.h>
+#include <stdio.h>
+
+void *thread(void *vargp);
+
+int main() {
+  pthread_t thread1;
+  pthread_t thread2;
+  pthread_t thread3;
+
+  int t1 = 1;
+  int t2 = 2;
+  int t3 = 3;
+
+  
+  pthread_create(&thread1, NULL, thread, (void *)&t1);
+  pthread_join(thread1, NULL);
+  //args.arg1 = 2;
+  pthread_create(&thread2, NULL, thread, (void *)&t2);
+  pthread_join(thread2, NULL);
+  //args.arg1 = 3;
+  pthread_create(&thread3, NULL, thread, (void  *)&t3);
+  pthread_join(thread3, NULL);
+
+  printf("application has finished\n");
+  exit(0);
+  
+}
+
+void *thread(void *vargp) {
+  int *arg2 = (int*)(vargp);
+  int argument = (int) (*arg2);
+  printf("%d\n", argument);
+
+  int i;
+  for(i=1; i<=10; i++) {
+    printf("%d: %d\n", argument, i);
+  }
+  return NULL;
+}
+
+
+
+4.
+pthread_detach() 
+Detached threads cannot be reaped or killed by other threads, its memory resources are freed automatically by the system when it terminates.
+This might be useful when making many different independent web server connections.  Each of theses threads should be unrelated to eachother.
+
+5.
+Re-entrant means a program can be safely called again before its previous invocation has been completed (concurrently).
+Re-entrant calls behave differently because they can achieve thread safety and because they don't rely on static/global variables.
+This is important for multi-threaded core so that threads can run concurrently without affecting eachothers state.

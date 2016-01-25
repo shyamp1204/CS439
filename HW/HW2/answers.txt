@@ -1,0 +1,45 @@
+Homework #:2
+Student Name:Alex Irion
+EID:aji272
+CS login:alex10
+Email Address:alexirion10@gmail.com
+Unique Number:50745
+
+1.
+#value -> frequency
+#12 = 94
+#10 = 101
+#87 = 118
+
+2.
+> time make
+on Project0 files
+
+real	0m0.583s
+- time it took to actually compile and make the executeables
+user	0m0.383s
+- time it took to display the executeables to the current user
+sys	0m0.115s
+- time it took the system to recognize the command and start the compile
+
+The time on each line in incrementally greater, which is what I would expect.
+
+3. 
+A program is a list of instructions telling the OS what to do
+A process is an instance of a program that is being executed (contains the program code).  It is the basic unit of execution in an OS
+An executeable is a file that has machine instructions for the OS on how to run a program. Executeables are used to run programs
+
+4.
+2 child and 2 parent processes.
+3 different c's, however, when forked the child process uses the same memory location for the variable
+child 1:  c=4
+parent 1: c=6
+- child 2: c=8
+
+
+5.
+Fairness and throughput can be competing goals for a scedular because in most instances, if the schedular is being more fair the throughput of the programs decreases.  The throughput can be high when the schedular is using a FIFO policy to execute smaller processes first.
+A fair schedular make bad use of the CPU when a process continues to take time even when the process is waiting for I/O, memory, or an interrupt.  During this time, the process is simply waiting for a return and the CPU is idle.
+A FCFS schedular policy has a high throughput, but is unfair because it runs processes that enter the queue first until they are completely finished.  This method has a high throughput but may not be fair to other processes waiting to use the CPU.
+
+

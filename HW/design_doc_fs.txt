@@ -1,0 +1,341 @@
+                    +-------------------------+
+                    |           CS 439        |
+                    | PROJECT 4: FILE SYSTEMS |
+                    |      DESIGN DOCUMENT    |
+                    +-------------------------+
+
+****EACH student submits a (unique) design document.****
+
+---- Name ----
+
+>> Fill your name, UT EID, CS login, email address, and unique number:
+
+Name: Alex Irion
+EID: aji272
+CS login: alex10
+Email: alexirion10@gmail.com
+Unique Number: 50745
+
+Slip days used on this project:0
+
+---- GROUP ----
+
+>> Fill the names, UT EIDs, CS logins, email addresses, and unique numbers
+>> of your group members.  Also fill in each person's ranking on the 
+>> partner evaluation scale, as determined by you.
+
+Name1: Katherine Heyne
+EID1: kfh293
+CS login: kfh293
+Email: katherine.heyne@yahoo.com
+Unique Number: 50745
+Ranking (scale below):Very Good
+
+
+0Name2: Wes Draper
+EID2: wtd293
+CS login: wdraper
+Email: wesleydraper@gmail.com
+Unique Number: 50745
+Ranking (scale below):Very Good
+
+
+---- PARTNER EVALUATION SCALE ----
+
+>> Excellent: Consistently went above and beyond - tutored others, carried
+>> more than his/her fair share of the load.
+
+>> Very Good: Consistently did what he/she was supposed to do, very well
+>> prepared and cooperative.
+
+>> Satisfactory: Usually did what he/she was supposed to do, minimally
+>> prepared and cooperative.
+
+>> Marginal: Sometimes failed to show up and/or rarely prepared.
+
+>> Deficient: Often failed to show up and/or rarely prepared.
+
+>> Unsatisfactory: Consistently failed to show up and/or unprepared.
+
+>> Superficial: Practically no participation.
+
+>> No Show: No participation at all.
+
+
+---- PRELIMINARIES ----
+
+>> If you have any preliminary comments on your submission, notes for the
+>> TAs, or extra credit, please give them here.
+
+>> Please cite any offline or online sources you consulted while
+>> preparing your submission, other than the Pintos documentation, course
+>> text, lecture notes, and course staff.
+
+U of Washington lecture notes
+http://homes.cs.washington.edu/~arvind/cs422/lectureNotes/l18-6.pdf
+
+		     INDEXED AND EXTENSIBLE FILES
+		     ============================
+
+---- DATA STRUCTURES ----
+
+>> A1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+//number of direct pointers.  Limited due to max struct size = disk sector size
+#define NUM_DIRECT_PTR 122
+
+//number of 4 byte pointers that can fit in one sector on disk						
+#define NUM_PTR_PER_BLOCK 128
+
+//error value used in byte_to_sector
+#define ERR_VALUE 99999999						
+
+//lock used to only allow one file to extend its size at a time
+struct lock extend_lock;							
+
+struct inode_disk
+{
+	...
+	//true if inode is directory, false if file
+  bool is_dir;         
+  
+  //ROOT default, block sector of parent directory inode otherwise
+  block_sector_t parent_dir;   
+  
+  // Direct Pointers Array
+  block_sector_t direct_block_sectors[NUM_DIRECT_PTR]; 
+
+  // First lvl Indirect sector number 
+  block_sector_t indirect_block_sector;          
+
+  //Second lvl indirect sector number        
+  block_sector_t doubly_indirect_block_sector;           
+};
+
+
+// In-memory inode.
+struct inode 
+{
+  ...
+	/*lock for each inode. protects write synch*/
+  struct lock data_lock;							
+};
+
+//indirect block struct is an array of NUM_PTR_PER_BLOCK array of sector number
+struct indirect_block
+{
+   block_sector_t direct_block_sectors[NUM_PTR_PER_BLOCK];
+};
+
+>> A2: What is the maximum size of a file supported by your inode
+>> structure?  Show your work.
+
+direct block sectors:      			(512 / 4) - 6   	= 122     sectors       
+indirect block sectors:    			(512 / 4)         = 128     sectors        
+double-indirect block sectors:  (512 / 4)^2       = 16,384  sectors        
+---------------------------------------------------------------------------
+Total Sectors Supported                           = 16,634  sectors        
+                                                  * 512     bytes / sector 
+
+Total Filesize Supported                          = 8,516,608 bytes       
+                                               
+8,516,608 bytes ~= 8.122 MB
+Our inode structure supports a filesize of roughly 8.122 MB.
+
+---- SYNCHRONIZATION ----
+
+>> A3: Explain how your code avoids a race if two processes attempt to
+>> extend a file at the same time.
+
+We have a global extend_lock in the inode file.
+We use this lock around the extend_file function to ensure synchronization of 2 processes trying to expand at the same time.  If one inode is trying to allocate space via either inode_create OR extend_file (b/c of inode_write_at), we acquire this lock, forcing all other processes to wait until the current one is done allocating.
+
+The relevant code is in inode.c : inode_write_at
+
+>> A4: Suppose processes A and B both have file F open, both
+>> positioned at end-of-file.  If A reads and B writes F at the same
+>> time, A may read all, part, or none of what B writes.  However, A
+>> may not read data other than what B writes, e.g. if B writes
+>> nonzero data, A is not allowed to see all zeros.  Explain how your
+>> code avoids this race.
+
+We are using a global filesystem lock to prevent 2 processes from accessing the file system at the same time.
+
+Ideally we would have:
+
+removed the global lock and had a finer grain synch system in block_read_at and block_write_at.
+
+AND 
+
+When process B is writing/extending the file, new block sectors are allocated. Even though these new blocks are allocated, the file length wouldn't be updated until after data other than 0's is actually written into it.  
+
+A file cannot be read past its current length.
+
+Therefore, when process A attempts to read this same file, it can only read up the the file length (whereas all bytes up to file length have been written nonzero).
+
+Yes, this could result in a read returning nothing if it runs before the block_write, however it won't read bytes that have already been allocated and not yet written at least.
+
+In this, process A would have no way of knowing the file has been extended until after more nonzero bytes have been written.
+
+
+>> A5: Explain how your synchronization design provides "fairness".
+>> File access is "fair" if readers cannot indefinitely block writers
+>> or vice versa.  That is, one or many processes reading from a file
+>> cannot forever prevent another process from writing to the file, and
+>> one or many processes writing to a file cannot forever prevent
+>> another process from reading the file.
+
+The only synchronization that we designed is in extend_inode and inode_create.
+We made access "fair" in that it is not possible for processes to block others indefinitely while reading or writing to/from a file.
+
+Reads are always allowed so long as we aren't currently extending the file.
+Blocking a process time is kept to a minimum by only having the lock while search for new data bock to allocate and writing to them, and releasing as soon as that is complete.
+
+The most fair policy would have used condition variables and created a queue of processes waiting on a certain lock.  This would have been implemented similarly to the readers/writers problem from lecture.
+
+---- RATIONALE ----
+
+>> A6: Is your file layout a multilevel indexed structure?  If so, why
+>> did you choose this particular combination of direct, indirect, and
+>> doubly indirect blocks?  If not, why did you choose an alternative
+>> file structure, and what advantages and disadvantages does your
+>> structure have, compared to a multilevel index?
+
+Yes, our file layout is a multilevel indexed structure.
+We chose to have 122 direct pointers, 1 indirect pointer, and 1 double indirect pointer (each indirect block has 128 pointers).
+
+We used this structure because we wanted as many direct blocks as possibly could fit in the inode_disk struct while still supporting a file size of 8MB.  Maximizing direct pointers makes file access much quicker (especially sense most files are small).
+
+Our math shows that with only 1 indirect block and 1 double indirect block, and filling the rest of the available struct space with direct pointers we reach 8MB.  
+
+
+			    SUBDIRECTORIES
+			    ==============
+
+---- DATA STRUCTURES ----
+
+>> B1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+struct thread
+  {
+		...
+		//sector number pointer to the sector # of the cur working directory
+    block_sector_t current_working_dir;     
+    ...
+  };
+
+struct inode_disk
+{
+	...
+	/*true if inode is directory, false if file*/
+  bool is_dir;                    
+
+  /*ROOT default, block sector of parent directory inode otherwise*/
+  block_sector_t parent_dir;       
+  ...
+};
+
+static char* self_path = ".";
+static char* parent_path = "..";
+
+---- ALGORITHMS ----
+
+>> B2: Describe your code for traversing a user-specified path.  How
+>> do traversals of absolute and relative paths differ?
+
+see traverse_path () in filesys.c 
+
+path string "." is directed to the current directory
+path string ".." is directed to the parent directory
+
+The first part is analyzing the first character of the path.  If the first character is a '/' then the parent directory is set to ROOT_DIR_SECTOR.  Otherwise, the parent directory is set to the current working directory (struct member current_working_dir in thread struct).
+
+We traverse the path iteratively by:
+
+1. removing the '/' from either first character in the path and the last character in the path
+
+2. call the strok_r function on the path name to find the first occurrence of '/' if any, in a for loop
+
+3. if '/' was found in the path name, then we split the path name into the directory name before the slash and the path name after it.  Find and update the sector number of the parent directory and continue loop at step 2
+
+if no '/' found, we are at the end of the path so we can return dir_lookup() passing the last piece of the path with respect to the current parent directory
+
+
+the function is unified in using current working directory for both absolute and relative lookups.  Both path styles are handled with the same code.
+
+
+---- SYNCHRONIZATION ----
+
+>> B4: How do you prevent races on directory entries?  For example,
+>> only one of two simultaneous attempts to remove a single file
+>> should succeed, as should only one of two simultaneous attempts to
+>> create a file with the same name, and so on.
+
+Directories are really just an abstract type of a file on our system.  These are synchronized the same way the rest of the file system is, with our global file system lock.
+
+Another good design would have been to remove the global lock and synchronize the directories in the inode_write_at/inode_read_at and other directory manipulation functions in directory.c.
+Since each directory has an Inode we could have used the lock in the Inode in a few more places.
+
+>> B5: Does your implementation allow a directory to be removed if it
+>> is open by a process or if it is in use as a process's current
+>> working directory?  If so, what happens to that process's future
+>> file system operations?  If that's not allowed, how do you
+>> prevent it?
+
+We don't allow a directory to be removed if it is currently open by a process.
+We check this by trying to first opening it, checking to see if the open count is 1, and then if it is 1 (because we know no other processes have that directory open) we delete the directory.
+
+The remove system call allows empty directories (other than having '.' and '..' in them) to be deleted.
+
+---- RATIONALE ----
+
+>> B6: Explain why you chose to represent the current directory of a
+>> process the way you did.
+
+We chose to store the current directory's inode sector number in the processes
+thread structure. (see struct thread: block_sector_t current_working_dir;)
+
+This works best because the inode for the parent directory can be obtained / looked up based on the sector number.  
+
+The main threads current_working_dir is initialized to ROOT_DIR_SECTOR, and every other threads cwd is initialized to its parents cwd and is updated as it changes directories
+
+
+			   SURVEY QUESTIONS
+			   ================
+
+Answering these questions is optional, but it will help us improve the
+course in future quarters.  Feel free to tell us anything you
+want--these questions are just to spur your thoughts.  You may also
+choose to respond anonymously in the course evaluations at the end of
+the quarter.
+
+>> In your opinion, was this assignment, or any one of the three problems
+>> in it, too easy or too hard?  Did it take too long or too little time?
+
+took forever!!!
+
+>> Did you find that working on a particular part of the assignment gave
+>> you greater insight into some aspect of OS design?
+
+file system setup was cool, subdirectories weren't so much
+
+>> Is there some particular fact or hint we should give students in
+>> future quarters to help them solve the problems?  Conversely, did you
+>> find any of our guidance to be misleading?
+
+start early, maybe say which functions should/shouldn't change
+
+>> Do you have any suggestions for the TAs to more effectively assist
+>> students in future quarters?
+
+nope, great job!
+
+>> Any other comments?
+
+Why is the design doc focused so much on synchronization when just a tiny portion of the the actually programming required synchronization?
+
+Thanks for this semester!

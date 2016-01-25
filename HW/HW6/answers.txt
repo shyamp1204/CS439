@@ -1,0 +1,29 @@
+Homework #: 6
+Student Name: Alex Irion
+EID: aji272
+CS login: alex10
+Email address: alexirion10@gmail.com
+Unique Number: 50745
+
+1.
+Yes. Paging is vulnerable to internal fragmentation because page sizes are set, and processes don't always use the full amount of memory in the frame.
+External fragmentation is very small if any in paging because pages are mapped to physical memory from virtual memory, not allowing any unused blocks between frames
+
+2.
+Smaller pages will help reduce internal fragmentation and allows more frames to be in physical memory at once.
+Larger pages give programs a more memory to use, and better speed because there be less paging (less page faults / better locality)
+Page sizes are growing in paging memory systems because memory is cheap and more of it is being put in each computers, and it avoids page faults more often.
+
+Large pages wont need to load pages as often.
+
+3.
+resident bit - means it's resident in memory
+clock/reference bit - accessed in the last clock rotation
+dirty bit - been written to in memory
+
+4.
+The heap is dynamically allocated so it only uses as much memory as is needed at a certain time.
+OS manages page sizes in chunks.
+
+5.
+No memory access to the swap area on the disk without a chache would take alot of time.  This cache helps find most recently run programs.  Page faults using this system would be very slow.

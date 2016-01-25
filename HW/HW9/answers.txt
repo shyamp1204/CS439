@@ -1,0 +1,95 @@
+Homework #: 9
+Student Name:alex irion
+EID:aji272
+CS login:alex10
+Email address:alexirion10@gmail.com
+Unique Number: 50745
+
+1.
+No, this info can be computed at startup time by looking through the file system. Having a list would be safer and more simplified.
+
+
+2.
+1: pipe (&fd[0]);
+2: close(fd[0]);
+3: close(1);
+4: dup(fd[1]);
+5: close(fd[1]);
+
+The pipe call returns both the read descriptor and the write descriptor for unidirectional communication. However, the writer does not need the read descriptor (fd[0]). And, the reader does not need the write descriptor (fd[1]).
+
+Now close the fd[0] first, and then closes STD_OUTPUT. It then duplicates fd[1], which will now be in STD_OUTPUT since it is available. Since the output descriptor of the pipe is now duplicated, it is no longer needed either, so it is closed. Now, when the writer writes something to STD_OUTPUT, it will be writing to the output descriptor of the pipe.
+
+1.STIN
+2.pipe write_end
+3.STDERR
+4.-
+5.-
+
+3.
+traceroute cityoflondon.gov.uk
+goes through Paris and is slightly faster the second time I tried it, although very close results.
+starts at aces.utexas.edu and goes to COLT-TELECO.edge5.Paris1.Level3.net
+
+
+4.
+create a socket descriptor on the client
+
+Find Server Using DNS. This slide is text with embedded code.  Plain text on next slide. The client then builds the server’s Internet address
+
+Finally the client creates a connecIon with the server 
+Client process blocks unIl the connecIon is created 
+After resuming, the client is ready to begin exchanging messages with 
+the server via Unix I/O calls (typically send/recv) on descriptor 
+clientfd
+
+bind() associates the socket with the socket 
+address (created similarly to that of the client)
+
+Server: setsockopt(2)
+This slide is text with embedded code.  Plain text on next slide. 
+Avoid problems with bind()… Give the socket some 
+amributes
+
+Server: listen(2)
+This slide is text with embedded code.  Plain text on next slide. 
+listen() indicates that this socket will accept 
+connecIon (connect) requests from clients 
+LISTENQ is a constant indicaIng how many 
+pending requests allowed 
+
+accept()blocks waiIng for a connection request 
+
+5.
+Which is the best (fastest) network on which to implement a remote-memory read that sends a 100 byte packet from machine A to machine B and then sends a 8000 byte packet from machine B to machine A?
+
+A network with 200 microsecond processing overhead, 10 Mbyte/s bandwidth, 20 microsecond latency
+(200*2)+
+=
+
+***WINNER***
+A network with 20 microsecond processing overhead, 10 Mbyte/s bandwidth, 200 microsecond latency
+(20*4)+
+=
+
+A network with 20 microsecond processing overhead, 1 Mbyte/s bandwidth, 2 microsecond latency
+20*4+(8100/1)*2
+=
+
+A network with 2 microsecond processing overhead, 1 Mbyte/s bandwidth, 20 microsecond latency
+2*4+(8100/1)*20
+=
+
+
+*************************
+We discussed difficulties encountered when one attempts to implement a remote procedure call.  Name for of the difficulties. 
+
+-can't have pointers as parameters
+-can't have variables of indeterminate size
+-no global variables
+-network failures
+
+There are additional complications when the procedure executes a system call.  What are the complications and how might you fix them?
+
+
+star wars telnet blinkin lights
